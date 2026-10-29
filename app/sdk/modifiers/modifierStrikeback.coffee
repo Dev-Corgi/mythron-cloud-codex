@@ -35,6 +35,10 @@ class ModifierStrikeback extends Modifier
         @onEntitiesInvolvedInAttack(event)
 
   getIsActionRelevant: (a) ->
+    # New-rules matches never generate automatic counterattacks. Keep this at
+    # the shared predicate so authoritative execution and predicted action trees agree.
+    return false if @getCard().getGameSession().getRulesetId() is 'practice-sandbox-hex'
+
     # attack against this entity must be explicit or caused by a specific modifier that entities are allowed to strikeback against
     return ((a instanceof AttackAction and (!a.getIsImplicit() || a.getTriggeringModifier() instanceof ModifierBlastAttack)) or a instanceof ForcedAttackAction) and a.getTarget() == @getCard() and a.getSource() isnt @getCard() and a.getIsStrikebackAllowed() and @getCard().getATK() > 0 and @getCanReachEntity(a.getSource())
 

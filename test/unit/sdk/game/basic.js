@@ -55,6 +55,78 @@ describe('basic', () => {
     expect(windbladeAdept.getDamage()).to.equal(2);
   });
 
+  it('does not generate a counterattack for explicit or forced attacks in the hex ruleset', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 1);
+    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    attacker.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(attacker, -1, 2, null, null);
+    const defender = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    defender.setOwnerId(gameSession.getPlayer2Id());
+    gameSession.applyCardToBoard(defender, 0, 2, null, null);
+    attacker.refreshExhaustion();
+    attacker.setDamage(1);
+
+    const predictedKills = attacker.getEntitiesKilledByAttackOn(defender);
+    expect(predictedKills).to.not.include(attacker);
+
+    const preAttackSnapshot = JSON.parse(gameSession.serializeToJSON(gameSession));
+    const attack = attacker.actionAttack(defender);
+    gameSession.executeAction(attack);
+    expect(defender.getDamage()).to.equal(2);
+    expect(attacker.getDamage()).to.equal(1);
+    expect(attack.getSubActions()).to.deep.equal([]);
+
+    const serializedAttack = JSON.parse(gameSession.serializeToJSON(attack));
+    gameSession.deserializeSessionFromFirebase(preAttackSnapshot);
+    const replayAttack = gameSession.deserializeActionFromFirebase(serializedAttack);
+    const replayAttacker = replayAttack.getSource();
+    const replayDefender = replayAttack.getTarget();
+    expect(replayDefender.getDamage()).to.equal(0);
+    expect(replayAttacker.getDamage()).to.equal(1);
+    gameSession.executeAction(replayAttack);
+    expect(replayDefender.getDamage()).to.equal(2);
+    expect(replayAttacker.getDamage()).to.equal(1);
+    const replayTree = replayAttack.getFlattenedActionTree();
+    expect(replayAttack.getSubActions()).to.deep.equal([]);
+    expect(replayTree.some((action) => action.getSource() === replayDefender && action.getTarget() === replayAttacker)).to.equal(false);
+
+    const ForcedAttackAction = require('../../../../app/sdk/actions/forcedAttackAction.coffee');
+    const forcedAttack = new ForcedAttackAction(gameSession);
+    forcedAttack.setSource(replayAttacker);
+    forcedAttack.setTarget(replayDefender);
+    UtilsSDK.executeActionWithoutValidation(forcedAttack);
+    expect(replayDefender.getDamage()).to.equal(4);
+    expect(replayAttacker.getDamage()).to.equal(1);
+  });
+
+  it('preserves hex blast damage without a strikeback from its implicit attack', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 1);
+    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Faction3.Pyromancer);
+    attacker.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(attacker, 0, 0, null, null);
+    const primaryTarget = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    primaryTarget.setOwnerId(gameSession.getPlayer2Id());
+    gameSession.applyCardToBoard(primaryTarget, 0, 1, null, null);
+    attacker.refreshExhaustion();
+
+    const ModifierBlastAttack = require('../../../../app/sdk/modifiers/modifierBlastAttack.coffee');
+    const blastModifier = attacker.getActiveModifierByClass(ModifierBlastAttack);
+    const parentAttack = attacker.actionAttack(primaryTarget);
+    parentAttack.setIndex(gameSession.generateIndex());
+    const attack = attacker.actionAttack(primaryTarget);
+    attack.setParentAction(parentAttack);
+    attack.setTriggeringModifier(blastModifier);
+    gameSession.executeAction(attack);
+
+    expect(primaryTarget.getDamage()).to.equal(2);
+    expect(attacker.getDamage()).to.equal(0);
+    expect(attack.getIsImplicit()).to.equal(true);
+    expect(attack.getTriggeringModifier()).to.equal(blastModifier);
+    expect(attack.getSubActions()).to.deep.equal([]);
+  });
+
   it('expect to not be able to attack when out of range', () => {
     const gameSession = SDK.GameSession.getInstance();
     const board = gameSession.getBoard();
