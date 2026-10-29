@@ -13,7 +13,7 @@ class SpellSoulclamp extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
 
     #kill the target entity

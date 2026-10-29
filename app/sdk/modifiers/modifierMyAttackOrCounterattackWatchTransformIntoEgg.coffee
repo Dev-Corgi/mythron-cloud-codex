@@ -24,7 +24,7 @@ class ModifierMyAttackOrCounterattackWatchTransformIntoEgg extends ModifierMyAtt
     removeEntityAction.setTarget(@getCard())
     @getGameSession().executeAction(removeEntityAction)
 
-    spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), entity.getOwnerId(), entity.getPosition().x, entity.getPosition().y, egg)
+    spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), entity.getOwnerId(), entity.getPosition(), egg)
     @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = ModifierMyAttackOrCounterattackWatchTransformIntoEgg

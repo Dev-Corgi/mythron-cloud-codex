@@ -1,6 +1,7 @@
 ModifierMyAttackWatch = require './modifierMyAttackWatch'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
 PlayCardSilentlyAction = require 'app/sdk/actions/playCardSilentlyAction'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
 
 class ModifierMyAttackWatchScarabBlast extends ModifierMyAttackWatch
 
@@ -19,6 +20,22 @@ class ModifierMyAttackWatchScarabBlast extends ModifierMyAttackWatch
       targetPosition = target.getPosition()
       myPosition = @getCard().getPosition()
       board = @getCard().getGameSession().getBoard()
+
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        dq = targetPosition.q - myPosition.q
+        dr = targetPosition.r - myPosition.r
+        distance = board.getHexDistance(myPosition, targetPosition)
+        for direction in HexTopology.neighborDeltas
+          if distance? and distance > 0 and dq is direction.q * distance and dr is direction.r * distance
+            candidate = {q: myPosition.q + direction.q, r: myPosition.r + direction.r}
+            while board.isOnBoard(candidate)
+              unless board.positionsEqual(candidate, targetPosition)
+                playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), candidate, {id: Cards.Faction3.Scarab})
+                playCardAction.setSource(@getCard())
+                @getGameSession().executeAction(playCardAction)
+              candidate = {q: candidate.q + direction.q, r: candidate.r + direction.r}
+            return
+        return
 
       if targetPosition.x == myPosition.x
         if targetPosition.y < myPosition.y
@@ -57,7 +74,7 @@ class ModifierMyAttackWatchScarabBlast extends ModifierMyAttackWatch
       if spawnPositions.length > 0
         for position in spawnPositions
           if position? and !(position.x == targetPosition.x and position.y == targetPosition.y)
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, {id: Cards.Faction3.Scarab})
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, {id: Cards.Faction3.Scarab})
             playCardAction.setSource(@getCard())
             @getGameSession().executeAction(playCardAction)
 

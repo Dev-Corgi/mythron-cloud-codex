@@ -43,9 +43,9 @@ class ModifierEnemyTeamMoveWatchSummonEntityBehind extends ModifierEnemyTeamMove
         ownerId = @getSpawnOwnerId(action)
         cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn()
         if @spawnSilently
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, behindPosition.x, behindPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, behindPosition, cardDataOrIndexToSpawn)
         else
-          spawnAction = new PlayCardAction(@getGameSession(), ownerId, behindPosition.x, behindPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardAction(@getGameSession(), ownerId, behindPosition, cardDataOrIndexToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 
@@ -55,7 +55,10 @@ class ModifierEnemyTeamMoveWatchSummonEntityBehind extends ModifierEnemyTeamMove
   getSpaceBehindMovingUnit: (behindUnit) ->
     if behindUnit?
       position = behindUnit.getPosition()
-      position.x += if behindUnit.isOwnedByPlayer1() then -1 else 1
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        position.q += if behindUnit.isOwnedByPlayer1() then -1 else 1
+      else
+        position.x += if behindUnit.isOwnedByPlayer1() then -1 else 1
 
       return position
 

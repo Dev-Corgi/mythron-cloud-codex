@@ -28,7 +28,7 @@ class ModifierMyAttackWatchSummonDeadMinions extends ModifierMyAttackWatch
           if validSpawnLocations.length > 0
             location = validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0]
             cardData = minion.createNewCardData()
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), location.x, location.y, cardData)
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), location, cardData)
             playCardAction.setSource(@getCard())
             @getGameSession().executeAction(playCardAction)
 

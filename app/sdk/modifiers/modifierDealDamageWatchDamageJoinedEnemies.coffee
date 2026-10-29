@@ -32,7 +32,7 @@ class ModifierDealDamageWatchDamageJoinedEnemies extends ModifierDealDamageWatch
         enemyPosition = enemy.getPosition()
         alreadyDamaged = false
         for position in damagedPositions
-          if enemyPosition.x == position.x and enemyPosition.y == position.y
+          if @getGameSession().getBoard().positionsEqual(enemyPosition, position)
             alreadyDamaged = true
             break
         if !alreadyDamaged

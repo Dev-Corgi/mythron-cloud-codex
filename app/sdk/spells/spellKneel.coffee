@@ -13,7 +13,7 @@ class SpellKneel extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellKneel::onApplyEffectToBoardTile "
     source = board.getCardAtPosition(applyEffectPosition, @targetType)
@@ -31,6 +31,9 @@ class SpellKneel extends Spell
       # set x offset based on which direction the target General faces
       targetGeneralPosition = targetGeneral.getPosition()
       if targetGeneral.isOwnedByPlayer1() then offset = 1 else offset = -1
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        targetGeneralPosition.q += offset
+        return targetGeneralPosition
       return {x: targetGeneralPosition.x + offset, y: targetGeneralPosition.y}
     return
 

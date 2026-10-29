@@ -40,7 +40,7 @@ class ModifierTakeDamageWatchJuggernaut extends ModifierTakeDamageWatch
           card = golemCards[@getGameSession().getRandomIntegerForExecution(golemCards.length)]
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(card.createNewCardData(), card.getName()))
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, cardDataOrIndexToSpawn)
           spawnAction.setSource(@getCard())
           @getGameSession().executeAction(spawnAction)
 

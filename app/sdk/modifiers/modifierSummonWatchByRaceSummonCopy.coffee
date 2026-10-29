@@ -25,7 +25,7 @@ class ModifierSummonWatchByRaceSummonCopy extends ModifierSummonWatch
       spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), originalPosition, CONFIG.PATTERN_3x3, minion, @getCard(), 1)
       if spawnLocations? and spawnLocations.length > 0
         spawnPosition = spawnLocations[0]
-        spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), spawnPosition.x, spawnPosition.y)
+        spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), spawnPosition)
         spawnEntityAction.setOwnerId(@getOwnerId())
         spawnEntityAction.setSource(minion)
         @getGameSession().executeAction(spawnEntityAction)

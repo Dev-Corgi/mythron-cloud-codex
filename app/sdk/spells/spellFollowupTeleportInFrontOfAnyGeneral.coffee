@@ -11,13 +11,21 @@ class SpellFollowupTeleportInFrontOfAnyGeneral extends SpellFollowupTeleport
       if unit.getIsGeneral()
         if unit.isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
         entity = @getGameSession().getGeneralForPlayerId(@getOwnerId())
-        inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
+        if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+          inFrontOfPosition = unit.getPosition()
+          inFrontOfPosition.q += playerOffset
+        else
+          inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
         if board.isOnBoard(inFrontOfPosition) and !board.getObstructionAtPositionForEntity(inFrontOfPosition, entity)
           inFrontOfPositions.push(inFrontOfPosition)
 
     paternInFrontOfGenerals = []
     for position in inFrontOfPositions
-      paternInFrontOfGenerals.push({x: position.x - @getFollowupSourcePosition().x, y: position.y - @getFollowupSourcePosition().y})
+      sourcePosition = @getFollowupSourcePosition()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        paternInFrontOfGenerals.push({q: position.q - sourcePosition.q, r: position.r - sourcePosition.r})
+      else
+        paternInFrontOfGenerals.push({x: position.x - sourcePosition.x, y: position.y - sourcePosition.y})
 
     return paternInFrontOfGenerals
 

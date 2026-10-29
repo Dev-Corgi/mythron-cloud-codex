@@ -14,7 +14,11 @@ class PlayCardFromHandAction extends PlayCardAction
 
   constructor: (gameSession, ownerId, x, y, handIndex) ->
     @type ?= PlayCardFromHandAction.type
-    super(gameSession, ownerId, x, y)
+    if x? and typeof x is 'object'
+      handIndex ?= y
+      super(gameSession, ownerId, x)
+    else
+      super(gameSession, ownerId, x, y)
 
     @indexOfCardInHand = handIndex
 

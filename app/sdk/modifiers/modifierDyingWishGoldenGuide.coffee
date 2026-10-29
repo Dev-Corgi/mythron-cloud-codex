@@ -29,7 +29,7 @@ class ModifierDyingWishGoldenGuide extends ModifierDyingWish
         removeAction.setTarget(unitToRemove)
         @getGameSession().executeAction(removeAction)
 
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, {id: Cards.Faction3.GoldenGuide})
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, {id: Cards.Faction3.GoldenGuide})
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

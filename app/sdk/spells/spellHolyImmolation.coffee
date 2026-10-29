@@ -16,7 +16,7 @@ class SpellHolyImmolation extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     targetEntity = board.getCardAtPosition(applyEffectPosition, @targetType)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellHolyImmolation::onApplyEffectToBoardTile -> immolate #{targetEntity.name}"

@@ -29,7 +29,7 @@ class ModifierSummonWatchTransform extends ModifierSummonWatch
 
       @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
       @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
-      spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), entity.getPosition().x, entity.getPosition().y, @cardDataOrIndexToSpawn)
+      spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), entity.getPosition(), @cardDataOrIndexToSpawn)
       @getGameSession().executeAction(spawnEntityAction)
 
   getIsValidTransformPosition: (summonedUnitPosition) ->

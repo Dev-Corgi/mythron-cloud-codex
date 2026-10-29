@@ -17,9 +17,13 @@ class SpellChargeIntoBattle extends SpellApplyModifiers
 
     for position in validPositions
       unit = @getGameSession().getBoard().getUnitAtPosition(position)
-      if player1 and unit?.getPosition().x == generalPosition.x-1 and unit.getPosition().y == generalPosition.y
+      unitPosition = unit?.getPosition()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        if unitPosition? and unitPosition.r is generalPosition.r and unitPosition.q is generalPosition.q + (if player1 then -1 else 1)
+          filteredValidPositions.push(unitPosition)
+      else if player1 and unitPosition?.x == generalPosition.x-1 and unitPosition.y == generalPosition.y
         filteredValidPositions.push(unit.getPosition())
-      if !player1 and unit?.getPosition().x == generalPosition.x+1 and unit.getPosition().y == generalPosition.y
+      if @getGameSession().getRulesetId() isnt 'practice-sandbox-hex' and !player1 and unitPosition?.x == generalPosition.x+1 and unitPosition.y == generalPosition.y
         filteredValidPositions.push(unit.getPosition())
 
     return filteredValidPositions

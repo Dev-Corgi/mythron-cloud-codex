@@ -81,7 +81,7 @@ class ModifierOpeningGambitLifeGive extends ModifierOpeningGambit
 
         for position, i in spawnLocations
           # respawn each dead unit as a fresh copy
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, {id: deadUnitIds[i]})
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, {id: deadUnitIds[i]})
           playCardAction.setSource(@getCard())
           @getGameSession().executeAction(playCardAction)
 

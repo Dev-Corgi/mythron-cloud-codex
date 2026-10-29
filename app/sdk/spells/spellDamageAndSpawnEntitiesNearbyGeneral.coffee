@@ -19,7 +19,7 @@ class SpellDamageAndSpawnEntitiesNearbyGeneral extends SpellSpawnEntity
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
     if target? and target.getOwnerId() != @getOwnerId()
       damageAction = new DamageAction(@getGameSession())

@@ -7,7 +7,7 @@ class SpellUpperHand extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     minion = board.getCardAtPosition(applyEffectPosition, CardType.Unit, false, false)
     hand = @getGameSession().getOpponentPlayerOfPlayerId(@getOwnerId()).getDeck().getCardsInHandExcludingMissing()
     if hand? and minion? and hand.length > 0

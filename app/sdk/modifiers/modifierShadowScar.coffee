@@ -26,7 +26,7 @@ class ModifierShadowScar extends ModifierDyingWish
 
     if @getGameSession().getIsRunningAsAuthoritative() and @cardDataOrIndexToSpawn?
       if @spawnOwnerId?
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @spawnOwnerId, @getCard().getPositionX(), @getCard().getPositionY(), @cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @spawnOwnerId, @getCard().getPosition(), @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

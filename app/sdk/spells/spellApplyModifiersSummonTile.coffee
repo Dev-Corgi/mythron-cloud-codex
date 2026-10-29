@@ -8,11 +8,11 @@ class SpellApplyModifiersSummonTile extends SpellApplyModifiers
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     # always spawn a tile at position
     if board.isOnBoard(applyEffectPosition)
-      action = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, @cardDataOrIndexToSpawn)
+      action = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), @cardDataOrIndexToSpawn)
       action.setOwnerId(@getOwnerId())
       @getGameSession().executeAction(action)
 

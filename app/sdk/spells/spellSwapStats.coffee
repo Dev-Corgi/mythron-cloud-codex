@@ -7,7 +7,7 @@ class SpellSwapStats extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction) # apply buff
 
-    entity = board.getCardAtPosition({x:x, y:y}, CardType.Unit)
+    entity = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
 
     if entity?
       # get current attack and health values WITHOUT aura contributions

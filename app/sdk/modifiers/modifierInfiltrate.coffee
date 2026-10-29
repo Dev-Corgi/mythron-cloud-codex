@@ -51,7 +51,7 @@ class ModifierInfiltrate extends ModifierSituationalBuffSelf
     else if @getCard().isOwnedByPlayer2()
       enemySideEndX = Math.floor((enemySideEndX - enemySideStartX) * 0.5 - 1)
 
-    x = @getCard().getPosition().x
+    x = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(@getCard().getPosition()) else @getCard().getPosition().x
     return x >= enemySideStartX and x <= enemySideEndX
 
 module.exports = ModifierInfiltrate

@@ -25,7 +25,10 @@ class TeleportInFrontOfUnitAction extends TeleportAction
       if @_private.inFrontOfUnit? and @getSource()
         # calculate "in front of me"
         position = @_private.inFrontOfUnit.getPosition()
-        position.x += if @_private.inFrontOfUnit.isOwnedByPlayer1() then 1 else -1
+        if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+          position.q += if @_private.inFrontOfUnit.isOwnedByPlayer1() then 1 else -1
+        else
+          position.x += if @_private.inFrontOfUnit.isOwnedByPlayer1() then 1 else -1
         # now set the target position (this is what TeleportAction expects)
         @setTargetPosition(position)
         super() # and execute the teleport

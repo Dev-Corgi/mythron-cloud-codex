@@ -36,7 +36,7 @@ class SpellMetalworking extends Spell
       artifactToPlay = potentialArtifacts[@getGameSession().getRandomIntegerForExecution(potentialArtifacts.length)]
 
       if artifactToPlay?
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, artifactToPlay.createNewCardData())
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), artifactToPlay.createNewCardData())
         playCardAction.setSource(@)
         @getGameSession().executeAction(playCardAction)
 

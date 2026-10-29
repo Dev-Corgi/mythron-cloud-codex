@@ -21,7 +21,7 @@ class ModifierMyAttackMinionWatchKillTargetSummonThisOnSpace extends ModifierMyA
       @getGameSession().executeAction(killAction)
 
       position = target.getPosition()
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @getCard().createNewCardData())
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, @getCard().createNewCardData())
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

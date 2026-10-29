@@ -60,7 +60,7 @@ class SpellDinoParty extends Spell
 
       if spawnLocations? and spawnLocations.length > 0
         locationToSummon = spawnLocations.splice(@getGameSession().getRandomIntegerForExecution(spawnLocations.length), 1)[0]
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, locationToSummon.x, locationToSummon.y, cardToSummon.getIndex())
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, locationToSummon, cardToSummon.getIndex())
         playCardAction.setSource(general)
         @getGameSession().executeAction(playCardAction)
         return true

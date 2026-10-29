@@ -5,7 +5,7 @@ class SpellWintersWake extends SpellApplyModifiers
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     # this should be only applying to Walls
-    card = @getGameSession().getBoard().getCardAtPosition({x:x, y:y})
+    card = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y))
     wallMod = card.getModifierByClass(ModifierWall)
     # allow this Wall to move
     if wallMod?

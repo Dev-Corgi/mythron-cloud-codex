@@ -32,7 +32,7 @@ class SpellWhisperOfTheSands extends Spell
         spawnPositions = spawnData.spawnPositions
         if spawnPositions.length > 0
           spawnPosition = spawnPositions[0]
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, cardDataToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition, cardDataToSpawn)
           spawnAction.setSource(@)
           @getGameSession().executeAction(spawnAction)
 

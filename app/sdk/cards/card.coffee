@@ -1342,6 +1342,14 @@ class Card extends SDKObject
     return @_private.cachedValidTargetPositions
 
   getIsPositionValidTarget: (targetPosition) ->
+    if @getGameSession()?.getRulesetId?() is 'practice-sandbox-hex'
+      return false unless targetPosition? and Number.isInteger(targetPosition.q) and Number.isInteger(targetPosition.r) and @getGameSession().getBoard().isOnBoard(targetPosition)
+      key = "#{targetPosition.q},#{targetPosition.r}"
+      res = @_private.cachedIsValidTargetPosition[key]
+      if !res?
+        valid = @getValidTargetPositions().some((position) -> position?.q is targetPosition.q and position?.r is targetPosition.r)
+        res = @_private.cachedIsValidTargetPosition[key] = valid and @isAreaOfEffectOnBoard(targetPosition)
+      return res
     # index must be string and cannot be map index as position may be outside board space
     # map indices can conflict when generated for positions outside the board
     index = targetPosition.x + "_" + targetPosition.y
@@ -1371,6 +1379,15 @@ class Card extends SDKObject
     board = @getGameSession().getBoard()
     isOnBoard = board.isOnBoard(targetPosition)
     affectPattern = @getAffectPattern()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return false unless isOnBoard
+      if affectPattern? and affectPattern.length > 0
+        key = "#{targetPosition.q},#{targetPosition.r}"
+        res = @_private.cachedIsAreaOfEffectOnBoard[key]
+        if !res?
+          res = @_private.cachedIsAreaOfEffectOnBoard[key] = (@getAffectPositionsFromPattern(targetPosition).length == affectPattern.length)
+        return res
+      return true
     if isOnBoard and affectPattern? and affectPattern.length > 0
       # if we've already tested this position, return previous result
       index = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), targetPosition.x, targetPosition.y)

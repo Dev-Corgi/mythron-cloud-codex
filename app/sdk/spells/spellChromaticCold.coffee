@@ -11,7 +11,7 @@ class SpellChromaticCold extends SpellSilence
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction) # dispel the space
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     if unit? and unit.getOwnerId() != @getOwnerId() # damage enemies on this space
       damageAction = new DamageAction(@getGameSession())

@@ -41,9 +41,9 @@ class ModifierDyingWishSpawnEntityNearbyGeneral extends ModifierDyingWish
 
       for position in spawnLocations
         if !@spawnSilently
-          playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+          playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
         else
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
         playCardAction.sourcePosition = @getCard().getPosition()
         @getGameSession().executeAction(playCardAction)
 

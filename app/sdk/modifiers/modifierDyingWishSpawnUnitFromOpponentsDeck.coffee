@@ -73,9 +73,9 @@ class ModifierDyingWishSpawnUnitFromOpponentsDeck extends ModifierDyingWish
 
         for position in spawnLocations
           if !@spawnSilently
-            playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, cardIndex)
+            playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position, cardIndex)
           else
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, cardIndex)
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, cardIndex)
           playCardAction.setSource(@getCard())
           @getGameSession().executeAction(playCardAction)
 

@@ -34,7 +34,7 @@ class SpellEquipBossArtifacts extends Spell
     # equip the random artifact
     if cardDataToPlay? and cardDataToPlay.length > 0
       for cardData in cardDataToPlay
-        playCardAction = new PlayCardSilentlyAction(gameSession, @getOwnerId(), x, y, cardData)
+        playCardAction = new PlayCardSilentlyAction(gameSession, @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardData)
         playCardAction.setSource(@)
         gameSession.executeAction(playCardAction)
 

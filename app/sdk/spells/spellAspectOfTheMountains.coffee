@@ -10,7 +10,7 @@ class SpellAspectOfTheMountains extends SpellAspectBase
     super(board,x,y,sourceAction) # transform target into a seismic elemental
 
     # damage ALL nearby minions around target location
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     for entity in board.getCardsWithinRadiusOfPosition(applyEffectPosition, CardType.Unit, 1, false)
       if !entity.getIsGeneral() and entity.getOwnerId() isnt @getOwnerId() # don't damage Generals or friendly units
         damageAction = new DamageAction(@getGameSession())

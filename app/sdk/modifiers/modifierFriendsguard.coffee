@@ -27,7 +27,7 @@ class ModifierFriendsguard extends ModifierFriendlyDeathWatch
 
       entityPosition = @getCard().getPosition()
       entityOwnerId = @getCard().getOwnerId()
-      spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), entityOwnerId, entityPosition.x, entityPosition.y, @cardDataOrIndexToSpawn)
+      spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), entityOwnerId, entityPosition, @cardDataOrIndexToSpawn)
       @getGameSession().executeAction(spawnEntityAction)
 
 

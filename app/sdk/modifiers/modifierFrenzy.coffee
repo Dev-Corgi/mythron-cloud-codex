@@ -39,6 +39,8 @@ class ModifierFrenzy extends Modifier
       target = a.getTarget()
       targetPosition = target.getPosition()
       entityPosition = @getCard().getPosition()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        return @getGameSession().getBoard().getHexDistance(targetPosition, entityPosition) <= 1
       return Math.abs(targetPosition.x - entityPosition.x) <= 1 and Math.abs(targetPosition.y - entityPosition.y) <= 1
     return false
 

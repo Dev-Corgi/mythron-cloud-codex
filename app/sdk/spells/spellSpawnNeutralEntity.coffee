@@ -22,9 +22,9 @@ class SpellSpawnNeutralEntity extends SpellSpawnEntity
     entity = @getEntityToSpawn(cardDataOrIndexToSpawn)
     if entity and !@getGameSession().getBoard().getObstructionAtPositionForEntity(targetPosition, entity)
       if @spawnSilently
-        spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, cardDataOrIndexToSpawn, true)
+        spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn, true)
       else
-        spawnEntityAction = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, cardDataOrIndexToSpawn, true)
+        spawnEntityAction = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn, true)
     return spawnEntityAction
 
 module.exports = SpellSpawnNeutralEntity

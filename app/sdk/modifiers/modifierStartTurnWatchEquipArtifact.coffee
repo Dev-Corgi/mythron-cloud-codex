@@ -30,7 +30,7 @@ class ModifierStartTurnWatchEquipArtifact extends ModifierStartTurnWatch
       for i in [0...@amount]
         artifactCard = @includedCards[@getGameSession().getRandomIntegerForExecution(@includedCards.length)] # random artifact
         cardDataOrIndexToPutInHand = artifactCard
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, cardDataOrIndexToPutInHand)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), cardDataOrIndexToPutInHand)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

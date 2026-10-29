@@ -13,7 +13,7 @@ class SpellDamage extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellDamage::onApplyEffectToBoardTile -> #{@damageAmount} damage to #{target?.getLogName()} at #{x}, #{y}"
 
     damageAction = new DamageAction(@getGameSession())

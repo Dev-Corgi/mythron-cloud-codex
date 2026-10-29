@@ -21,7 +21,7 @@ class SpellEggMorph extends SpellApplyEntityToBoard
     # check target entity.
     # if it's not already an egg, turn it into an egg
     # if it is an egg, then hatch it immediately
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     existingEntity = board.getCardAtPosition(applyEffectPosition, CardType.Entity)
     if existingEntity?
       if existingEntity.getBaseCardId() isnt Cards.Faction5.Egg # turning non-egg entity into an egg
@@ -53,7 +53,7 @@ class SpellEggMorph extends SpellApplyEntityToBoard
       isObject = _.isObject(cardDataOrIndexToSpawn)
       if isObject then cardDataOrIndexToSpawn = UtilsJavascript.fastExtend({}, cardDataOrIndexToSpawn)
 
-      existingEntity = @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, CardType.Entity)
+      existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Entity)
       if existingEntity?
         if !isObject then cardDataOrIndexToSpawn = @getGameSession().getCardByIndex(cardDataOrIndexToSpawn).createNewCardData()
         cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
@@ -66,13 +66,13 @@ class SpellEggMorph extends SpellApplyEntityToBoard
     entity = @getEntityToSpawn(x, y, cardDataOrIndexToSpawn)
     if entity?
       # we're going to spawn an egg as a transform
-      spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), entity.getOwnerId(), x, y, cardDataOrIndexToSpawn)
+      spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), entity.getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn)
     return spawnEntityAction
 
   getEntityToSpawn: (x, y, cardDataOrIndexToSpawn) ->
     if !cardDataOrIndexToSpawn? then cardDataOrIndexToSpawn = @cardDataOrIndexToSpawn
     if cardDataOrIndexToSpawn?
-      existingEntity = @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, CardType.Entity)
+      existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Entity)
       if existingEntity?
         entity = @getGameSession().getExistingCardFromIndexOrCreateCardFromData(cardDataOrIndexToSpawn)
         entity.setOwnerId(existingEntity.getOwnerId())

@@ -40,17 +40,19 @@ class ModifierHPChangeSummonEntity extends ModifierHPChange
     if hp <= @healthThreshold
       if @getGameSession().getIsRunningAsAuthoritative()
         ownerId = @getSpawnOwnerId(action)
-        wholeBoardPattern = CONFIG.ALL_BOARD_POSITIONS
+        wholeBoardPattern = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getPositions() else CONFIG.ALL_BOARD_POSITIONS
         card = @getGameSession().getExistingCardFromIndexOrCachedCardFromData(@cardDataOrIndexToSpawn)
         thisEntityPosition = @getCard().getPosition()
-        validPositions = _.reject(wholeBoardPattern, (position) -> UtilsPosition.getPositionsAreEqual(position, thisEntityPosition))
-        spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {x:0, y:0}, validPositions, card, @getCard(), @spawnCount)
+        board = @getGameSession().getBoard()
+        validPositions = _.reject(wholeBoardPattern, (position) => board.positionsEqual(position, thisEntityPosition))
+        origin = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then {q:0, r:0} else {x:0, y:0}
+        spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), origin, validPositions, card, @getCard(), @spawnCount)
 
         for position in spawnLocations
           if !@spawnSilently
-            playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+            playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
           else
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
           playCardAction.setSource(@getCard())
           @getGameSession().executeAction(playCardAction)
         # remove modifier so it doesn't trigger again

@@ -37,7 +37,7 @@ class ModifierOpeningGambitSirocco extends ModifierOpeningGambit
           spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, {id: Cards.Neutral.SkyrockGolem})
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, {id: Cards.Neutral.SkyrockGolem})
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

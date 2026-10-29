@@ -38,7 +38,7 @@ class ModifierKillWatchSpawnEgg extends ModifierKillWatch
 
     if spawnPositions?
       for spawnPosition in spawnPositions
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnPosition.x, spawnPosition.y, egg)
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnPosition, egg)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

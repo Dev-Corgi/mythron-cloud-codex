@@ -8,7 +8,7 @@ class SpellHomeostaticRebuke extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getUnitAtPosition({x:x, y:y})
+    target = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y))
     if target.getATK?() > 0
       attackAction = new ForcedAttackAction(@getGameSession())
       attackAction.setOwnerId(@ownerId)

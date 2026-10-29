@@ -39,7 +39,7 @@ class ModifierEndTurnWatchTransformNearbyEnemies extends ModifierEndTurnWatch
           cardData = @cardToBecome
           cardData.additionalInherentModifiersContextObjects ?= []
           cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
-          spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), opponentId, entity.getPosition().x, entity.getPosition().y, cardData)
+          spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), opponentId, entity.getPosition(), cardData)
           @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = ModifierEndTurnWatchTransformNearbyEnemies

@@ -31,7 +31,7 @@ class ModifierAntiMagicField extends Modifier
     a = event.action
 
     # cannot be targeted by spells
-    if @getCard()? and a instanceof ApplyCardToBoardAction and a.getIsValid() and UtilsPosition.getPositionsAreEqual(@getCard().getPosition(), a.getTargetPosition())
+    if @getCard()? and a instanceof ApplyCardToBoardAction and a.getIsValid() and @getGameSession().getBoard().positionsEqual(@getCard().getPosition(), a.getTargetPosition())
       card = a.getCard()
       if card.getRootPlayedCard().type is CardType.Spell and !card.getTargetsSpace() and !card.getAppliesSameEffectToMultipleTargets()
         @invalidateAction(a, @getCard().getPosition(), "Protected by Anti-Magic Field.")

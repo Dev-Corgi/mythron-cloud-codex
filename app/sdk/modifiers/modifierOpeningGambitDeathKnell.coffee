@@ -48,7 +48,7 @@ class ModifierOpeningGambitDeathKnell extends ModifierOpeningGambit
             break
 
         for position, i in spawnLocations
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, {id: deadArcanystIds[i]})
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, {id: deadArcanystIds[i]})
           playCardAction.setSource(@getCard())
           @getGameSession().executeAction(playCardAction)
 

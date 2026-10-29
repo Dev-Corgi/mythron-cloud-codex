@@ -23,7 +23,10 @@ class ModifierSynergizeDamageClosestEnemy extends ModifierSynergize
       potentialTargets = []
       for potentialTarget in @getGameSession().getBoard().getEnemyEntitiesForEntity(@getCard(), CardType.Unit)
         if potentialTarget?.getIsActive()
-          absoluteDistance = Math.abs(@getCard().position.x - potentialTarget.position.x) + Math.abs(@getCard().position.y - potentialTarget.position.y)
+          if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+            absoluteDistance = @getGameSession().getBoard().getHexDistance(@getCard().getPosition(), potentialTarget.getPosition())
+          else
+            absoluteDistance = Math.abs(@getCard().position.x - potentialTarget.position.x) + Math.abs(@getCard().position.y - potentialTarget.position.y)
           # found a new best target
           if absoluteDistance < bestAbsoluteDistance
             bestAbsoluteDistance = absoluteDistance

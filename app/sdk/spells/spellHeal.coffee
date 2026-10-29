@@ -13,7 +13,7 @@ class SpellHeal extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellHeal::onApplyEffectToBoardTile -> healing #{entity.getLogName()} by #{@healModifier}"
 

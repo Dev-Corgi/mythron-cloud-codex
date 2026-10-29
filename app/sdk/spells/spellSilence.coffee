@@ -13,7 +13,7 @@ class SpellSilence extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entities = board.getEntitiesAtPosition(applyEffectPosition, true)
     for entity in entities
       if entity?

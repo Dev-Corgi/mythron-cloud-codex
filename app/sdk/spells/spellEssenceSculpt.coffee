@@ -7,7 +7,7 @@ class SpellEssenceSculpt extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getUnitAtPosition({x: x, y: y})
+    target = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y))
 
     # put a fresh card matching the original unit into hand
     newCardData = target.createNewCardData()

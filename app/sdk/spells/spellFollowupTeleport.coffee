@@ -12,7 +12,7 @@ class SpellFollowupTeleport extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellFollowupTeleport::onApplyEffectToBoardTile "
     source = board.getCardAtPosition(@getTeleportSourcePosition(applyEffectPosition), @targetType)

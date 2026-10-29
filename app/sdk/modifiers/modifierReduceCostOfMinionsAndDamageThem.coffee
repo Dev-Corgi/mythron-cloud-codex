@@ -49,7 +49,7 @@ class ModifierReduceCostOfMinionsAndDamageThem extends ModifierSummonWatch
 
   onSummonWatch: (action) ->
     unitToDamage = action.getTarget()
-    if unitToDamage? and !UtilsPosition.getPositionsAreEqual(unitToDamage.getPosition(), @getCard().getPosition()) # make sure we aren't trying to damage a clone summoned by a followup spawn (mirage master)
+    if unitToDamage? and !@getGameSession().getBoard().positionsEqual(unitToDamage.getPosition(), @getCard().getPosition()) # make sure we aren't trying to damage a clone summoned by a followup spawn (mirage master)
       damageAction = new DamageAction(@getGameSession())
       damageAction.setOwnerId(@getCard().getOwnerId())
       damageAction.setSource(@getCard())

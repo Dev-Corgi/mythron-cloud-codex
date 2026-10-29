@@ -41,7 +41,7 @@ class ModifierMyGeneralAttackWatchSpawnRandomEntityFromDeck extends ModifierMyGe
         spawnLocation = validSpawnLocations[@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length)]
 
         if spawnLocation?
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocation.x, spawnLocation.y, card)
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocation, card)
           playCardAction.setSource(@getCard())
           @getGameSession().executeAction(playCardAction)
 

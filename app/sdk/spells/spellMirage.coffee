@@ -12,7 +12,7 @@ class SpellMirage extends SpellApplyEntityToBoard
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    card = @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, @targetType)
+    card = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     targetSpawnPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {x:x, y:y}, CONFIG.PATTERN_3x3, card, @, 3)
     if targetSpawnPositions.length > 0
       for position in targetSpawnPositions
@@ -22,9 +22,9 @@ class SpellMirage extends SpellApplyEntityToBoard
           @getGameSession().applyModifierContextObject(ModifierMirage.createContextObject(), spawnAction.getCard())
 
   getSpawnAction: (x, y, targetSpawnPosition) ->
-    cloningEntity = @getGameSession().getBoard().getCardAtPosition({x:x, y:y}, @targetType)
+    cloningEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     if cloningEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(targetSpawnPosition, cloningEntity)
-      spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), targetSpawnPosition.x, targetSpawnPosition.y)
+      spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), targetSpawnPosition)
       spawnEntityAction.setOwnerId(@getOwnerId())
       spawnEntityAction.setSource(cloningEntity)
       return spawnEntityAction

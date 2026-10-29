@@ -15,7 +15,7 @@ class ModifierDyingWishRespawnEntity extends ModifierDyingWish
     super(action)
 
     if @getGameSession().getIsRunningAsAuthoritative()
-      spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, @getCard().createNewCardData())
+      spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @getCard().createNewCardData())
       spawnAction.setSource(@getCard())
       @getGameSession().executeAction(spawnAction)
 

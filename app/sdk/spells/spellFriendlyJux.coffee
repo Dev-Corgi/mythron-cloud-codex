@@ -7,7 +7,7 @@ class SpellFriendlyJux extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     general = @getGameSession().getGeneralForPlayerId(@getOwnerId())
     target = board.getUnitAtPosition(applyEffectPosition)
 

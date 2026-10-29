@@ -41,7 +41,8 @@ class ModifierFateVetruvianMovementQuest extends ModifierFate
       columnToReach = 8
     else
       columnToReach = 0
-    if general.getPosition().x == columnToReach
+    column = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(general.getPosition()) else general.getPosition().x
+    if column == columnToReach
       modifiersByArtifact = general.getArtifactModifiersGroupedByArtifactCard()
       if modifiersByArtifact.length > 0
         return true

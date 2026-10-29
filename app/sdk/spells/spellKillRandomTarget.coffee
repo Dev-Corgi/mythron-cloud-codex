@@ -14,7 +14,7 @@ class SpellKillRandomTarget extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     # only execute the damage on reapply
     # we'll find the random positions during reapply

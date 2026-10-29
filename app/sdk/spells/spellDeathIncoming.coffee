@@ -7,7 +7,7 @@ class SpellDeathIncoming extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    target = board.getCardAtPosition({x:x, y:y}, CardType.Unit)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
     if target?
       if !target.getIsGeneral()
         respawnModifier = PlayerModifierEndTurnRespawnEntityAnywhere.createContextObject(target.createNewCardData())

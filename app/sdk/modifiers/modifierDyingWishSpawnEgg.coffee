@@ -57,7 +57,7 @@ class ModifierDyingWishSpawnEgg extends ModifierDyingWishSpawnEntity
         #cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(cardDataOrIndexToSpawnAsEgg, cardDataOrIndexToSpawnAsEgg.getName()))
 
         # spawn an egg
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), cardDataOrIndexToSpawn)
         @getGameSession().executeAction(playCardAction)
 
 

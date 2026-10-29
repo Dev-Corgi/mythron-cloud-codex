@@ -5,7 +5,7 @@ SpellKillTarget = require './spellKillTarget'
 class SpellMartyrdom extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     target = board.getCardAtPosition(applyEffectPosition, @targetType)
     hpToHeal = target.getHP() #keep track of how much HP target had before it was killed
     general = @getGameSession().getGeneralForPlayerId(target.getOwnerId())

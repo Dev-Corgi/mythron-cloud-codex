@@ -28,7 +28,7 @@ class ModifierTakeDamageWatchSpawnWraithlings extends ModifierTakeDamageWatch
           spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, cardDataOrIndexToSpawn)
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, cardDataOrIndexToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

@@ -19,7 +19,7 @@ class SpellBuffAttributeByOtherAttribute extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    entity = board.getCardAtPosition({x:x, y:y}, @targetType)
+    entity = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     attributeTargetAmount = 0
 
     switch @attributeSource

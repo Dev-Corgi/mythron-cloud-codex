@@ -54,9 +54,9 @@ class ModifierReplaceWatchSpawnEntity extends ModifierReplaceWatch
 
       for position in spawnLocations
         if !@spawnSilently
-          playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+          playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
         else
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

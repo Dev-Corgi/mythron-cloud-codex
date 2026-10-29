@@ -11,7 +11,7 @@ class SpellFollowupActivateBattlePet extends Spell
     super(board,x,y,sourceAction)
 
     if @getGameSession().getIsRunningAsAuthoritative()
-      applyEffectPosition = {x: x, y: y}
+      applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
       target = board.getCardAtPosition(applyEffectPosition, @targetType)
       if target.getIsBattlePet()
         general = @getGameSession().getGeneralForPlayerId(target.getOwnerId())

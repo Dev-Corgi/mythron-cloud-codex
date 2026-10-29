@@ -77,7 +77,7 @@ class ModifierBuilding extends ModifierStartTurnWatch
     # because we may need information about the existing entity being replaced
     @transformCardData.additionalModifiersContextObjects ?= []
     @transformCardData.additionalModifiersContextObjects.push(ModifierTransformed.createContextObject(false,0,0))
-    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPositionX(), @getCard().getPositionY(), @transformCardData)
+    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @transformCardData)
 
     # remove the existing entity
     removingEntity = @getGameSession().getBoard().getCardAtPosition(@getCard().getPosition(), CardType.Unit)

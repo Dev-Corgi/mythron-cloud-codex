@@ -66,17 +66,19 @@ class Action extends SDKObject
     return @type
 
   getLogName: ()->
+    sourcePositionText = if @sourcePosition?.q? then "q:#{@sourcePosition.q},r:#{@sourcePosition.r}" else "x:#{@sourcePosition?.x},y:#{@sourcePosition?.y}"
+    targetPositionText = if @targetPosition?.q? then "q:#{@targetPosition.q},r:#{@targetPosition.r}" else "x:#{@targetPosition?.x},y:#{@targetPosition?.y}"
     logName = "#{@getType().replace(' ','_')}[#{@getIndex()}]"
     if @sourceIndex?
       logName += "_s(#{@sourceIndex})"
     else if @sourcePosition?
-      logName += "_s(x:#{@sourcePosition.x},y:#{@sourcePosition.y})"
+      logName += "_s(#{sourcePositionText})"
     else
       logName += "_s()"
     if @targetIndex?
       logName += "_t(#{@targetIndex})"
     else if @targetPosition?
-      logName += "_t(x:#{@targetPosition.x},y:#{@targetPosition.y})"
+      logName += "_t(#{targetPositionText})"
     else
       logName += "_t()"
     return logName

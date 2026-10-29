@@ -9,7 +9,7 @@ class SpellTickleTendril extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    position = {x: x, y: y}
+    position = @getEffectPositionFromCoordinates(x, y)
     entity = board.getUnitAtPosition(position)
 
     if entity?

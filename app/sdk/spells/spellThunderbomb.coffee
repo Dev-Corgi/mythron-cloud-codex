@@ -9,7 +9,7 @@ class SpellThunderbomb extends SpellDamage
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     targetEntity = board.getUnitAtPosition(applyEffectPosition)
     enemyEntities = board.getFriendlyEntitiesAroundEntity(targetEntity, CardType.Unit, 1)
     

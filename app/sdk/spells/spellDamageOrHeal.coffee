@@ -14,7 +14,7 @@ class SpellDamageOrHeal extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
     if target.getOwnerId() is @getOwnerId()
       healAction = new HealAction(@getGameSession())

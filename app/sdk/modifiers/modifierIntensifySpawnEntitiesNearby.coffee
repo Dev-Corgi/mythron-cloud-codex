@@ -26,7 +26,7 @@ class ModifierIntensifySpawnEntitiesNearby extends ModifierIntensify
       spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), @getCard().getPosition(), CONFIG.PATTERN_3x3, card, @, totalNumberToSpawn)
 
       for location in spawnLocations
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), location.x, location.y, @cardDataOrIndexToSpawn)
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), location, @cardDataOrIndexToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

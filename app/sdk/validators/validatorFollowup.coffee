@@ -102,9 +102,13 @@ class ValidatorFollowup extends Validator
         # - the played card's target position is a valid target position
         if !cardWaitingForFollowups.getIsActionForCurrentFollowup(action)
           @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.invalid_followup_message"))
-        else if action.sourcePosition.x != currentFollowupSourcePosition.x or action.sourcePosition.y != currentFollowupSourcePosition.y
+        else if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and (!Number.isInteger(action.sourcePosition?.q) or !Number.isInteger(action.sourcePosition?.r) or action.sourcePosition.q isnt currentFollowupSourcePosition?.q or action.sourcePosition.r isnt currentFollowupSourcePosition?.r)
           @invalidateAction(action, action.getSourcePosition(), i18next.t("validators.invalid_followup_source_message"))
-        else if !UtilsPosition.getIsPositionInPositions(currentFollowupCard.getValidTargetPositions(), action.targetPosition)
+        else if @getGameSession().getRulesetId() isnt 'practice-sandbox-hex' and (action.sourcePosition.x != currentFollowupSourcePosition.x or action.sourcePosition.y != currentFollowupSourcePosition.y)
+          @invalidateAction(action, action.getSourcePosition(), i18next.t("validators.invalid_followup_source_message"))
+        else if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and (!@getGameSession().getBoard().isOnBoard(action.targetPosition) or !currentFollowupCard.getValidTargetPositions().some((position) => position.q is action.targetPosition.q and position.r is action.targetPosition.r))
+          @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.invalid_followup_target_message"))
+        else if @getGameSession().getRulesetId() isnt 'practice-sandbox-hex' and !UtilsPosition.getIsPositionInPositions(currentFollowupCard.getValidTargetPositions(), action.targetPosition)
           @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.invalid_followup_target_message"))
 
   onAddedActionToQueue: (event) ->

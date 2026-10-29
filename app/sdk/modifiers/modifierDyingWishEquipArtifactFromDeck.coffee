@@ -66,7 +66,7 @@ class ModifierDyingWishEquipArtifactFromDeck extends ModifierDyingWish
       # equip the random artifacts from deck
       if cardIndicesToPlay? and cardIndicesToPlay.length > 0
         for cardIndex in cardIndicesToPlay
-          playCardAction = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, cardIndex)
+          playCardAction = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition(), cardIndex)
           playCardAction.setSource(@getCard())
           gameSession.executeAction(playCardAction)
 

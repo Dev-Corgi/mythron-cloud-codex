@@ -24,7 +24,8 @@ class SpellSpiritAnimalBlessing extends SpellRefreshExhaustion
 
 
       for position in validPositions
-        if position.x >= opponentSideStartX and position.x <= opponentSideEndX
+        column = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(position) else position.x
+        if column >= opponentSideStartX and column <= opponentSideEndX
           filteredPositions.push(position)
 
     return filteredPositions

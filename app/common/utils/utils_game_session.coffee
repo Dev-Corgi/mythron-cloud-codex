@@ -57,6 +57,18 @@ UtilsGameSession.groupModifiersBySourceCard = (modifiers) ->
   return modifiersGroupedBySourceCard
 
 UtilsGameSession.getValidBoardPositionsFromPattern = (board, boardPosition, pattern, allowObstructions=true) ->
+  if board.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+    return (if allowObstructions then board.getPositions() else board.getUnobstructedPositions()) if _.isEqual(pattern, CONFIG.PATTERN_WHOLE_BOARD)
+    return (if allowObstructions then board.getPositions() else board.getUnobstructedPositions()) if _.isEqual(pattern, CONFIG.ALL_BOARD_POSITIONS)
+    pattern = [{q:0, r:0}] if _.isEqual(pattern, CONFIG.PATTERN_1x1)
+    return [] unless boardPosition? and Number.isInteger(boardPosition.q) and Number.isInteger(boardPosition.r) and pattern?
+    positions = []
+    for offset in pattern
+      continue unless Number.isInteger(offset?.q) and Number.isInteger(offset?.r)
+      candidate = {q: boardPosition.q + offset.q, r: boardPosition.r + offset.r}
+      if board.isOnBoard(candidate) and (allowObstructions or !board.getObstructionAtPosition(candidate))
+        positions.push(candidate)
+    return positions
   if UtilsPosition.getArrayOfPositionsContainsArrayOfPositions(pattern, CONFIG.PATTERN_WHOLE_BOARD)
     # special case: entire board
     if allowObstructions
@@ -98,6 +110,13 @@ UtilsGameSession.getSmartSpawnPositionsFromPattern = (gameSession, sourcePositio
   board = gameSession.getBoard()
   spawnPositions = []
   if !pattern? then pattern = CONFIG.PATTERN_1x1
+
+  if gameSession.getRulesetId() is 'practice-sandbox-hex'
+    candidatePositions = UtilsGameSession.getValidBoardPositionsFromPattern(board, sourcePosition, pattern, true)
+    for candidate in candidatePositions
+      if !board.getObstructionAtPositionForEntity(candidate, cardToSpawn)
+        spawnPositions.push(candidate)
+    return spawnPositions
 
   for offset in pattern
     # make sure the potential spawn location is on the board and spawn only when not obstructing or position is unobstructed

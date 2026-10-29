@@ -13,14 +13,14 @@ class SpellMistWalking extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellMistWalking::onApplyEffectToBoardTile "
     source = @getGameSession().getGeneralForPlayerId(@getOwnerId())
     teleAction = new TeleportAction(@getGameSession())
     teleAction.setOwnerId(@getOwnerId())
     teleAction.setSource(source)
-    teleAction.setTargetPosition({x:x, y:y})
+    teleAction.setTargetPosition(@getEffectPositionFromCoordinates(x, y))
     teleAction.setFXResource(_.union(teleAction.getFXResource(), @getFXResource()))
     @getGameSession().executeAction(teleAction)
 
@@ -29,6 +29,11 @@ class SpellMistWalking extends Spell
     validPositions = []
     generalPosition = @getGameSession().getGeneralForPlayerId(@getOwnerId()).getPosition()
     board = @getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for position in board.getHexPositionsInRange(generalPosition, 2)
+        if !board.getCardAtPosition(position, CardType.Unit)
+          validPositions.push(position)
+      return validPositions
     for position in CONFIG.PATTERN_2SPACES
       pos = {x:generalPosition.x+position.x, y:generalPosition.y+position.y}
       if !board.getCardAtPosition(pos, CardType.Unit) and board.isOnBoard(pos)

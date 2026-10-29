@@ -5,7 +5,7 @@ _ = require 'underscore'
 class SpellDamageAndPutCardInHand extends SpellDamage
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     a = new PutCardInHandAction(@getGameSession(), @getOwnerId(), @cardDataOrIndexToPutInHand)
     this.getGameSession().executeAction(a)

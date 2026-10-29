@@ -11,7 +11,7 @@ class SpellFollowupKillTarget extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     target = board.getCardAtPosition(applyEffectPosition, @targetType)
 
     killAction = new KillAction(@getGameSession())

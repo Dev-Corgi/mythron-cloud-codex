@@ -28,6 +28,19 @@ class ModifierOpeningGambitDamageInFrontRow extends ModifierOpeningGambit
     playerOffset = 0
     if @getCard().isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
     board = @getCard().getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      offsetPosition = @getCard().getPosition()
+      loop
+        offsetPosition = board.getHexPositionAtRenderedOffset(offsetPosition, playerOffset)
+        break unless offsetPosition?
+        target = board.getUnitAtPosition(offsetPosition)
+        if target? and target.getOwner() isnt @getCard().getOwner()
+          damageAction = new DamageAction(@getCard().getGameSession())
+          damageAction.setOwnerId(@getCard().getOwnerId())
+          damageAction.setTarget(target)
+          damageAction.setDamageAmount(@damageAmount)
+          @getGameSession().executeAction(damageAction)
+      return
     offsetPosition = {x:@getCard().getPosition().x+playerOffset, y:@getCard().getPosition().y}
     while board.isOnBoard(offsetPosition)
       target = board.getUnitAtPosition(offsetPosition)

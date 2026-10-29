@@ -30,7 +30,7 @@ class ModifierUnseven   extends ModifierDyingWish
 
       if possibleCardsToSummon.length > 0
         cardToSummon = possibleCardsToSummon.splice(@getGameSession().getRandomIntegerForExecution(possibleCardsToSummon.length), 1)[0]
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPositionX(), @getCard().getPositionY(), cardToSummon.getIndex())
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), cardToSummon.getIndex())
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

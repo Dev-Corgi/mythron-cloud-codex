@@ -56,7 +56,7 @@ class ModifierDyingWishTransformRandomMinion extends ModifierDyingWish
           cardData = @minionToTransformTo
           cardData.additionalInherentModifiersContextObjects ?= []
           cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(existingEntity.getExhausted(), existingEntity.getMovesMade(), existingEntity.getAttacksMade()))
-          spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), targetPosition.x, targetPosition.y, cardData)
+          spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), targetPosition, cardData)
           @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = ModifierDyingWishTransformRandomMinion

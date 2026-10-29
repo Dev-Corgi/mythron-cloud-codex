@@ -13,14 +13,17 @@ class ModifierOnDyingResummonAnywhere extends ModifierOnDying
   onDying: () ->
 
     if @getGameSession().getIsRunningAsAuthoritative()
-      wholeBoardPattern = CONFIG.ALL_BOARD_POSITIONS
+      isHex = @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      board = @getGameSession().getBoard()
+      wholeBoardPattern = if isHex then board.getPositions() else CONFIG.ALL_BOARD_POSITIONS
       cardData = @getCard().createNewCardData()
       thisEntityPosition = @getCard().getPosition()
-      validPositions = _.reject(wholeBoardPattern, (position) -> UtilsPosition.getPositionsAreEqual(position, thisEntityPosition))
-      spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {x:0, y:0}, validPositions, @getCard(), @getCard(), 1)
+      validPositions = _.reject(wholeBoardPattern, (position) -> if isHex then board.positionsEqual(position, thisEntityPosition) else UtilsPosition.getPositionsAreEqual(position, thisEntityPosition))
+      origin = if isHex then {q:0, r:0} else {x:0, y:0}
+      spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), origin, validPositions, @getCard(), @getCard(), 1)
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, cardData)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, cardData)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

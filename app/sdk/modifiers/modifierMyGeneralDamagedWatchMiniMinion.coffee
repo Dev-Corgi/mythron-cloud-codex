@@ -21,10 +21,14 @@ class ModifierMyGeneralDamagedWatchMiniMinion extends ModifierMyGeneralDamagedWa
 
     playerOffset = 0
     if @getCard().isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
-    behindPosition = {x:enemyGeneral.getPosition().x+playerOffset, y:enemyGeneral.getPosition().y}
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      behindPosition = enemyGeneral.getPosition()
+      behindPosition.q += playerOffset
+    else
+      behindPosition = {x:enemyGeneral.getPosition().x+playerOffset, y:enemyGeneral.getPosition().y}
 
     if board.isOnBoard(behindPosition) and !board.getObstructionAtPositionForEntity(behindPosition, @getCard())
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), behindPosition.x, behindPosition.y, @getCard().getIndex())
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), behindPosition, @getCard().getIndex())
       @getGameSession().executeAction(playCardAction)
       @getGameSession().executeAction(new DrawCardAction(@getGameSession(), @getCard().getOwnerId()))
 

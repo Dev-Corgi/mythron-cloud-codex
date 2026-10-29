@@ -43,12 +43,18 @@ class SpellAmbush extends SpellSpawnEntity
     else if @isOwnedByPlayer2()
       enemySideEndX = Math.floor((enemySideEndX - enemySideStartX) * 0.5 - 1)
 
-    for position in @getGameSession().getBoard().getUnobstructedPositionsForEntity(@getEntityToSpawn())
-      if position.x >= enemySideStartX and position.x <= enemySideEndX
+    board = @getGameSession().getBoard()
+    for position in board.getUnobstructedPositionsForEntity(@getEntityToSpawn())
+      column = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then board.getHexRenderedColumn(position) else position.x
+      if column >= enemySideStartX and column <= enemySideEndX
         infiltratePattern.push(position)
 
     card = @getEntityToSpawn()
-    applyEffectPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {x:0, y:0}, infiltratePattern, card, @, 4)
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      axialPattern = ({q: position.q, r: position.r} for position in infiltratePattern)
+      applyEffectPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {q:0, r:0}, axialPattern, card, @, 4)
+    else
+      applyEffectPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), {x:0, y:0}, infiltratePattern, card, @, 4)
 
     return applyEffectPositions
 

@@ -10,7 +10,7 @@ class SpellKillEnemyOnFriendlyCreep extends SpellKillTarget
 
     for tile in board.getTiles(true, false)
       if tile.getOwnerId() == @getOwnerId() and tile.getBaseCardId() == Cards.Tile.Shadow
-        tilePosition = {x:tile.getPosition().x, y:tile.getPosition().y}
+        tilePosition = tile.getPosition()
         unitOnCreep = board.getCardAtPosition(tilePosition, CardType.Unit)
         if unitOnCreep? and unitOnCreep.getOwnerId() != @getOwnerId() and !unitOnCreep.getIsGeneral()
           possibleTargetPositions.push(tilePosition)

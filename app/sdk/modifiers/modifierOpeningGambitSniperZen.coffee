@@ -12,7 +12,12 @@ class ModifierOpeningGambitSniperZen extends ModifierOpeningGambit
   onOpeningGambit: () ->
 
     position = @getCard().getPosition()
-    units = @getGameSession().getBoard().getEntitiesInRow(position.y, CardType.Unit)
+    board = @getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      row = board.getHexRenderedRow(position)
+      units = (unit for unit in board.getUnits() when board.getHexRenderedRow(unit.getPosition()) is row)
+    else
+      units = board.getEntitiesInRow(position.y, CardType.Unit)
     if units?
       for unit in units
         if unit? and !unit.getIsGeneral() and unit.getOwnerId() != @getCard().getOwnerId() and unit.getATK() <= 2

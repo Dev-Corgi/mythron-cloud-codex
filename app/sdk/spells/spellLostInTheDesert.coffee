@@ -28,7 +28,7 @@ class SpellLostInTheDesert extends Spell
 
     damageAction = new DamageAction(@getGameSession())
     damageAction.setOwnerId(@ownerId)
-    damageAction.setTarget(board.getUnitAtPosition({x: x, y: y}))
+    damageAction.setTarget(board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y)))
     damageAction.setDamageAmount(@damageAmount)
     @getGameSession().executeAction(damageAction)
 

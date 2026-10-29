@@ -18,7 +18,7 @@ class ModifierTakeDamageWatchSpawnShadowCreep extends ModifierTakeDamageWatch
     if @getGameSession().getIsRunningAsAuthoritative()
       allEnemies = @getGameSession().getBoard().getEnemyEntitiesForEntity(@getCard())
       enemyToSpawnUnder = allEnemies[@getGameSession().getRandomIntegerForExecution(allEnemies.length)]
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), enemyToSpawnUnder.getPosition().x, enemyToSpawnUnder.getPosition().y, {id: Cards.Tile.Shadow})
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), enemyToSpawnUnder.getPosition(), {id: Cards.Tile.Shadow})
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

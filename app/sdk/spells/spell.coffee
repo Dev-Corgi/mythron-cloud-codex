@@ -72,7 +72,18 @@ class Spell extends Card
       @applyEffectPositions = @_findApplyEffectPositions(@applyEffectPosition, sourceAction)
 
       # remove all duplicate positions
-      @applyEffectPositions = UtilsPosition.getUniquePositions(@applyEffectPositions)
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        uniquePositions = []
+        seenPositions = {}
+        for position in @applyEffectPositions
+          continue unless position? and Number.isInteger(position.q) and Number.isInteger(position.r)
+          key = "#{position.q},#{position.r}"
+          unless seenPositions[key]
+            seenPositions[key] = true
+            uniquePositions.push(position)
+        @applyEffectPositions = uniquePositions
+      else
+        @applyEffectPositions = UtilsPosition.getUniquePositions(@applyEffectPositions)
 
       @applyEffectPositionsCardIndices = []
       for applyEffectPosition in @applyEffectPositions
@@ -84,7 +95,10 @@ class Spell extends Card
           @applyEffectPositionsCardIndices.push(applyingToUnit.getIndex())
 
         # apply spell at each effect position
-        @onApplyEffectToBoardTile(board, applyEffectPosition.x, applyEffectPosition.y, sourceAction)
+        if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+          @onApplyEffectToBoardTile(board, applyEffectPosition.q, applyEffectPosition.r, sourceAction)
+        else
+          @onApplyEffectToBoardTile(board, applyEffectPosition.x, applyEffectPosition.y, sourceAction)
 
       # handle apply cases that only need to act once
       # instead of at every applied effect position
@@ -101,6 +115,12 @@ class Spell extends Card
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     # override in spell class to do custom behavior at each location spell is applied
+
+  getEffectPositionFromCoordinates: (x, y) ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return {q: x, r: y} if Number.isInteger(x) and Number.isInteger(y)
+      return null
+    return {x: x, y: y}
 
   setApplyEffectPosition: (val) ->
     @applyEffectPosition = val
@@ -119,15 +139,18 @@ class Spell extends Card
     if affectPattern? and affectPattern.length > 0
       applyEffectPositions = @getAffectPositionsFromPattern(position)
     else if @radius > 0
-      startX = Math.max(0,position.x-@radius)
-      endX = Math.min(board.columnCount-1,position.x+@radius)
-      startY = Math.max(0,position.y-@radius)
-      endY = Math.min(board.rowCount-1,position.y+@radius)
-      for nx in [startX..endX]
-        for ny in [startY..endY]
-          nextPosition = {x:nx, y:ny}
-          if board.isOnBoard(nextPosition)
-            applyEffectPositions.push(nextPosition)
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        applyEffectPositions = board.getHexPositionsInRange(position, @radius)
+      else
+        startX = Math.max(0,position.x-@radius)
+        endX = Math.min(board.columnCount-1,position.x+@radius)
+        startY = Math.max(0,position.y-@radius)
+        endY = Math.min(board.rowCount-1,position.y+@radius)
+        for nx in [startX..endX]
+          for ny in [startY..endY]
+            nextPosition = {x:nx, y:ny}
+            if board.isOnBoard(nextPosition)
+              applyEffectPositions.push(nextPosition)
 
     # add base position to apply
     applyEffectPositions.push(position)
@@ -159,6 +182,7 @@ class Spell extends Card
     if !@_private.effectCenterPosition?
       # default center is spell position
       @_private.effectCenterPosition = @getPosition()
+      return @_private.effectCenterPosition if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
 
       # for area effect spells try to find center of affect pattern
       affectPattern = @getAffectPattern()
@@ -215,7 +239,11 @@ class Spell extends Card
         for position in validPositions
           stillValid = true
           for pos in previouslyAppliedPositions
-            if pos.x == position.x and pos.y == position.y
+            if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+              if pos?.q is position.q and pos?.r is position.r
+                stillValid = false
+                break
+            else if pos.x == position.x and pos.y == position.y
               stillValid = false
               break
           if stillValid
@@ -348,7 +376,9 @@ class Spell extends Card
           passesRaceFilter = true
           break
       if !passesRaceFilter then return false
-    if !UtilsPosition.getIsPositionInPositions(spellPositions, entity.getPosition()) then return false
+    board = @getGameSession().getBoard()
+    unless spellPositions.some((position) => board.positionsEqual(position, entity.getPosition()))
+      return false
     return true
 
   getTargetsAllies: () ->

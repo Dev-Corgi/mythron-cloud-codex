@@ -13,7 +13,7 @@ class SpellBounceToActionbar extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     # remove the existing unit
     removingEntity = board.getCardAtPosition(applyEffectPosition, @targetType)

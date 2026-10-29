@@ -15,7 +15,7 @@ class SpellBoneSwarm extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     general = board.getCardAtPosition(applyEffectPosition, @targetType)
 
     if general? and general.getIsGeneral()

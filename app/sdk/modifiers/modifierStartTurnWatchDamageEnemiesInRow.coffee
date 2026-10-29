@@ -24,6 +24,21 @@ class ModifierStartTurnWatchDamageEnemiesInRow extends ModifierStartTurnWatch
 
     board = @getCard().getGameSession().getBoard()
 
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for offset in [1, -1]
+        offsetPosition = @getCard().getPosition()
+        loop
+          offsetPosition = board.getHexPositionAtRenderedOffset(offsetPosition, offset)
+          break unless offsetPosition?
+          target = board.getUnitAtPosition(offsetPosition)
+          if target? and target.getOwner() isnt @getCard().getOwner() and (@damageGeneral or !target.getIsGeneral())
+            damageAction = new DamageAction(@getCard().getGameSession())
+            damageAction.setOwnerId(@getCard().getOwnerId())
+            damageAction.setTarget(target)
+            damageAction.setDamageAmount(@damageAmount)
+            @getGameSession().executeAction(damageAction)
+      return
+
     offset = 1
     offsetPosition = {x:@getCard().getPosition().x+offset, y:@getCard().getPosition().y}
     while board.isOnBoard(offsetPosition)

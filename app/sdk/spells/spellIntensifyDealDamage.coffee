@@ -9,7 +9,7 @@ class SpellIntensifyDealDamage extends SpellIntensify
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, CardType.Unit)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
 
     totalDamageAmount = @damageAmount * @getIntensifyAmount()
 

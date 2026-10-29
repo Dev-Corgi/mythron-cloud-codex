@@ -14,7 +14,7 @@ class SpellMassMojo extends Spell
 
     for tile in board.getTiles(true, false)
       if tile?.getOwnerId() == @getOwnerId() and tile.getBaseCardId() == Cards.Tile.PrimalMojo
-        tilePosition = {x:tile.getPosition().x, y:tile.getPosition().y}
+        tilePosition = tile.getPosition()
         unitOnTile = board.getCardAtPosition(tilePosition, CardType.Unit)
         # find friendly minions standing on primal flourish tiles who can Grow
         if unitOnTile? and unitOnTile.getOwnerId() is @getOwnerId() and !unitOnTile.getIsGeneral() and unitOnTile.hasActiveModifierClass(ModifierGrow)
@@ -24,7 +24,7 @@ class SpellMassMojo extends Spell
     for unit in board.getUnits(true, false)
       if unit?.getOwnerId() == @getOwnerId() and !unit.getIsGeneral()
         position = unit.getPosition()
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position.x, position.y, {id: Cards.Tile.PrimalMojo})
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position, {id: Cards.Tile.PrimalMojo})
         playCardAction.setSource(@)
         @getGameSession().executeAction(playCardAction)
 

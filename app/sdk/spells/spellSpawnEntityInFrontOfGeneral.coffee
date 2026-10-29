@@ -13,7 +13,11 @@ class SpellSpawnEntityInFrontOfGeneral extends SpellSpawnEntity
     if general?
       playerOffset = 0
       if @isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
-      frontPosition = {x:general.getPosition().x+playerOffset, y:general.getPosition().y}
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        frontPosition = general.getPosition()
+        frontPosition.q += playerOffset
+      else
+        frontPosition = {x:general.getPosition().x+playerOffset, y:general.getPosition().y}
       if @getGameSession().getBoard().isOnBoard(frontPosition)
         applyEffectPositions = [frontPosition]
 

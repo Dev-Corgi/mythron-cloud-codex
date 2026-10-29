@@ -49,7 +49,7 @@ class ModifierRemoveAndReplaceEntity extends Modifier
     @getGameSession().executeAction(removeOriginalEntityAction)
 
   replace: () ->
-    spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, @cardDataOrIndexToSpawn)
+    spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @cardDataOrIndexToSpawn)
     @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = ModifierRemoveAndReplaceEntity

@@ -20,6 +20,8 @@ class TeleportAction extends Action
     targetPosition = @getTargetPosition()
     if targetPosition?
       sourcePosition = @getSourcePosition()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        return sourcePosition? and Number.isInteger(sourcePosition.q) and Number.isInteger(sourcePosition.r) and (sourcePosition.q isnt targetPosition.q or sourcePosition.r isnt targetPosition.r)
       if !sourcePosition? or sourcePosition.x != targetPosition.x or sourcePosition.y != targetPosition.y
         return true
     return false

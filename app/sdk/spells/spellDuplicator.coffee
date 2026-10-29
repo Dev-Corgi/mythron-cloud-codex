@@ -7,7 +7,7 @@ class SpellDuplicator extends Spell
 
   onApplyOneEffectToBoard: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entityToClone = board.getUnitAtPosition(applyEffectPosition)
     ownerId = @getOwnerId()
 

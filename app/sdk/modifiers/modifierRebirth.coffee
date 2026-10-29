@@ -40,7 +40,7 @@ class ModifierRebirth extends ModifierOnDyingSpawnEntity
         cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(@getCard().createNewCardData(), null))
 
         # spawn an egg
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), cardDataOrIndexToSpawn)
         @getGameSession().executeAction(playCardAction)
 
 

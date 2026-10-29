@@ -18,7 +18,11 @@ class SpellStarsFury extends SpellSpawnEntity
     entity = @getEntityToSpawn()
     for unit in board.getUnits()
       #look for units owned by the opponent of the player who cast the spell, and with an open space "in front" of the enemy unit
-      inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        inFrontOfPosition = unit.getPosition()
+        inFrontOfPosition.q += playerOffset
+      else
+        inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
       if unit.getOwnerId() != @getOwnerId() and board.isOnBoard(inFrontOfPosition) and !board.getObstructionAtPositionForEntity(inFrontOfPosition, entity)
         applyEffectPositions.push(inFrontOfPosition)
 

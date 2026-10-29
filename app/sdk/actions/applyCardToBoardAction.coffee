@@ -18,7 +18,19 @@ class ApplyCardToBoardAction extends Action
 
   constructor: (gameSession, ownerId, x, y, cardDataOrIndex, cardOwnedByGameSession=false) ->
     @type ?= ApplyCardToBoardAction.type
-    @targetPosition = {x:x,y:y}
+    if x? and typeof x is 'object'
+      if typeof cardDataOrIndex is 'boolean'
+        cardOwnedByGameSession = cardDataOrIndex
+        cardDataOrIndex = y
+      else
+        cardDataOrIndex ?= y
+      @targetPosition = x
+    else if gameSession?.getRulesetId?() is 'practice-sandbox-hex'
+      # Numeric pairs are the legacy positional form. Keep their shape so hex
+      # board validation rejects them instead of silently converting x/y to q/r.
+      @targetPosition = {x:x,y:y}
+    else
+      @targetPosition = {x:x,y:y}
 
     if cardDataOrIndex?
       # copy data so we don't modify anything unintentionally
@@ -119,7 +131,10 @@ class ApplyCardToBoardAction extends Action
       @cardDataOrIndex._hasBeenApplied = true
 
     # apply the card through the game session
-    @isValidApplication = @getGameSession().applyCardToBoard(card, @targetPosition.x, @targetPosition.y, @cardDataOrIndex, @)
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      @isValidApplication = @getGameSession().applyCardToBoard(card, @targetPosition.q, @targetPosition.r, @cardDataOrIndex, @)
+    else
+      @isValidApplication = @getGameSession().applyCardToBoard(card, @targetPosition.x, @targetPosition.y, @cardDataOrIndex, @)
 
     # add post apply card data so we transmit the correct values to the clients
     if @getGameSession().getIsRunningAsAuthoritative() then @cardDataOrIndex = card.updateCardDataPostApply(@cardDataOrIndex)

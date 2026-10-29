@@ -9,11 +9,11 @@ class SpellEntanglingShadows extends SpellSpawnEntity
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     # always spawn a shadow tile at each position
     if board.isOnBoard(applyEffectPosition)
-      action = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, {id: Cards.Tile.Shadow})
+      action = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), {id: Cards.Tile.Shadow})
       action.setOwnerId(@getOwnerId())
       @getGameSession().executeAction(action)
 

@@ -41,7 +41,7 @@ class ModifierSentinel extends ModifierOverwatch
   transformSelf: () ->
     # create the action to spawn the new entity before the existing entity is removed
     # because we may need information about the existing entity being replaced
-    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPositionX(), @getCard().getPositionY(), @transformCardData)
+    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @transformCardData)
 
     # remove the existing entity
     removingEntity = @getGameSession().getBoard().getCardAtPosition(@getCard().getPosition(), CardType.Unit)

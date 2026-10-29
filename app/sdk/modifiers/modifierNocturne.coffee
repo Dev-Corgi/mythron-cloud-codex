@@ -28,13 +28,13 @@ class ModifierNocturne extends Modifier
       # if summoning a wraithling
       if action.getCard().getBaseCardId() is Cards.Faction4.Wraithling
         # also spawn a shadow creep
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), action.getTargetPosition().x, action.getTargetPosition().y, {id: Cards.Tile.Shadow})
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), action.getTargetPosition(), {id: Cards.Tile.Shadow})
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
       # if summoning a shadow creep tile
       else if action.getCard().getBaseCardId() is Cards.Tile.Shadow
         # also spawn a wraithling
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), action.getTargetPosition().x, action.getTargetPosition().y, {id: Cards.Faction4.Wraithling})
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), action.getTargetPosition(), {id: Cards.Faction4.Wraithling})
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

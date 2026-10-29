@@ -35,7 +35,7 @@ class SpellDropLift extends Spell
               newArtifactCardData.additionalInherentModifiersContextObjects.push(contextObject)
 
         # apply artifact to my general
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), myGeneral.getPosition().x, myGeneral.getPosition().y, newArtifactCardData)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), myGeneral.getPosition(), newArtifactCardData)
         playCardAction.setSource(@)
         @getGameSession().executeAction(playCardAction)
 

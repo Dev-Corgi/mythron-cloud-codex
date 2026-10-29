@@ -31,8 +31,12 @@ class ModifierOpeningGambitDamageInFront extends ModifierOpeningGambit
   onOpeningGambit: () ->
     playerOffset = 0
     if @getCard().isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
-    offsetPosition = {x:@getCard().getPosition().x+playerOffset, y:@getCard().getPosition().y}
-    target = @getCard().getGameSession().getBoard().getUnitAtPosition(offsetPosition)
+    board = @getCard().getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      offsetPosition = board.getHexPositionAtRenderedOffset(@getCard().getPosition(), playerOffset)
+    else
+      offsetPosition = {x:@getCard().getPosition().x+playerOffset, y:@getCard().getPosition().y}
+    target = board.getUnitAtPosition(offsetPosition)
 
     if target? and !target.getIsGeneral() #if there is a unit in front of this one, then damage it
       damageAction = new DamageAction(this.getGameSession())

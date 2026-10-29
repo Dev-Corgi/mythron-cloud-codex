@@ -25,7 +25,7 @@ class ModifierOnRemoveSpawnRandomDeadEntity extends Modifier
         deadUnits = @getGameSession().getDeadUnits(@getCard().getOwnerId())
         if deadUnits.length > 0
           cardDataOrIndexToSpawn = deadUnits[@getGameSession().getRandomIntegerForExecution(deadUnits.length)].createNewCardData()
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnPosition.x, spawnPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnPosition, cardDataOrIndexToSpawn)
           spawnAction.setSource(@getCard())
           @getGameSession().executeAction(spawnAction)
 

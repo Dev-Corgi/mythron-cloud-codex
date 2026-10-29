@@ -10,7 +10,7 @@ class SpellRequireUnoccupiedFriendlyCreep extends Spell
 
     for tile in board.getTiles(true, false)
       if tile.getOwnerId() == @getOwnerId() and tile.getBaseCardId() == Cards.Tile.Shadow
-        tilePosition = {x:tile.getPosition().x, y:tile.getPosition().y}
+        tilePosition = tile.getPosition()
         if !board.getCardAtPosition(tilePosition, CardType.Unit)
           #there is at least 1 unoccupied friendly creep tile
           return super(spellPositions)

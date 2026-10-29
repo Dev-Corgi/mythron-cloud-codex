@@ -24,7 +24,7 @@ class ModifierBackstabWatchTransformToBuilding extends ModifierBackstabWatch
     # because we may need information about the existing entity being replaced
     @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
     @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierBuilding.createContextObject(@buildModifierDescription, {id: Cards.Faction2.Penumbraxx}, 1))
-    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPositionX(), @getCard().getPositionY(), @cardDataOrIndexToSpawn)
+    spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @cardDataOrIndexToSpawn)
 
     # remove the existing entity
     removingEntity = @getGameSession().getBoard().getCardAtPosition(@getCard().getPosition(), CardType.Unit)

@@ -15,7 +15,7 @@ class SpellFollowupSwapPositions extends Spell
     super(board,x,y,sourceAction)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellFollowupSwapPositions::onApplyEffectToBoardTile "
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     source = board.getCardAtPosition(@getFollowupSourcePosition(), @targetType)
     target = board.getCardAtPosition(applyEffectPosition, @targetType)

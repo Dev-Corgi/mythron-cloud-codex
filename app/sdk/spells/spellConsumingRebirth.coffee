@@ -6,7 +6,7 @@ class SpellConsumingRebirth extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     # get the target
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
     # kill the target
     super(board, x, y, sourceAction)

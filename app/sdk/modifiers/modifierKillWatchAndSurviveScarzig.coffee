@@ -50,7 +50,7 @@ class ModifierKillWatchAndSurviveScarzig extends ModifierKillWatchAndSurvive
         cardData = {id: Cards.Neutral.BigScarzig}
         cardData.additionalInherentModifiersContextObjects ?= []
         cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(unit.getExhausted(), unit.getMovesMade(), unit.getAttacksMade()))
-        spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), unit.getPosition().x, unit.getPosition().y, cardData)
+        spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), unit.getPosition(), cardData)
         @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = ModifierKillWatchAndSurviveScarzig

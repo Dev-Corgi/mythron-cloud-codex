@@ -19,7 +19,7 @@ class SpellIntensifySpawnEntitiesNearGeneral extends SpellIntensify
       spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), myGeneral.getPosition(), CONFIG.PATTERN_3x3, card, @, totalNumberToSpawn)
 
       for location in spawnLocations
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), location.x, location.y, @cardDataOrIndexToSpawn)
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), location, @cardDataOrIndexToSpawn)
         spawnAction.setSource(@)
         @getGameSession().executeAction(spawnAction)
 

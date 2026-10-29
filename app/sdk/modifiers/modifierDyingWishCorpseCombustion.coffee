@@ -37,7 +37,7 @@ class ModifierDyingWishCorpseCombustion extends ModifierDyingWish
 
       # respawn original card
       cardData = {id: @getCard().getId()}
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, cardData)
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), cardData)
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

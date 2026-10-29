@@ -21,7 +21,7 @@ class SpellForgeArtifact extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    target = board.getCardAtPosition({x:x, y:y}, CardType.Unit)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
     if target?
       cardDataToEquip = null
       attack = target.getATK()
@@ -64,7 +64,7 @@ class SpellForgeArtifact extends Spell
       cardDataToEquip.targetModifiersContextObjects = artifactModifiers
       cardDataToEquip.additionalInherentModifiersContextObjects = [ModifierForgedArtifactDescription.createContextObject(faction, attack)]
 
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, cardDataToEquip)
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataToEquip)
       playCardAction.setSource(@)
       @getGameSession().executeAction(playCardAction)
 

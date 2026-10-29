@@ -5,7 +5,7 @@ UtilsPosition = require 'app/common/utils/utils_position'
 class SpellLifeDrain extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    entity = board.getCardAtPosition({x:x, y:y}, @targetType)
+    entity = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
     # kill target
     if !entity.isGeneral
@@ -26,7 +26,8 @@ class SpellLifeDrain extends SpellKillTarget
     # add your the General's position in as well
     general = @getGameSession().getGeneralForPlayerId(@getOwnerId())
     generalPosition = general.getPosition()
-    if !UtilsPosition.getIsPositionInPositions(applyEffectPositions, generalPosition)
+    board = @getGameSession().getBoard()
+    unless applyEffectPositions.some((position) => board.positionsEqual(position, generalPosition))
       applyEffectPositions.push(generalPosition)
 
     return applyEffectPositions

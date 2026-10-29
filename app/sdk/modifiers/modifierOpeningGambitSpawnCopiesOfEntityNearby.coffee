@@ -45,7 +45,7 @@ class ModifierOpeningGambitSpawnCopiesOfEntityNearby extends ModifierOpeningGamb
           spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        playCardAction = new CloneEntityAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y)
+        playCardAction = new CloneEntityAction(@getGameSession(), @getCard().getOwnerId(), position)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

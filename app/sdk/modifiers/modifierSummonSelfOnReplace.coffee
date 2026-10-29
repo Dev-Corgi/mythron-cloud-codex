@@ -41,7 +41,7 @@ class ModifierSummonSelfOnReplace extends Modifier
         generalPosition = general.getPosition()
         spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), generalPosition, CONFIG.PATTERN_3x3, @getCard(), @getCard())
         if spawnLocations.length > 0
-          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocations[0].x, spawnLocations[0].y, @getCard().getIndex())
+          playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocations[0], @getCard().getIndex())
           @getGameSession().executeAction(playCardAction)
           # and damage own General for 2
           damageAction = new DamageAction(this.getGameSession())

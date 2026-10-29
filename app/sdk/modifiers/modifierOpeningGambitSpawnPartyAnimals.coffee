@@ -44,7 +44,7 @@ class ModifierOpeningGambitSpawnPartyAnimals extends ModifierOpeningGambit
         spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
     for position in spawnLocations
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), playerId, position.x, position.y, animal)
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), playerId, position, animal)
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

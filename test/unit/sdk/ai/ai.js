@@ -12,9 +12,35 @@ const CONFIG = require('../../../../app/common/config');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
 const CardFactory = require('../../../../app/sdk/cards/cardFactory.coffee');
+const AgentActions = require('../../../../app/sdk/agents/agentActions.coffee');
 
 // disable the logger for cleaner test output
 Logger.enabled = false;
+
+describe('hex agent action positions', () => {
+  beforeEach(() => {
+    UtilsSDK.setupSession([{ id: SDK.Cards.Faction1.General }], [{ id: SDK.Cards.Faction4.General }], true, true);
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    session.getGeneralForPlayer1().setPosition({ q: -2, r: 4 });
+  });
+
+  afterEach(() => SDK.GameSession.reset());
+
+  it('builds movement actions from axial deltas and rejects legacy square deltas', () => {
+    const session = SDK.GameSession.getInstance();
+    const unit = session.getGeneralForPlayer1();
+    const agent = { getUnitForTag: () => unit };
+    const action = AgentActions.createSDKActionFromAgentAction(agent, {
+      type: 'MoveUnit', unitTag: 'general', deltaXY: { q: 1, r: 0 },
+    });
+
+    expect(action.getTargetPosition()).to.deep.equal({ q: -1, r: 4 });
+    expect(() => AgentActions.createSDKActionFromAgentAction(agent, {
+      type: 'MoveUnit', unitTag: 'general', deltaXY: { x: 1, y: 0 },
+    })).to.throw('Hex agent movement requires axial q/r delta');
+  });
+});
 
 describe('starter ai', () => {
   describe('behavior', () => {

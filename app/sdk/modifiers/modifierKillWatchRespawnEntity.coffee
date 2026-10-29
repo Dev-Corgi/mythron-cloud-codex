@@ -35,9 +35,9 @@ class ModifierKillWatchRespawnEntity extends ModifierKillWatch
       spawnPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), action.getTargetPosition(), @spawnPattern, cardToSpawn, @getCard(), @spawnCount)
       for spawnPosition in spawnPositions
         if @spawnSilently
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition, cardDataOrIndexToSpawn)
         else
-          spawnAction = new PlayCardAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardAction(@getGameSession(), ownerId, spawnPosition, cardDataOrIndexToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

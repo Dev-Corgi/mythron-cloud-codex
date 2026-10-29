@@ -17,6 +17,32 @@ class MovementRange extends Range
     @_pathsToPositionsByIndex = null
 
   getValidPositions: (board, entity) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      unless @_validPositions?
+        origin = entity.getPosition()
+        return @_validPositions = [] unless board.isOnBoard(origin)
+        speed = Math.max(0, entity.getSpeed())
+        originKey = "#{origin.q},#{origin.r}"
+        queue = [{position: origin, path: [origin]}]
+        visited = {}
+        visited[originKey] = true
+        @_validPositions = []
+        cursor = 0
+        while cursor < queue.length
+          node = queue[cursor]
+          cursor++
+          continue if node.path.length - 1 >= speed
+          for nextPosition in board.getHexNeighbors(node.position)
+            key = "#{nextPosition.q},#{nextPosition.r}"
+            continue if visited[key]
+            visited[key] = true
+            obstruction = board.getObstructionAtPositionForEntity(nextPosition, entity)
+            canTraverse = !obstruction or entity.getIsSameTeamAs(obstruction) or entity.hasActiveModifierClass(ModifierFlying)
+            continue unless canTraverse
+            path = node.path.concat([nextPosition])
+            queue.push({position: nextPosition, path: path})
+            @_validPositions.push(path) unless obstruction
+      return @_validPositions
     if !@_validPositions?
       entityPosition = entity.getPosition()
       entityMovementPatternMap = entity.getMovementPatternMap()
@@ -76,6 +102,17 @@ class MovementRange extends Range
     return @_validPositions
 
   getPathTo: (board, entity, position) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return [] unless board.isOnBoard(position)
+      key = "#{position.q},#{position.r}"
+      @_pathsToPositionsByIndex ?= {}
+      cached = @_pathsToPositionsByIndex[key]
+      return cached if cached?
+      for path in @getValidPositions(board, entity)
+        endpoint = path[path.length - 1]
+        if board.positionsEqual(endpoint, position)
+          return @_pathsToPositionsByIndex[key] = path
+      return @_pathsToPositionsByIndex[key] = []
     if board.isOnBoard(position)
       # if we've already tested this position, return previous result
       index = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y)

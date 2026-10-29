@@ -6,9 +6,9 @@ class SpellResilience extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    position = {x: x, y: y}
+    position = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(position)
-    if unit.getDamage() > 0
+    if unit? and unit.getDamage() > 0
       healAction = new HealAction(@getGameSession())
       healAction.setOwnerId(@getOwnerId())
       healAction.setTarget(unit)
@@ -19,7 +19,7 @@ class SpellResilience extends Spell
     indexOfCard = -1
     cardFound = false
 
-    for cardIndex, i in drawPile
+    for cardIndex, i in drawPile when unit?
       cardAtIndex = @getGameSession().getCardByIndex(cardIndex)
       if cardAtIndex?.getBaseCardId() == unit.getBaseCardId()
         indexOfCard = i

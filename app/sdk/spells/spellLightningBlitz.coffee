@@ -7,7 +7,7 @@ class SpellLightningBlitz extends SpellApplyModifiers
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getCardAtPosition(applyEffectPosition, @targetType)
     if unit?
       randomTeleportAction = new RandomTeleportAction(@getGameSession())

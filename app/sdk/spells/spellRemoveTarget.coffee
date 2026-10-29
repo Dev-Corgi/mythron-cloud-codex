@@ -12,7 +12,7 @@ class SpellRemoveTarget extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     if target?
 
       removeAction = new RemoveAction(@getGameSession())

@@ -19,21 +19,26 @@ class ModifierOpeningGambitProgenitor extends ModifierOpeningGambit
 
       friendlyMinions = []
       for unit in @getGameSession().getBoard().getUnits()
-        if unit?.getOwnerId() is ownerId and unit.getBaseCardId() isnt Cards.Faction5.Egg and !unit.getIsGeneral() and !(unit.getPosition().x is myPosition.x and unit.getPosition().y is myPosition.y)
+        isMyPosition = @getGameSession().getBoard().positionsEqual(unit?.getPosition(), myPosition)
+        if unit?.getOwnerId() is ownerId and unit.getBaseCardId() isnt Cards.Faction5.Egg and !unit.getIsGeneral() and !isMyPosition
           friendlyMinions.push(unit)
 
       playerOffset = 0
       if @getCard().isOwnedByPlayer1() then playerOffset = -1 else playerOffset = 1
 
       for minion in friendlyMinions
-        spawnPosition = {x:minion.getPosition().x+playerOffset, y:minion.getPosition().y}
+        if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+          spawnPosition = minion.getPosition()
+          spawnPosition.q += playerOffset
+        else
+          spawnPosition = {x:minion.getPosition().x+playerOffset, y:minion.getPosition().y}
         if !@getGameSession().getBoard().getObstructionAtPositionForEntity(spawnPosition, minion)
 
           egg = {id: Cards.Faction5.Egg}
           egg.additionalInherentModifiersContextObjects ?= []
           egg.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(minion.createNewCardData(), minion.getName()))
 
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, egg)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition, egg)
           spawnAction.setSource(@getCard())
           @getGameSession().executeAction(spawnAction)
 

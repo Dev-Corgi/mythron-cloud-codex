@@ -67,7 +67,17 @@ class ModifierBattlePet extends Modifier
           for moveLocation in movePath
             validMovePositions.push(moveLocation)
         if validMovePositions.length > 0
-          validMovePositions = UtilsPosition.getUniquePositions(validMovePositions)
+          if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+            uniquePositions = []
+            seenPositions = {}
+            for position in validMovePositions
+              key = "#{position.q},#{position.r}"
+              unless seenPositions[key]
+                seenPositions[key] = true
+                uniquePositions.push(position)
+            validMovePositions = uniquePositions
+          else
+            validMovePositions = UtilsPosition.getUniquePositions(validMovePositions)
           attackFromPosition = @chooseAggressivePosition(validMovePositions)
           moveAction = @getCard().actionMove(attackFromPosition)
           moveAction.setIsAutomatic(true)
@@ -100,10 +110,18 @@ class ModifierBattlePet extends Modifier
       potentialAttackTargets = @getGameSession().getBoard().getCardsAroundPosition(position, CardType.Unit, 1)
 
     if forBlast #finally we'll add targets that can be hit by blast to the previously found potential targets
-      unitsInRow = @getGameSession().getBoard().getEntitiesInRow(position.y, CardType.Unit)
-      unitsInCol = @getGameSession().getBoard().getEntitiesInColumn(position.x, CardType.Unit)
-      potentialAttackTargets = potentialAttackTargets.concat(unitsInRow)
-      potentialAttackTargets = potentialAttackTargets.concat(unitsInCol)
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        board = @getGameSession().getBoard()
+        for candidate in board.getHexPositionsInRange(position, 8)
+          dq = candidate.q - position.q
+          dr = candidate.r - position.r
+          if dq is 0 or dr is 0 or dq + dr is 0
+            potentialAttackTargets = potentialAttackTargets.concat(board.getCardsAtPosition(candidate, CardType.Unit))
+      else
+        unitsInRow = @getGameSession().getBoard().getEntitiesInRow(position.y, CardType.Unit)
+        unitsInCol = @getGameSession().getBoard().getEntitiesInColumn(position.x, CardType.Unit)
+        potentialAttackTargets = potentialAttackTargets.concat(unitsInRow)
+        potentialAttackTargets = potentialAttackTargets.concat(unitsInCol)
       potentialAttackTargets = _.uniq(potentialAttackTargets)
 
     # find all potential attackable targets
@@ -117,11 +135,11 @@ class ModifierBattlePet extends Modifier
           if !foundRangedProvoker then validAttackTargets.length = 0
           foundRangedProvoker = true
           validAttackTargets.push(unit)
-        else if unit.getIsProvoker() and (Math.abs(unit.getPositionX() - position.x) <= 1 and Math.abs(unit.getPositionY() - position.y) <= 1)
+        else if unit.getIsProvoker() and (if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexDistance(unit.getPosition(), position) <= 1 else Math.abs(unit.getPositionX() - position.x) <= 1 and Math.abs(unit.getPositionY() - position.y) <= 1)
           if !foundProvoker then validAttackTargets.length = 0
           foundProvoker = true
           validAttackTargets.push(unit)
-        else if !foundProvoker and !foundRangedProvoker and (!meleeOnly or (Math.abs(unit.getPositionX() - position.x) <= 1 and Math.abs(unit.getPositionY() - position.y) <= 1))
+        else if !foundProvoker and !foundRangedProvoker and (!meleeOnly or (if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexDistance(unit.getPosition(), position) <= 1 else Math.abs(unit.getPositionX() - position.x) <= 1 and Math.abs(unit.getPositionY() - position.y) <= 1))
           validAttackTargets.push(unit)
 
     # now that we've filtered targets that we can actually attack, pick the best one
@@ -158,7 +176,10 @@ class ModifierBattlePet extends Modifier
     bestAbsoluteDistance = 9999
     for unit in validTargets
       targetPosition = unit.getPosition()
-      absoluteDistance = Math.abs(targetPosition.x - position.x) + Math.abs(targetPosition.y - position.y)
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        absoluteDistance = @getGameSession().getBoard().getHexDistance(targetPosition, position)
+      else
+        absoluteDistance = Math.abs(targetPosition.x - position.x) + Math.abs(targetPosition.y - position.y)
       # found a new best target position
       if absoluteDistance < bestAbsoluteDistance
         bestAbsoluteDistance = absoluteDistance
@@ -183,7 +204,10 @@ class ModifierBattlePet extends Modifier
         for card in @getGameSession().getBoard().getCardsAroundPosition(position, CardType.Unit, 1)
           if @getIsTargetAttackable(card, forRanged, forGeneral)
             enemyFound = true
-            absoluteDistance = Math.abs(@getCard().position.x - position.x) + Math.abs(@getCard().position.y - position.y)
+            if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+              absoluteDistance = @getGameSession().getBoard().getHexDistance(@getCard().getPosition(), position)
+            else
+              absoluteDistance = Math.abs(@getCard().position.x - position.x) + Math.abs(@getCard().position.y - position.y)
             # found a new best target position
             if absoluteDistance < bestAbsoluteDistance
               bestAbsoluteDistance = absoluteDistance
@@ -197,7 +221,10 @@ class ModifierBattlePet extends Modifier
       for position in positions
         if !@getGameSession().getBoard().getUnitAtPosition(position) # if position is not obstructed
           for potentialTarget in @getGameSession().getBoard().getEnemyEntitiesForEntity(@getCard(), CardType.Unit)
-            absoluteDistance = Math.abs(potentialTarget.position.x - position.x) + Math.abs(potentialTarget.position.y - position.y)
+            if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+              absoluteDistance = @getGameSession().getBoard().getHexDistance(potentialTarget.getPosition(), position)
+            else
+              absoluteDistance = Math.abs(potentialTarget.position.x - position.x) + Math.abs(potentialTarget.position.y - position.y)
             # found a new best target position
             if absoluteDistance < bestAbsoluteDistance
               bestAbsoluteDistance = absoluteDistance

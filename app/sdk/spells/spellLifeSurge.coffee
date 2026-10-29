@@ -9,7 +9,7 @@ UtilsPosition = require 'app/common/utils/utils_position'
 class SpellLifeSurge extends SpellDamage
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    entity = board.getCardAtPosition({x:x, y:y}, @targetType)
+    entity = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
     # the minion to deal damage to (SpellDamage default effect)
     if !entity?.isGeneral
@@ -30,7 +30,8 @@ class SpellLifeSurge extends SpellDamage
     # add your the General's position in as well
     general = @getGameSession().getGeneralForPlayerId(@getOwnerId())
     generalPosition = general.getPosition()
-    if !UtilsPosition.getIsPositionInPositions(applyEffectPositions, generalPosition)
+    board = @getGameSession().getBoard()
+    unless applyEffectPositions.some((position) => board.positionsEqual(position, generalPosition))
       applyEffectPositions.push(generalPosition)
 
     return applyEffectPositions

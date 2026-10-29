@@ -15,7 +15,7 @@ class SpellBreathOfTheUnborn extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x:x, y:y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getCardAtPosition(applyEffectPosition, @targetType)
     if unit?
       if !unit.getIsGeneral() # never affect Generals

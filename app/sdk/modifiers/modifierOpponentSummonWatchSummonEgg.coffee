@@ -35,7 +35,7 @@ class ModifierOpponentSummonWatchSummonEgg extends ModifierOpponentSummonWatch
         # add modifiers to card data
         eggToSpawn.additionalInherentModifiersContextObjects ?= []
         eggToSpawn.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(@cardDataOrIndexToSpawn, @eggName))
-        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocation.x, spawnLocation.y, eggToSpawn)
+        spawnAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), spawnLocation, eggToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

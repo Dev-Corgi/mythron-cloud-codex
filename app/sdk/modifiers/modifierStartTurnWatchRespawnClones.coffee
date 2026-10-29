@@ -62,7 +62,7 @@ class ModifierStartTurnWatchRespawnClones extends ModifierStartTurnWatch
               break
             randomSpawnPositionIndex = @getGameSession().getRandomIntegerForExecution(spawnLocations.length)
             randomSpawnPosition = spawnLocations[randomSpawnPositionIndex]
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), randomSpawnPosition.x, randomSpawnPosition.y, @cardDataOrIndexToSpawn)
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), randomSpawnPosition, @cardDataOrIndexToSpawn)
             playCardAction.setSource(@getCard())
             @getGameSession().executeAction(playCardAction)
             legion.splice(randomIndex, 1) # now that the card has been played, remove it from the array

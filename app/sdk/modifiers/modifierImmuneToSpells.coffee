@@ -18,7 +18,7 @@ class ModifierImmuneToSpells extends ModifierImmune
   onValidateAction: (event) ->
     a = event.action
 
-    if @getCard()? and a instanceof ApplyCardToBoardAction and a.getIsValid() and UtilsPosition.getPositionsAreEqual(@getCard().getPosition(), a.getTargetPosition())
+    if @getCard()? and a instanceof ApplyCardToBoardAction and a.getIsValid() and @getGameSession().getBoard().positionsEqual(@getCard().getPosition(), a.getTargetPosition())
       card = a.getCard()
       if card? and card.getRootCard()?.type is CardType.Spell and !card.getTargetsSpace() and !card.getAppliesSameEffectToMultipleTargets()
         @invalidateAction(a, @getCard().getPosition(), "[Not] a valid target.")

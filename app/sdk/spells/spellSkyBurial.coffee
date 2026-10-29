@@ -17,7 +17,7 @@ class SpellSkyBurial extends SpellKillTarget
       for position in validPositions
         validPosition = true
         for unit in unitsAroundGenerals
-          if unit.position.x == position.x and unit.position.y == position.y
+          if board.positionsEqual(unit.getPosition(), position)
             validPosition = false
             break
 

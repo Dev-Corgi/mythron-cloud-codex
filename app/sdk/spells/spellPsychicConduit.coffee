@@ -14,7 +14,7 @@ class SpellPsychicConduit extends SpellApplyModifiers
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     a = new SwapUnitAllegianceAction(@getGameSession())
     a.setTarget(entity)

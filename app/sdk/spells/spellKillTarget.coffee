@@ -12,7 +12,7 @@ class SpellKillTarget extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    target = board.getCardAtPosition({x:x, y:y}, @targetType)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     if target?
       #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellKillTarget::onApplyEffectToBoardTile -> kill #{target.getName()} at #{x}, #{y}"
 

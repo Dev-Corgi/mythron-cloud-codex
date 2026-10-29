@@ -2183,7 +2183,8 @@ class _GameSession extends SDKObject
     actionQueue = @_private.actionQueue
     if actionQueue?
       for action in actionQueue
-        if action != @getExecutingAction() and action instanceof actionClass and (!targetPosition or UtilsPosition.getPositionsAreEqual(targetPosition, action.getTargetPosition()))
+        positionsMatch = !targetPosition or (if @getRulesetId() is 'practice-sandbox-hex' then @getBoard().positionsEqual(targetPosition, action.getTargetPosition()) else UtilsPosition.getPositionsAreEqual(targetPosition, action.getTargetPosition()))
+        if action != @getExecutingAction() and action instanceof actionClass and positionsMatch
           actions.push(action)
 
     return actions
@@ -2201,7 +2202,8 @@ class _GameSession extends SDKObject
       for action in actionQueue
         if action != @getExecutingAction() and (action instanceof RemoveAction or action instanceof KillAction)
           target = action.getTarget()
-          if target? and (!targetPosition or UtilsPosition.getPositionsAreEqual(targetPosition, target.getPosition())) and (!targetType or target.getType() == CardType.Entity or target.getType() == targetType)
+          positionsMatch = !targetPosition or (if @getRulesetId() is 'practice-sandbox-hex' then target? and @getBoard().positionsEqual(targetPosition, target.getPosition()) else target? and UtilsPosition.getPositionsAreEqual(targetPosition, target.getPosition()))
+          if target? and positionsMatch and (!targetType or target.getType() == CardType.Entity or target.getType() == targetType)
             actions.push(action)
 
     return actions

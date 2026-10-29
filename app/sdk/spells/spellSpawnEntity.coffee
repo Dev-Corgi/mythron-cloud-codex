@@ -33,14 +33,14 @@ class SpellSpawnEntity extends SpellApplyEntityToBoard
     return cardDataOrIndexToSpawn
 
   getSpawnAction: (x, y, cardDataOrIndexToSpawn) ->
-    targetPosition = {x: x, y: y}
+    targetPosition = @getEffectPositionFromCoordinates(x, y)
     if !cardDataOrIndexToSpawn? then cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn(x, y)
     entity = @getEntityToSpawn(cardDataOrIndexToSpawn)
     if entity and !@getGameSession().getBoard().getObstructionAtPositionForEntity(targetPosition, entity)
       if @spawnSilently
-        spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, cardDataOrIndexToSpawn)
+        spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn)
       else
-        spawnEntityAction = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, cardDataOrIndexToSpawn)
+        spawnEntityAction = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn)
     return spawnEntityAction
 
   getEntityToSpawn: (cardDataOrIndexToSpawn) ->

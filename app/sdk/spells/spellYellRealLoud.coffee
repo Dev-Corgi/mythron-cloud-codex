@@ -7,7 +7,7 @@ class SpellYellRealLoud extends SpellApplyModifiers
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     targetEntity = board.getUnitAtPosition(applyEffectPosition)
 

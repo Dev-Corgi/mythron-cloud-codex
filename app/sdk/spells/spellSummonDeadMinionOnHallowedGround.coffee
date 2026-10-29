@@ -34,7 +34,7 @@ class SpellSummonDeadMinionOnHallowedGround extends SpellSpawnEntity
 
     for tile in board.getTiles(true, false)
       if tile.getOwnerId() == @getOwnerId() and tile.getBaseCardId() == Cards.Tile.Hallowed
-        tilePosition = {x:tile.getPosition().x, y:tile.getPosition().y}
+        tilePosition = tile.getPosition()
         if !board.getCardAtPosition(tilePosition, CardType.Unit)
           possibleSummonPositions.push(tilePosition)
 

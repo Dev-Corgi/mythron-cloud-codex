@@ -22,6 +22,8 @@ class ModifierOverwatchMovedNearby extends ModifierOverwatch
       if source != card and !source.getIsSameTeamAs(card) and !source.getIsGeneral()
         myPosition = card.getPosition()
         targetPosition = action.getTargetPosition()
+        if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+          return @getGameSession().getBoard().getHexDistance(myPosition, targetPosition) <= 1
         return Math.abs(myPosition.x - targetPosition.x) <= 1 and Math.abs(myPosition.y - targetPosition.y) <= 1
     return false
 

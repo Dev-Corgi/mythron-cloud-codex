@@ -6,7 +6,7 @@ class SpellHugToDeath extends SpellRemoveAndReplaceEntity
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    targetEntity = board.getUnitAtPosition({x: x, y: y})
+    targetEntity = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y))
     if targetEntity?
       if targetEntity.getBaseCardId() is Cards.Faction2.OnyxBear
         killAction = new KillAction(@getGameSession())

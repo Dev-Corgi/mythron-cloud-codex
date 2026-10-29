@@ -9,7 +9,7 @@ class SpellBloodRage extends SpellApplyModifiers
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    position = {x: x, y: y}
+    position = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(position, @targetType)
     damageCount = 0
 

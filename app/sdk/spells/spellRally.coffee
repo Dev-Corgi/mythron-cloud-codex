@@ -13,6 +13,13 @@ class SpellRally extends Spell
     targetGeneralPosition = targetGeneral.getPosition()
 
     applyEffectPositions = []
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      board = @getGameSession().getBoard()
+      for neighbor in board.getHexNeighbors(targetGeneralPosition)
+        unit = board.getUnitAtPosition(neighbor)
+        if unit? and unit.getOwnerId() is @getOwnerId()
+          applyEffectPositions.push(neighbor)
+      return applyEffectPositions
     if @getGameSession().getBoard().getUnitAtPosition({x: targetGeneralPosition.x + 1, y: targetGeneralPosition.y})
       applyEffectPositions.push({x: targetGeneralPosition.x + 1, y: targetGeneralPosition.y})
     if @getGameSession().getBoard().getUnitAtPosition({x: targetGeneralPosition.x - 1, y: targetGeneralPosition.y})
@@ -22,7 +29,7 @@ class SpellRally extends Spell
   onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
     super(board, x, y, sourceAction)
 
-    entity = board.getUnitAtPosition({x: x, y: y})
+    entity = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y))
     if entity? and !entity.getIsGeneral() and entity.getOwnerId() is @getOwnerId()
       buff = Modifier.createContextObjectWithAttributeBuffs(2, 2)
       buff.appliedName = @buffName

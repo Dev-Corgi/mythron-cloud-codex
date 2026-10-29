@@ -5,7 +5,7 @@ _ = require 'underscore'
 class SpellAbyssalScar extends SpellApplyModifiers
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     damageAction = new DamageAction(@getGameSession())
     damageAction.setOwnerId(@getOwnerId())

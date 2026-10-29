@@ -29,9 +29,9 @@ class ModifierOpeningGambitAlabasterTitan extends ModifierOpeningGambit
       artifact2 = {id: Cards.Artifact.IndomitableWill}
       artifact3 = {id: Cards.Artifact.HaloBulwark}
 
-      playCardAction1 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, artifact1)
-      playCardAction2 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, artifact2)
-      playCardAction3 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, artifact3)
+      playCardAction1 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition(), artifact1)
+      playCardAction2 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition(), artifact2)
+      playCardAction3 = new PlayCardSilentlyAction(gameSession, @getCard().getOwnerId(), @getCard().getPosition(), artifact3)
 
       playCardAction1.setSource(@getCard())
       playCardAction2.setSource(@getCard())

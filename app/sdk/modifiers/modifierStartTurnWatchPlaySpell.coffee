@@ -31,7 +31,7 @@ class ModifierStartTurnWatchPlaySpell extends ModifierStartTurnWatch
 
   onTurnWatch: (action) ->
     if @getGameSession().getIsRunningAsAuthoritative()
-      playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, @cardDataOrIndexToCast)
+      playCardAction = new PlayCardAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @cardDataOrIndexToCast)
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

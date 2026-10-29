@@ -57,7 +57,7 @@ class SpellSummoningStones extends Spell
           spawnLocation = validSpawnLocations[@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length)]
 
           if spawnLocation?
-            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), spawnLocation.x, spawnLocation.y, card)
+            playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), spawnLocation, card)
             playCardAction.setSource(@)
             @getGameSession().executeAction(playCardAction)
 

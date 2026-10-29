@@ -15,7 +15,7 @@ class SpellEnslave extends Spell
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "SpellEnslave::onApplyEffectToBoardTile"
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     a = new SwapUnitAllegianceAction(@getGameSession())
     a.setTarget(entity)

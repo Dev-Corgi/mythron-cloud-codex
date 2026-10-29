@@ -7,6 +7,10 @@ const CONFIG = require('../../../../app/common/config');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
 const UtilsSDK = require('../../../utils/utils_sdk');
+const PlayCardAction = require('../../../../app/sdk/actions/playCardAction.coffee');
+const Spell = require('../../../../app/sdk/spells/spell.coffee');
+const SpellWrathOfGod = require('../../../../app/sdk/spells/spellWrathOfGod.coffee');
+const UtilsGameSession = require('../../../../app/common/utils/utils_game_session.coffee');
 
 // disable the logger for cleaner test output
 Logger.enabled = false;
@@ -107,6 +111,99 @@ describe('board', () => {
     expect(board.getHexDistance({ q: -2, r: 4 }, { q: 2, r: 4 })).to.equal(4);
     expect(board.getHexPositionsInRange({ q: -2, r: 4 }, 1)).to.have.length(4);
     expect(board.getHexPath({ q: -2, r: 4 }, { q: 2, r: 4 })).to.have.length(4);
+    expect(board.getHexPositionAtRenderedOffset({ q: 4, r: 0 }, 1, 0)).to.equal(null);
+    expect(board.getHexPositionAtRenderedOffset({ q: 4, r: 0 }, -1, 0)).to.deep.equal({ q: 3, r: 1 });
+  });
+
+  it('queues Wrath of God Hallowed at the axial target position', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    const targetPosition = { q: -1, r: 4 };
+    const spell = new SpellWrathOfGod(session);
+    spell.setOwnerId(playerId);
+    const queuedActions = [];
+    const executeAction = session.executeAction;
+    const board = session.getBoard();
+    const getUnitAtPosition = board.getUnitAtPosition;
+    session.executeAction = (action) => queuedActions.push(action);
+    board.getUnitAtPosition = (position) => {
+      expect(position).to.deep.equal(targetPosition);
+      return { getIsGeneral: () => false };
+    };
+    try {
+      spell.onApplyEffectToBoardTile(board, targetPosition.q, targetPosition.r, null);
+    } finally {
+      session.executeAction = executeAction;
+      board.getUnitAtPosition = getUnitAtPosition;
+    }
+
+    const hallowedAction = queuedActions.find((action) => action.getCardDataOrIndex()?.id === SDK.Cards.Tile.Hallowed);
+    expect(hallowedAction).to.exist;
+    expect(hallowedAction.getTargetPosition()).to.deep.equal(targetPosition);
+  });
+
+  it('uses axial movement steps and rejects square-shaped or out-of-speed destinations', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const general = session.getGeneralForPlayer1();
+    general.setPosition({ q: -2, r: 4 });
+    general.setSpeed(1);
+    const range = general.getMovementRange();
+    const board = session.getBoard();
+
+    expect(range.getIsPositionValid(board, general, { q: -1, r: 3 })).to.equal(true);
+    expect(range.getPathTo(board, general, { q: -1, r: 3 })).to.deep.equal([{ q: -2, r: 4 }, { q: -1, r: 3 }]);
+    expect(range.getIsPositionValid(board, general, { x: -1, y: 3 })).to.equal(false);
+    expect(range.getIsPositionValid(board, general, { q: 0, r: 4 })).to.equal(false);
+    expect(range.getPathTo(board, general, { q: 0, r: 4 })).to.deep.equal([]);
+  });
+
+  it('uses axial attack distance and rejects square-only target coordinates', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const general = session.getGeneralForPlayer1();
+    general.setPosition({ q: -2, r: 4 });
+    general.setReach(1);
+    const range = general.getAttackRange();
+    const board = session.getBoard();
+
+    expect(range.getIsPositionValid(board, general, { q: -1, r: 4 })).to.equal(true);
+    expect(range.getIsPositionValid(board, general, { x: -1, y: 4 })).to.equal(false);
+    expect(range.getIsPositionValid(board, general, { q: -1, r: 5 })).to.equal(false);
+  });
+
+  it('serializes and reconstructs axial action targets without coordinate conversion', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const general = session.getGeneralForPlayer1();
+    general.setPosition({ q: -2, r: 4 });
+    const action = general.actionMove({ q: -1, r: 4 });
+    const serialized = JSON.parse(session.serializeToJSON(action));
+    const replayAction = session.deserializeActionFromFirebase(serialized);
+
+    expect(serialized.targetPosition).to.deep.equal({ q: -1, r: 4 });
+    expect(replayAction.getTargetPosition()).to.deep.equal({ q: -1, r: 4 });
+    expect(general.getMovementRange().getIsPositionValid(session.getBoard(), general, replayAction.getTargetPosition())).to.equal(true);
+  });
+
+  it('preserves axial producer positions and rejects numeric or square action coordinates', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    const spell = new Spell(session);
+    const effectPosition = spell.getEffectPositionFromCoordinates(3, 2);
+    expect(effectPosition).to.deep.equal({ q: 3, r: 2 });
+
+    const axialAction = new PlayCardAction(session, playerId, { q: -1, r: 4 }, { id: SDK.Cards.Faction1.SilverguardSquire });
+    expect(axialAction.getTargetPosition()).to.deep.equal({ q: -1, r: 4 });
+    expect(session.getBoard().isOnBoard(axialAction.getTargetPosition())).to.equal(true);
+
+    const numericAction = new PlayCardAction(session, playerId, 2, 3, { id: SDK.Cards.Faction1.SilverguardSquire });
+    expect(numericAction.getTargetPosition()).to.deep.equal({ x: 2, y: 3 });
+    expect(session.getBoard().isOnBoard(numericAction.getTargetPosition())).to.equal(false);
+    expect(UtilsGameSession.getSmartSpawnPositionsFromPattern(session, { q: 0, r: 0 }, [{ q: -1, r: 4 }], session.getGeneralForPlayer1())).to.deep.equal([{ q: -1, r: 4 }]);
+    expect(UtilsGameSession.getSmartSpawnPositionsFromPattern(session, { q: 0, r: 0 }, [{ x: -1, y: 4 }], session.getGeneralForPlayer1())).to.deep.equal([]);
   });
 
   it('finds a shortest in-bounds route when the straight hex line leaves the board', () => {

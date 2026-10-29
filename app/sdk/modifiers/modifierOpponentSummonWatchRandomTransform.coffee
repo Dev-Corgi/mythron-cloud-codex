@@ -56,7 +56,7 @@ class ModifierOpponentSummonWatchRandomTransform extends ModifierOpponentSummonW
         card = cards[@getGameSession().getRandomIntegerForExecution(cards.length)]
         @cardDataOrIndexToSpawn = card.createNewCardData()
 
-        spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), targetOwnerId, targetPosition.x, targetPosition.y, @cardDataOrIndexToSpawn)
+        spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), targetOwnerId, targetPosition, @cardDataOrIndexToSpawn)
         @getGameSession().executeAction(spawnEntityAction)
 
   getIsCardRelevantToWatcher: (card) ->

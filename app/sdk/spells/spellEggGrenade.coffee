@@ -7,7 +7,7 @@ class SpellEggGrenade extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     eggEntity = board.getUnitAtPosition(applyEffectPosition)
     enemyEntities = board.getEnemyEntitiesAroundEntity(eggEntity, CardType.Unit, 1)
 

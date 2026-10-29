@@ -16,14 +16,14 @@ class SpellCloneTargetEntity extends SpellRemoveAndReplaceEntity
     # clone should be taken from target location
     cloningEntity = @getEntityToSpawn(x, y)
     if cloningEntity?
-      spawnEntityAction = new CloneEntityAsTransformAction(@getGameSession(), @getOwnerId(), x, y)
+      spawnEntityAction = new CloneEntityAsTransformAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y))
       spawnEntityAction.targetPosition = @getFollowupSourcePosition()
       spawnEntityAction.setOwnerId(@getOwnerId())
       spawnEntityAction.setSource(cloningEntity)
     return spawnEntityAction
 
   getEntityToSpawn: (x, y) ->
-    return @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, @targetType)
+    return @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
 
   getValidTargetPositions: () ->
     if !@_private.cachedValidTargetPositions?
@@ -32,7 +32,8 @@ class SpellCloneTargetEntity extends SpellRemoveAndReplaceEntity
       # filter source position out as we shouldn't be copying ourselves
       sourcePosition = @getFollowupSourcePosition()
       if sourcePosition
-        @_private.cachedValidTargetPositions = _.reject(validPositions, (position) -> UtilsPosition.getPositionsAreEqual(position, sourcePosition))
+        board = @getGameSession().getBoard()
+        @_private.cachedValidTargetPositions = _.reject(validPositions, (position) => board.positionsEqual(position, sourcePosition))
     return @_private.cachedValidTargetPositions
 
 module.exports = SpellCloneTargetEntity

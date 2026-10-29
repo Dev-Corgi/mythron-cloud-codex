@@ -13,9 +13,9 @@ class SpellFountainOfYouth extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    position = {x: x, y: y}
+    position = @getEffectPositionFromCoordinates(x, y)
     unit = board.getCardAtPosition(position, @targetType)
-    if !unit.getIsGeneral() # heal my units, but not my General
+    if unit? and !unit.getIsGeneral() # heal my units, but not my General
       if unit.getDamage() > 0 # only heal if unit is damaged
         healAction = new HealAction(@getGameSession())
         healAction.setOwnerId(@getOwnerId())

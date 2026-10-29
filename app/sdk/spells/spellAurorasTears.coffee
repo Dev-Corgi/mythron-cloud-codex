@@ -14,7 +14,7 @@ class SpellAurorasTears extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     general = board.getCardAtPosition(applyEffectPosition, @targetType)
     # get all artifact modifiers and group by artifact
     modifiersByArtifact = general.getArtifactModifiersGroupedByArtifactCard()

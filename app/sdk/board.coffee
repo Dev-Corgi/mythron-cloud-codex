@@ -81,6 +81,12 @@ class Board extends SDKObject
   getUnobstructedPositionsForEntityAroundEntity: (entity, aroundEntity, radius=1) ->
     positions = []
     position = aroundEntity.getPosition()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for candidate in @getHexPositionsInRange(position, radius)
+        continue if @positionsEqual(candidate, position)
+        if !@getObstructionAtPositionForEntity(candidate, entity)
+          positions.push(candidate)
+      return positions
     positionX = position.x
     positionY = position.y
     startX = Math.max(0,positionX-radius)
@@ -114,6 +120,21 @@ class Board extends SDKObject
   getHexDistance: (positionA, positionB) ->
     return null unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(positionA) and @isOnBoard(positionB)
     return HexTopology.getDistance(positionA, positionB)
+
+  getHexRenderedColumn: (position) ->
+    return null unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position)
+    return HexTopology.axialToRendered(position).c
+
+  getHexRenderedRow: (position) ->
+    return null unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position)
+    return HexTopology.axialToRendered(position).k
+
+  getHexPositionAtRenderedOffset: (position, columnOffset, rowOffset=0) ->
+    return null unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position) and Number.isInteger(columnOffset) and Number.isInteger(rowOffset)
+    rendered = HexTopology.axialToRendered(position)
+    candidate = HexTopology.renderedToAxial(rendered.c + columnOffset, rendered.k + rowOffset)
+    return candidate if @isOnBoard(candidate)
+    return null
 
   getHexPositionsInRange: (position, radius) ->
     return [] unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position)
@@ -387,6 +408,14 @@ class Board extends SDKObject
     cardsWithinRadius = []
 
     if position?
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        for candidate in @getHexPositionsInRange(position, Math.max(0, radius))
+          continue if !allowCardAtPosition and @positionsEqual(candidate, position)
+          if type is CardType.Entity
+            cardsWithinRadius = cardsWithinRadius.concat(@getEntitiesAtPosition(candidate, allowUntargetable, allowQueued))
+          else
+            cardsWithinRadius = cardsWithinRadius.concat(@getCardsAtPosition(candidate, type, allowUntargetable, allowQueued))
+        return cardsWithinRadius
 
       if radius <= 0
         # special case: zero radius
@@ -421,6 +450,13 @@ class Board extends SDKObject
 
     if position?
       allCards = @getCards(type, allowUntargetable, allowQueued)
+
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        for card in allCards
+          cardPosition = card.getPosition()
+          distance = @getHexDistance(position, cardPosition)
+          cardsOutsideRadius.push(card) if distance? and distance > radius
+        return cardsOutsideRadius
 
       if radius <= 0
         # special case: zero radius

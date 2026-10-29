@@ -32,7 +32,7 @@ class ModifierSynergizeSummonMinionNearGeneral extends ModifierSynergize
           spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position.x, position.y, @cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position, @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

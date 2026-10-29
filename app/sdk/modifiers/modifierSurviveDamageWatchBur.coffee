@@ -33,7 +33,7 @@ class ModifierSurviveDamageWatchBur extends ModifierSurviveDamageWatch
       battlePetCard = battlePetCards[@getGameSession().getRandomIntegerForExecution(battlePetCards.length)]
 
       # transform into a new minion
-      playCardAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition().x, @getCard().getPosition().y, battlePetCard.createNewCardData())
+      playCardAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), battlePetCard.createNewCardData())
       @getGameSession().executeAction(playCardAction)
 
 module.exports = ModifierSurviveDamageWatchBur

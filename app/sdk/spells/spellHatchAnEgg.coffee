@@ -6,7 +6,7 @@ class SpellHatchAnEgg extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
-    eggModifier = board.getCardAtPosition({x:x, y:y}).getModifierByClass(ModifierEgg)
+    eggModifier = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y)).getModifierByClass(ModifierEgg)
     if eggModifier?
       @getGameSession().pushTriggeringModifierOntoStack(eggModifier)
       eggModifier.removeAndReplace()

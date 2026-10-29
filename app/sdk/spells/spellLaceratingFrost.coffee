@@ -15,7 +15,7 @@ class SpellLaceratingFrost extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     targetEntity = board.getCardAtPosition(applyEffectPosition, @targetType)
 
     damageAction = new DamageAction(@getGameSession())

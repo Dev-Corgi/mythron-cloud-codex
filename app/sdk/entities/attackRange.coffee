@@ -1,4 +1,5 @@
 UtilsPosition = require 'app/common/utils/utils_position'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
 Range = require './range'
 _ = require 'underscore'
 
@@ -14,10 +15,36 @@ class AttackRange extends Range
 
   #Returns list of tile grid positions where attacks are valid (excluding locations with friendly targets)
   getValidPositions: ( board, entity, fromPositions) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      positions = []
+      positionsByKey = {}
+      fromPositions ?= [entity.getPosition()]
+      fromPositions = [fromPositions] unless _.isArray(fromPositions)
+      for fromPosition in fromPositions
+        continue unless board.isOnBoard(fromPosition)
+        for position in board.getHexPositionsInRange(fromPosition, entity.getReach())
+          continue if board.positionsEqual(fromPosition, position)
+          continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, fromPosition, position)
+          key = "#{position.q},#{position.r}"
+          unless positionsByKey[key]
+            positionsByKey[key] = true
+            positions.push(position)
+      return positions
     attackAtlas = @getAttackAtlas(board, entity, fromPositions)
     return attackAtlas.getValidPositions()
 
   getValidPosition: (board, entity, position, attackAtlas) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return null unless HexTopology.isAxialPosition(position) and board.isOnBoard(position)
+      origins = attackAtlas?.positions ? [entity.getPosition()]
+      origins = [origins] unless _.isArray(origins)
+      for origin in origins
+        continue unless board.isOnBoard(origin)
+        distance = board.getHexDistance(origin, position)
+        continue if distance is 0 or distance > entity.getReach()
+        continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, origin, position)
+        return position
+      return null
     if board.isOnBoard(position)
       # if we've already tested this position, return previous result
       columnCount = board.getColumnCount()
@@ -51,10 +78,19 @@ class AttackRange extends Range
     return null
 
   getValidTargets: (board, entity, fromPositions) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      targets = []
+      for target in board.getEntities()
+        continue unless target.getIsActive() and target.getIsTargetable() and !entity.getIsSameTeamAs(target)
+        if @getValidPosition(board, entity, target.getPosition(), {positions: fromPositions ? [entity.getPosition()]})
+          targets.push(target)
+      return targets
     attackAtlas = @getAttackAtlas(board, entity, fromPositions)
     return attackAtlas.getValidTargets()
 
   getIsValidTarget: (board, entity, targetEntity) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return !!targetEntity and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
     index = targetEntity.getIndex()
     if !@_targetsTestedForValidByIndex? then @_targetsTestedForValidByIndex = {}
     isValid = @_targetsTestedForValidByIndex[index]
@@ -62,6 +98,14 @@ class AttackRange extends Range
       return isValid
     else
       return @_targetsTestedForValidByIndex[index] = targetEntity in @getValidTargets(board, entity)
+
+  _hasHexLineOfSight: (board, entity, fromPosition, targetPosition) ->
+    for cell in HexTopology.getLine(fromPosition, targetPosition)
+      return false unless board.isOnBoard(cell)
+      continue if board.positionsEqual(cell, targetPosition)
+      obstruction = board.getObstructionAtPositionForEntity(cell, entity)
+      return false if obstruction and !entity.getIsSameTeamAs(obstruction) and obstruction.getIsObstructing()
+    return true
 
   getAttackAtlas: (board, entity, fromPositions) ->
     if !@_attackAtlasesByIndex? then @_attackAtlasesByIndex = {}

@@ -13,7 +13,7 @@ class SpellTempTransform extends SpellRemoveAndReplaceEntity
   getCardDataOrIndexToSpawn: (x, y) ->
     cardDataOrIndexToSpawn = super(x, y)
 
-    existingEntity = @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, CardType.Entity)
+    existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Entity)
     if existingEntity?
       # create modifier from existing entity
       existingEntityCardData = existingEntity.createNewCardData()

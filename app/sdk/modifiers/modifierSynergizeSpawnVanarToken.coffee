@@ -32,7 +32,7 @@ class ModifierSynergizeSpawnVanarToken extends ModifierSynergize
       spawnLocations = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), @getCard().getPosition(), CONFIG.PATTERN_3x3, card, @getCard(), 1)
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, card.createNewCardData())
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, card.createNewCardData())
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

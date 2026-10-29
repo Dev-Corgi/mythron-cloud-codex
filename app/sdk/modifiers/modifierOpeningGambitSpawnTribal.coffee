@@ -34,7 +34,7 @@ class ModifierOpeningGambitSpawnTribal extends ModifierOpeningGambit
         spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, card)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, card)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

@@ -28,7 +28,7 @@ class ModifierOverwatchDestroyedResummonAndDestroyOther extends ModifierOverwatc
 
       # resummon self
       respawnPosition = card.getPosition()
-      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), respawnPosition.x, respawnPosition.y, card.createNewCardData())
+      playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), respawnPosition, card.createNewCardData())
       playCardAction.setSource(@getCard())
       @getGameSession().executeAction(playCardAction)
 

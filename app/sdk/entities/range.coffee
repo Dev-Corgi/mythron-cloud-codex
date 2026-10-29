@@ -1,5 +1,6 @@
 CONFIG = require 'app/common/config'
 UtilsPosition = require 'app/common/utils/utils_position'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
 
 class Range
 
@@ -27,6 +28,15 @@ class Range
     @_positionsTestedForValidByIndex = null
 
   getValidPositions: (board, entity) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      unless @_validPositions?
+        @_validPositions = []
+        origin = entity.getPosition()
+        for candidate in board.getHexPositionsInRange(origin, entity.getReach())
+          continue if board.positionsEqual(origin, candidate)
+          continue if board.getCardAtPosition(candidate, entity.getType())
+          @_validPositions.push(candidate)
+      return @_validPositions
     if !@_validPositions?
       entityPosition = entity.getPosition()
       pattern = entity.getPattern()
@@ -46,6 +56,18 @@ class Range
     return @getValidPosition(board, entity, position)?
 
   getValidPosition: (board, entity, position) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return null unless HexTopology.isAxialPosition(position) and board.isOnBoard(position)
+      key = "#{position.q},#{position.r}"
+      @_positionsTestedForValidByIndex ?= {}
+      return position if @_positionsTestedForValidByIndex[key] is true
+      return null if @_positionsTestedForValidByIndex[key] is false
+      for validPosition in @getValidPositions(board, entity)
+        if board.positionsEqual(validPosition, position)
+          @_positionsTestedForValidByIndex[key] = true
+          return position
+      @_positionsTestedForValidByIndex[key] = false
+      return null
     if board.isOnBoard(position)
       # if we've already tested this position, return previous result
       index = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y)

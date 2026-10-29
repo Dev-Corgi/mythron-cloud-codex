@@ -25,7 +25,7 @@ class ModifierBuildCompleteReplicateAndSummonDervish extends ModifierBuilding
         buildingModifier.buildingMinion = {id: Cards.Faction3.SimulacraBuilding}
         cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
         cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(buildingModifier)
-        spawnAction1 = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), obelyskSpawnPosition.x, obelyskSpawnPosition.y, cardDataOrIndexToSpawn)
+        spawnAction1 = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), obelyskSpawnPosition, cardDataOrIndexToSpawn)
         spawnAction1.setSource(@getCard())
         @getGameSession().executeAction(spawnAction1)
 
@@ -33,7 +33,7 @@ class ModifierBuildCompleteReplicateAndSummonDervish extends ModifierBuilding
       if spawnPositions?.length > 0
         dervish = @getGameSession().getExistingCardFromIndexOrCachedCardFromData({id: Cards.Faction3.Dervish})
         dervishSpawnPosition = spawnPositions[@getGameSession().getRandomIntegerForExecution(spawnPositions.length)]
-        spawnAction2 = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), dervishSpawnPosition.x, dervishSpawnPosition.y, {id: Cards.Faction3.Dervish})
+        spawnAction2 = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), dervishSpawnPosition, {id: Cards.Faction3.Dervish})
         spawnAction2.setSource(@getCard())
         @getGameSession().executeAction(spawnAction2)
 

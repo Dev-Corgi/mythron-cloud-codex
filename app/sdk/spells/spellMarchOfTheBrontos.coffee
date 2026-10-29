@@ -21,7 +21,7 @@ class SpellMarchOfTheBrontos extends Spell
 
       unitToSpawn = {id: Cards.Faction5.Megabrontodon}
       unitToSpawn.additionalInherentModifiersContextObjects = [ModifierPseudoRush.createContextObject()]
-      spawnEgg = new PlayCardAsTransformAction(@getGameSession(), unit.getOwnerId(), position.x, position.y, unitToSpawn)
+      spawnEgg = new PlayCardAsTransformAction(@getGameSession(), unit.getOwnerId(), position, unitToSpawn)
       @getGameSession().executeAction(spawnEgg)
 
   _postFilterApplyPositions: (validPositions) ->

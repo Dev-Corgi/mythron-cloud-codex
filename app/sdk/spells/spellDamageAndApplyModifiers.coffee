@@ -8,7 +8,7 @@ class SpellDamageAndApplyModifiers extends SpellApplyModifiers
   applyToEnemy: false
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     if unit? and (!unit.getIsGeneral() or (unit.getIsGeneral() and @canTargetGeneral))
       # deal damage

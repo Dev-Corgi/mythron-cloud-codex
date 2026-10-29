@@ -52,12 +52,13 @@ class ModifierOpponentSummonWatchSpawn1HealthClone extends ModifierOpponentSummo
     if @getGameSession().getIsRunningAsAuthoritative()
       summonedPosition = action.getTargetPosition()
       ownerId = @getSpawnOwnerId(action)
-      cloningEntity = @getEntityToSpawn(summonedPosition.x, summonedPosition.y)
+      cloningPosition = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then {q: summonedPosition.q, r: summonedPosition.r} else {x: summonedPosition.x, y: summonedPosition.y}
+      cloningEntity = @getGameSession().getBoard().getUnitAtPosition(cloningPosition)
       if cloningEntity?
         @cardDataOrIndexToSpawn = cloningEntity.createNewCardData()
         spawnPositions = UtilsGameSession.getRandomNonConflictingSmartSpawnPositionsForModifier(@, ModifierOpponentSummonWatchSpawn1HealthClone)
         for spawnPosition in spawnPositions
-          spawnEntityAction = new CloneEntityAsTransformAction(@getGameSession(), @getOwnerId(), spawnPosition.x, spawnPosition.y)
+          spawnEntityAction = new CloneEntityAsTransformAction(@getGameSession(), @getOwnerId(), spawnPosition)
           spawnEntityAction.setOwnerId(@getSpawnOwnerId(action))
           spawnEntityAction.setSource(cloningEntity)
           @getGameSession().executeAction(spawnEntityAction)

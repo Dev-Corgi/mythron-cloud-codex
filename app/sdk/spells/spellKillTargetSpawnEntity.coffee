@@ -10,7 +10,7 @@ class SpellKillTargetSpawnEntity extends SpellKillTarget
     super(board,x,y,sourceAction)
 
     if @cardDataOrIndexToSpawn
-      spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, @cardDataOrIndexToSpawn)
+      spawnEntityAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), @cardDataOrIndexToSpawn)
       @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = SpellKillTargetSpawnEntity

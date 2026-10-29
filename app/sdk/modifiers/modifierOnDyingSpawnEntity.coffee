@@ -33,9 +33,9 @@ class ModifierOnDyingSpawnEntity extends ModifierOnDying
       for spawnPosition in spawnPositions
         cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn()
         if @spawnSilently
-          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardSilentlyAction(@getGameSession(), ownerId, spawnPosition, cardDataOrIndexToSpawn)
         else
-          spawnAction = new PlayCardAction(@getGameSession(), ownerId, spawnPosition.x, spawnPosition.y, cardDataOrIndexToSpawn)
+          spawnAction = new PlayCardAction(@getGameSession(), ownerId, spawnPosition, cardDataOrIndexToSpawn)
         spawnAction.setSource(@getCard())
         @getGameSession().executeAction(spawnAction)
 

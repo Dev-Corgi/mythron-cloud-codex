@@ -19,12 +19,16 @@ class ModifierOpponentSummonWatchSummonMinionInFront extends ModifierOpponentSum
     if unit? and @cardDataOrIndexToSpawn?
       playerOffset = 0
       if unit.isOwnedByPlayer1() then playerOffset = 1 else playerOffset = -1
-      inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        inFrontOfPosition = unit.getPosition()
+        inFrontOfPosition.q += playerOffset
+      else
+        inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
 
       entity = @getGameSession().getExistingCardFromIndexOrCreateCardFromData(@cardDataOrIndexToSpawn)
       board = @getGameSession().getBoard()
       if board.isOnBoard(inFrontOfPosition) and !board.getObstructionAtPositionForEntity(inFrontOfPosition, entity)
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), inFrontOfPosition.x, inFrontOfPosition.y, @cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), inFrontOfPosition, @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

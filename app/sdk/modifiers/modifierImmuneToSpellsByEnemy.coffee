@@ -15,7 +15,7 @@ class ModifierImmuneToSpellsByEnemy extends ModifierImmuneToSpells
   onValidateAction: (event) ->
     a = event.action
 
-    if @getCard()? and a.getOwner() is @getGameSession().getOpponentPlayerOfPlayerId(@getCard().getOwnerId()) and a instanceof ApplyCardToBoardAction and a.getIsValid() and UtilsPosition.getPositionsAreEqual(@getCard().getPosition(), a.getTargetPosition()) # may be trying to target this unit
+    if @getCard()? and a.getOwner() is @getGameSession().getOpponentPlayerOfPlayerId(@getCard().getOwnerId()) and a instanceof ApplyCardToBoardAction and a.getIsValid() and @getGameSession().getBoard().positionsEqual(@getCard().getPosition(), a.getTargetPosition()) # may be trying to target this unit
       card = a.getCard()
       # is this in fact an enemy spell directly trying to target this unit? (not this space, not multiple spaces - directly targeting this unit)
       if card? and card.getRootCard()?.type is CardType.Spell and !card.getTargetsSpace() and !card.getAppliesSameEffectToMultipleTargets()

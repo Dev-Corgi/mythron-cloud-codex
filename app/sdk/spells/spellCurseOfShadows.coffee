@@ -5,7 +5,7 @@ class SpellCurseOfShadows extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     attack = unit.getATK()
 

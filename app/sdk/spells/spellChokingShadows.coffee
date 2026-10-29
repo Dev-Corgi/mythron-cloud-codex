@@ -17,11 +17,11 @@ class SpellChokingShadows extends Spell
     super(board,x,y,sourceAction)
 
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "ChokingShadows::onApplyEffectToBoardTile"
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
 
     # always spawn a shadow tile at each position
     if board.isOnBoard(applyEffectPosition)
-      action = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, @cardDataOrIndexToSpawn)
+      action = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), @cardDataOrIndexToSpawn)
       action.setOwnerId(@getOwnerId())
       @getGameSession().executeAction(action)
 

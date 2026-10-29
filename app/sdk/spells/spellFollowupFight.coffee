@@ -11,7 +11,7 @@ class SpellFollowupFight extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     enemyUnit = board.getCardAtPosition(applyEffectPosition, @targetType)
     originalUnit = board.getCardAtPosition(@getFollowupSourcePosition(), @targetType)
     if enemyUnit? and originalUnit?

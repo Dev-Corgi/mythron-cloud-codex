@@ -14,7 +14,7 @@ class SpellTransformSameManaCost extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    targetUnit = board.getCardAtPosition({x:x, y:y}, @targetType)
+    targetUnit = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
     targetManaCost = targetUnit.getManaCost()
     targetOwnerId = targetUnit.getOwnerId()
     targetPosition = targetUnit.getPosition()
@@ -50,7 +50,7 @@ class SpellTransformSameManaCost extends Spell
         @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
         @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(targetUnit.getExhausted(), targetUnit.getMovesMade(), targetUnit.getAttacksMade()))
 
-        spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), targetOwnerId, targetPosition.x, targetPosition.y, @cardDataOrIndexToSpawn)
+        spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), targetOwnerId, targetPosition, @cardDataOrIndexToSpawn)
         @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = SpellTransformSameManaCost

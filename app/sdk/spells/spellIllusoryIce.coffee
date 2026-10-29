@@ -9,7 +9,7 @@ class SpellIllusoryIce extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    originalEntity = @getGameSession().getBoard().getEntityAtPosition({x:x,y:y})
+    originalEntity = @getGameSession().getBoard().getEntityAtPosition(@getEffectPositionFromCoordinates(x, y))
     entities = @getGameSession().getBoard().getEntitiesAroundEntity(originalEntity, CardType.Unit, 1)
 
     for entity in entities
@@ -22,12 +22,12 @@ class SpellIllusoryIce extends Spell
         removeEntityAction.setTarget(entity)
         @getGameSession().executeAction(removeEntityAction)
 
-        existingEntity = @getGameSession().getBoard().getCardAtPosition({x:x, y:y}, CardType.Unit)
+        existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
         if existingEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(position, existingEntity)
           cardDataOrIndexToSpawn = existingEntity.createCloneCardData()
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
-          spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), ownerId, position.x, position.y, cardDataOrIndexToSpawn)
+          spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), ownerId, position, cardDataOrIndexToSpawn)
           @getGameSession().executeAction(spawnEntityAction)
 
 module.exports = SpellIllusoryIce

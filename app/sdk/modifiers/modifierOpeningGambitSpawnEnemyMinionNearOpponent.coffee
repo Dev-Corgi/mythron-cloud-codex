@@ -31,7 +31,7 @@ class ModifierOpeningGambitSpawnEnemyMinionNearOpponent extends ModifierOpeningG
           spawnLocations.push(validSpawnLocations.splice(@getGameSession().getRandomIntegerForExecution(validSpawnLocations.length), 1)[0])
 
       for position in spawnLocations
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), opponentId, position.x, position.y, @cardDataOrIndexToSpawn)
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), opponentId, position, @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

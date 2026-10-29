@@ -25,7 +25,7 @@ class SpellWailingOverdrive extends SpellApplyModifiers
     else if @isOwnedByPlayer2()
       enemySideEndX = Math.floor((enemySideEndX - enemySideStartX) * 0.5 - 1)
 
-    x = position.x
+    x = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(position) else position.x
     return x >= enemySideStartX and x <= enemySideEndX
 
 

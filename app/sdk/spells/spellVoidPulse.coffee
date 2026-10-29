@@ -16,7 +16,7 @@ class SpellVoidPulse extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    position = {x: x, y: y}
+    position = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(position, @targetType)
 
     if entity? and entity.getIsGeneral()

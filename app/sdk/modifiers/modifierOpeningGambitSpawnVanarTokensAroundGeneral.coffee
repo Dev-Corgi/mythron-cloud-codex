@@ -32,7 +32,7 @@ class ModifierOpeningGambitSpawnVanarTokensAroundGeneral extends ModifierOpening
           {id: Cards.Faction6.FrostBomb}
         ]
         card = @getGameSession().getExistingCardFromIndexOrCreateCardFromData(possibleTokens[@getGameSession().getRandomIntegerForExecution(possibleTokens.length)])
-        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position.x, position.y, card.createNewCardData())
+        playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), position, card.createNewCardData())
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 

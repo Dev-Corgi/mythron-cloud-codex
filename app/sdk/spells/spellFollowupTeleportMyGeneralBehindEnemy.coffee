@@ -11,13 +11,21 @@ class SpellFollowupTeleportMyGeneralBehindEnemy extends SpellFollowupTeleportMyG
     entity = @getGameSession().getGeneralForPlayerId(@getOwnerId())
     for unit in board.getUnits()
       #look for units owned by the opponent of the player who cast the spell, and with an open space "behind" the enemy unit
-      behindPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        behindPosition = unit.getPosition()
+        behindPosition.q += playerOffset
+      else
+        behindPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
       if unit.getOwnerId() != @getOwnerId() and board.isOnBoard(behindPosition) and !board.getObstructionAtPositionForEntity(behindPosition, entity)
         behindPositions.push(behindPosition)
 
     patternBehindEnemies = []
     for position in behindPositions
-      patternBehindEnemies.push({x: position.x - @getFollowupSourcePosition().x, y: position.y - @getFollowupSourcePosition().y})
+      sourcePosition = @getFollowupSourcePosition()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        patternBehindEnemies.push({q: position.q - sourcePosition.q, r: position.r - sourcePosition.r})
+      else
+        patternBehindEnemies.push({x: position.x - sourcePosition.x, y: position.y - sourcePosition.y})
 
     return patternBehindEnemies
 

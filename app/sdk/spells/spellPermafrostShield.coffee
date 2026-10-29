@@ -15,7 +15,7 @@ class SpellPermafrostShield extends SpellApplyModifiers
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     if entity.getBelongsToTribe(Races.Vespyr)
       @targetModifiersContextObjects  = [Modifier.createContextObjectWithAttributeBuffs(@attackBuff, @healthBuff)]

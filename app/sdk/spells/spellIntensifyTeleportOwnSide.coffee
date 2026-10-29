@@ -28,14 +28,23 @@ class SpellIntensifyTeleportOwnSide extends SpellIntensify
             randomTeleportAction = new RandomTeleportAction(@getGameSession())
             randomTeleportAction.setOwnerId(@getOwnerId())
             randomTeleportAction.setSource(teleportTarget)
-            if @isOwnedByPlayer1()
+            if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+              board = @getGameSession().getBoard()
+              targetPositions = (position for position in board.getPositions() when !@isPositionOnMySide(position))
+              randomTeleportAction.setPatternSourcePosition({q:0, r:0})
+              randomTeleportAction.setTeleportPattern(({q: position.q, r: position.r} for position in targetPositions))
+            else if @isOwnedByPlayer1()
               randomTeleportAction.setPatternSourcePosition({x:0, y:0})
             else
               randomTeleportAction.setPatternSourcePosition({x: Math.ceil(CONFIG.BOARDCOL * 0.5), y:0})
-            randomTeleportAction.setTeleportPattern(CONFIG.PATTERN_HALF_BOARD)
+            unless @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+              randomTeleportAction.setTeleportPattern(CONFIG.PATTERN_HALF_BOARD)
             @getGameSession().executeAction(randomTeleportAction)
 
   isOnMySideOfBattlefield: (unit) ->
+    return @isPositionOnMySide(unit.getPosition())
+
+  isPositionOnMySide: (position) ->
 
     mySideStartX = 0
     mySideEndX = CONFIG.BOARDCOL
@@ -44,7 +53,8 @@ class SpellIntensifyTeleportOwnSide extends SpellIntensify
     else
       mySideStartX = Math.floor((mySideEndX - mySideStartX) * 0.5 + 1)
 
-    if unit.getPosition().x >= mySideStartX and unit.getPosition().x <= mySideEndX
+    column = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(position) else position.x
+    if column >= mySideStartX and column <= mySideEndX
       return true
     return false
 

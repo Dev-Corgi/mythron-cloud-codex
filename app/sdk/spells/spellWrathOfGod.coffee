@@ -18,10 +18,10 @@ class SpellWrathOfGod extends SpellKillTarget
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     if unit? and !unit.getIsGeneral()
-      action = new PlayCardAction(@getGameSession(), @getOwnerId(), x, y, {id: Cards.Tile.Hallowed})
+      action = new PlayCardAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), {id: Cards.Tile.Hallowed})
       action.setOwnerId(@getOwnerId())
       @getGameSession().executeAction(action)
     

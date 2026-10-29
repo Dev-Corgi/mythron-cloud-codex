@@ -5,7 +5,7 @@ _ = require 'underscore'
 class SpellStunAndDamage extends SpellApplyModifiers
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     if unit?
       super(board,x,y,sourceAction)

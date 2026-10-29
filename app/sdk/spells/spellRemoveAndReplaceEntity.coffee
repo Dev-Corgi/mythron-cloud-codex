@@ -16,7 +16,7 @@ class SpellRemoveAndReplaceEntity extends SpellApplyEntityToBoard
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn(x, y)
 
     # create the action to spawn the new entity before the existing entity is removed
@@ -49,13 +49,13 @@ class SpellRemoveAndReplaceEntity extends SpellApplyEntityToBoard
     if !cardDataOrIndexToSpawn? then cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn(x, y)
     entity = @getEntityToSpawn(x, y, cardDataOrIndexToSpawn)
     if entity?
-      return new PlayCardAsTransformAction(@getGameSession(), entity.getOwnerId(), x, y, cardDataOrIndexToSpawn)
+      return new PlayCardAsTransformAction(@getGameSession(), entity.getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardDataOrIndexToSpawn)
 
   getEntityToSpawn: (x, y, cardDataOrIndexToSpawn) ->
     if !cardDataOrIndexToSpawn? then cardDataOrIndexToSpawn = @getCardDataOrIndexToSpawn(x, y)
     if cardDataOrIndexToSpawn?
       entity = @getGameSession().getExistingCardFromIndexOrCreateCardFromData(cardDataOrIndexToSpawn)
-      existingEntity = @getGameSession().getBoard().getCardAtPosition({x: x, y: y}, CardType.Entity)
+      existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Entity)
       if existingEntity?
         entity.setOwnerId(existingEntity.getOwnerId())
       else

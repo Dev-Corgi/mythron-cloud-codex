@@ -10,7 +10,7 @@ class SpellFortifiedAssault extends SpellDamage
     numTiles = 1
     for tile in board.getTiles(true, false)
       if tile?.getOwnerId() == @getOwnerId() and tile.getBaseCardId() == Cards.Tile.Hallowed
-        if !(tile.getPosition().x == x and tile.getPosition().y == y)
+        if !board.positionsEqual(tile.getPosition(), @getEffectPositionFromCoordinates(x, y))
           numTiles++
 
     statContextObject = Modifier.createContextObjectWithAttributeBuffs(0, numTiles)
@@ -22,7 +22,7 @@ class SpellFortifiedAssault extends SpellDamage
     this.damageAmount = numTiles
     super(board,x,y,sourceAction)
 
-    playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), x, y, {id: Cards.Tile.Hallowed})
+    playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y), {id: Cards.Tile.Hallowed})
     playCardAction.setSource(@)
     @getGameSession().executeAction(playCardAction)
 

@@ -5,6 +5,7 @@ PlayCardAction = require "app/sdk/actions/playCardAction"
 ApplyCardToBoardAction = require "app/sdk/actions/applyCardToBoardAction"
 GameSession = require "app/sdk/gameSession"
 CONFIG = require "app/common/config"
+HexTopology = require "app/sdk/rulesets/hexTopology"
 
 ###
 AgentActions - Creates agent style actions and later interprets them into sdk actions
@@ -91,19 +92,41 @@ class AgentActions
     if agentAction.type == @_moveUnitType
       unit = agent.getUnitForTag(gameSession,agentAction.unitTag)
       targetPosition = unit.getPosition()
+      if gameSession.getRulesetId() == "practice-sandbox-hex"
+        delta = agentAction.deltaXY
+        throw new Error("Hex agent movement requires axial q/r delta") unless delta?.q? and delta?.r? and Number.isInteger(delta.q) and Number.isInteger(delta.r)
+        targetPosition.q += delta.q
+        targetPosition.r += delta.r
+        return unit.actionMove(targetPosition)
       targetPosition.x += agentAction.deltaXY.x
       targetPosition.y += agentAction.deltaXY.y
       return unit.actionMove(targetPosition)
     else if agentAction.type == @_attackActionType
       unit = agent.getUnitForTag(gameSession,agentAction.unitTag)
+      if gameSession.getRulesetId() == "practice-sandbox-hex"
+        targetPosition = agentAction.attackTargetPosition
+        throw new Error("Hex agent attack requires axial q/r target") unless HexTopology.isAxialPosition(targetPosition)
+        targetPosition = {q: targetPosition.q, r: targetPosition.r}
+        if !agentAction.targetPositionIsAbsolute
+          targetPosition.q += unit.getPosition().q
+          targetPosition.r += unit.getPosition().r
+        return unit.actionAttackEntityAtPosition(targetPosition)
       targetPosition = {x: agentAction.attackTargetPosition.x, y: agentAction.attackTargetPosition.y}
       if !agentAction.targetPositionIsAbsolute
         targetPosition.x += unit.getPositionX()
         targetPosition.y += unit.getPositionY()
       return unit.actionAttackEntityAtPosition(targetPosition)
     else if agentAction.type == @_playCardActionType
+      if gameSession.getRulesetId() == "practice-sandbox-hex"
+        throw new Error("Hex agent card play requires axial q/r target") unless HexTopology.isAxialPosition(agentAction.targetPosition)
+        return new PlayCardFromHandAction(gameSession,gameSession.getCurrentPlayerId(),agentAction.targetPosition,agentAction.handIndex)
       return new PlayCardFromHandAction(gameSession,gameSession.getCurrentPlayerId(),agentAction.targetPosition.x,agentAction.targetPosition.y,agentAction.handIndex)
     else if agentAction.type == @_playFollowupActionType
+      if gameSession.getRulesetId() == "practice-sandbox-hex"
+        throw new Error("Hex agent followup requires axial source and target") unless HexTopology.isAxialPosition(agentAction.sourcePosition) and HexTopology.isAxialPosition(agentAction.targetPosition)
+        playCardAction = new PlayCardAction(gameSession,gameSession.getCurrentPlayerId(),agentAction.targetPosition,{id: agentAction.followupCardId})
+        playCardAction.sourcePosition = {q: agentAction.sourcePosition.q, r: agentAction.sourcePosition.r}
+        return playCardAction
       playCardAction = new PlayCardAction(gameSession,gameSession.getCurrentPlayerId(),agentAction.targetPosition.x,agentAction.targetPosition.y,{id: agentAction.followupCardId})
       playCardAction.sourcePosition = {x: agentAction.sourcePosition.x, y: agentAction.sourcePosition.y}
       return playCardAction

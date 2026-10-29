@@ -7,7 +7,7 @@ class SpellAssassinationProtocol extends SpellRefreshExhaustion
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     unit = board.getUnitAtPosition(applyEffectPosition)
     if unit?
       cantAttackGeneralModifier = ModifierCannotAttackGeneral.createContextObject()

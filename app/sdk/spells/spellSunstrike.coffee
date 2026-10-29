@@ -5,7 +5,7 @@ DamageAction = require 'app/sdk/actions/damageAction'
 class SpellSunstrike extends Spell
 
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entityAtPosition = @getGameSession().getBoard().getEntityAtPosition(applyEffectPosition)
 
     if entityAtPosition?

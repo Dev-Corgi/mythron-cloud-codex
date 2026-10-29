@@ -24,7 +24,8 @@ class SpellAvalanche extends SpellStunAndDamage
 
 
       for position in validPositions
-        if position.x >= mySideStartX and position.x <= mySideEndX
+        column = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' then @getGameSession().getBoard().getHexRenderedColumn(position) else position.x
+        if column >= mySideStartX and column <= mySideEndX
           filteredPositions.push(position)
 
     return filteredPositions

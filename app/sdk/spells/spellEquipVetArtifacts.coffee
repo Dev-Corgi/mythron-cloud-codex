@@ -38,7 +38,7 @@ class SpellEquipVetArtifacts extends Spell
       # equip the random artifacts
       if cardDataToPlay? and cardDataToPlay.length > 0
         for cardData in cardDataToPlay
-          playCardAction = new PlayCardSilentlyAction(gameSession, @getOwnerId(), x, y, cardData.createNewCardData())
+          playCardAction = new PlayCardSilentlyAction(gameSession, @getOwnerId(), @getEffectPositionFromCoordinates(x, y), cardData.createNewCardData())
           playCardAction.setSource(@)
           gameSession.executeAction(playCardAction)
 

@@ -17,7 +17,7 @@ class SpellApplyModifiers extends Spell
   onApplyEffectToBoardTile: (board,x,y,sourceAction) ->
     super(board,x,y,sourceAction)
 
-    applyEffectPosition = {x: x, y: y}
+    applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     if entity?
       for modifierContextObject in @getAppliedTargetModifiersContextObjects()

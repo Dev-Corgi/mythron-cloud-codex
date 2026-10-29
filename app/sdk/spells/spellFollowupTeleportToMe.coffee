@@ -13,6 +13,9 @@ class SpellFollowupTeleportToMe extends SpellFollowupTeleport
       # set x offset based on which direction the source unit faces
       sourcePosition = source.getPosition()
       if source.isOwnedByPlayer1() then offset = 1 else offset = -1
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+        sourcePosition.q += offset
+        return sourcePosition
       return {x: sourcePosition.x + offset, y: sourcePosition.y}
 
   _postFilterPlayPositions: (spellPositions) ->

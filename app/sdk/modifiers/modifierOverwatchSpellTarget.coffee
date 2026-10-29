@@ -17,7 +17,7 @@ class ModifierOverwatchSpellTarget extends ModifierOverwatch
       return super()
 
   getIsActionRelevant: (action) ->
-    if @getCard()? and action.getOwner() is @getGameSession().getOpponentPlayerOfPlayerId(@getCard().getOwnerId()) and action instanceof ApplyCardToBoardAction and action.getIsValid() and UtilsPosition.getPositionsAreEqual(@getCard().getPosition(), action.getTargetPosition()) # may be trying to target this unit
+    if @getCard()? and action.getOwner() is @getGameSession().getOpponentPlayerOfPlayerId(@getCard().getOwnerId()) and action instanceof ApplyCardToBoardAction and action.getIsValid() and @getGameSession().getBoard().positionsEqual(@getCard().getPosition(), action.getTargetPosition()) # may be trying to target this unit
       card = action.getCard()
       # is this in fact an enemy spell directly trying to target this unit? (not this space, not multiple spaces - directly targeting this unit)
       if card? and card.getRootCard()?.type is CardType.Spell and !card.getTargetsSpace() and !card.getAppliesSameEffectToMultipleTargets()

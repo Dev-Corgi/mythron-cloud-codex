@@ -420,17 +420,26 @@ class Player extends SDKObject
     return drawStartingHandAction
 
   actionPlayCardFromHand: (indexOfCardInHand,tileX,tileY) ->
-    playCardAction = new PlayCardFromHandAction(@getGameSession(), @getPlayerId(), tileX, tileY, indexOfCardInHand)
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'
+      playCardAction = new PlayCardFromHandAction(@getGameSession(), @getPlayerId(), tileX, indexOfCardInHand)
+    else
+      playCardAction = new PlayCardFromHandAction(@getGameSession(), @getPlayerId(), tileX, tileY, indexOfCardInHand)
     return playCardAction
 
   actionPlaySignatureCard: (tileX,tileY) ->
     signatureCard = @getCurrentSignatureCard()
     if signatureCard?
-      playCardAction = new PlaySignatureCardAction(@getGameSession(), @getPlayerId(), tileX, tileY, signatureCard.getIndex())
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'
+        playCardAction = new PlaySignatureCardAction(@getGameSession(), @getPlayerId(), tileX, signatureCard.getIndex())
+      else
+        playCardAction = new PlaySignatureCardAction(@getGameSession(), @getPlayerId(), tileX, tileY, signatureCard.getIndex())
       return playCardAction
 
   actionPlayFollowup: (followupCard, tileX, tileY) ->
-    playCardAction = new PlayCardAction(@getGameSession(), @getPlayerId(), tileX, tileY, followupCard.createNewCardData())
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'
+      playCardAction = new PlayCardAction(@getGameSession(), @getPlayerId(), tileX, followupCard.createNewCardData())
+    else
+      playCardAction = new PlayCardAction(@getGameSession(), @getPlayerId(), tileX, tileY, followupCard.createNewCardData())
     playCardAction.setSource(followupCard.getParentCard())
     playCardAction.setSourcePosition(followupCard.getFollowupSourcePosition())
     return playCardAction
