@@ -17,6 +17,12 @@ class ReplaceCardFromHandAction extends PutCardInHandAction
     super(gameSession, ownerId, null, indexOfCardInHand)
 
   _execute: () ->
+    # Replacement returns the old card to the deck before drawing. Reject it
+    # before either side of that exchange can mutate state.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+      super()
+      return
+
     player = @getGameSession().getPlayerById(@getOwnerId())
     deck = player.getDeck()
     drawPile = deck.getDrawPile()

@@ -201,6 +201,8 @@ class Deck extends SDKObject
 
   actionsDrawCardsToRefillHand: ()->
     actions = []
+    # Hex sessions have a fixed starting hand; never generate refills.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex" then return actions
     # return enough actions to refill hand
     for i in [0...@getMaxHandSize()]
       # only return an action at hand space if space is empty
@@ -210,6 +212,8 @@ class Deck extends SDKObject
   # returns a number of draw card actions needed for end turn card draw
   actionsDrawNewCards: ()->
     actions = []
+    # Hex sessions have a fixed starting hand; never generate turn-end draws.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex" then return actions
     # number of card draw actions we need to create (default set by config value)
     numRemainingActions = CONFIG.CARD_DRAW_PER_TURN
     # check player modifiers that change number of cards drawn at end of turn

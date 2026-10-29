@@ -64,6 +64,10 @@ class PutCardInDeckAction extends Action
   _execute: () ->
     super()
 
+    # Card return effects use this action. Keep setup/restoration, which call
+    # GameSession.applyCardToDeck directly, unaffected.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex" then return
+
     if @targetPlayerId? and @cardDataOrIndex?
       #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "PutCardOnTopOfDeckAction::execute"
       card = @getCard()

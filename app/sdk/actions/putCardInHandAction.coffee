@@ -80,6 +80,10 @@ class PutCardInHandAction extends Action
   _execute: () ->
     super()
 
+    # Action paths may add cards during play, but setup and restoration use
+    # GameSession.applyCardToHand directly and remain available.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex" then return
+
     if @cardDataOrIndex?
       #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "PutCardInHandAction::execute"
       card = @getCard()

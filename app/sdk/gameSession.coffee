@@ -1858,7 +1858,7 @@ class _GameSession extends SDKObject
             # this is done before starting next turn so that end turn actions for previous player can act on hand before new cards are drawn
             if !@_private.hasDrawnCardsForTurn
               @_private.hasDrawnCardsForTurn = true
-              drawCardActionsForTurn = @getCurrentPlayer().getDeck().actionsDrawNewCards()
+              drawCardActionsForTurn = if @getRulesetId() is "practice-sandbox-hex" then [] else @getCurrentPlayer().getDeck().actionsDrawNewCards()
               if drawCardActionsForTurn? and drawCardActionsForTurn.length > 0
                 drawCardActionsToExecute = drawCardActionsForTurn
                 drawCardActionsForTurn = null
@@ -1967,6 +1967,16 @@ class _GameSession extends SDKObject
    ###
   validateAction: (action, emitEventWhenInvalid=true) ->
     # Logger.module("SDK").debug "[G:#{@.gameId}]", "GS.validateAction: #{action.getType()}"
+    # Reject hand/deck mutation actions before action-resolution events can
+    # observe a draw or card insertion that the fixed-hand rules forbid.
+    if @getRulesetId() is "practice-sandbox-hex" and (action instanceof PutCardInHandAction or action instanceof PutCardInDeckAction)
+      action.setIsValid(false)
+      action.setValidatorType("ValidatorFixedHand")
+      action.setValidationMessage("Card draw and hand/deck mutation actions are disabled for this ruleset.")
+      if emitEventWhenInvalid
+        @onInvalidAction(action, action.getValidatorType(), action.getValidationMessage(), action.getValidationMessagePosition())
+      return
+
     # emit modify action
     # this event allows cards to check an action and modify it before anything else happens
     # for example, followups must be modified before the primary validation event

@@ -14,6 +14,11 @@ class DrawCardAction extends PutCardInHandAction
     super
 
   _execute: () ->
+    # Reject before looking at the deck: an empty deck must not cause fatigue.
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+      super()
+      return
+
     if @getGameSession().getIsRunningAsAuthoritative()
       player = @getGameSession().getPlayerById(@getOwnerId())
       deck = player.getDeck()

@@ -6,6 +6,7 @@ const _ = require('underscore');
 const CONFIG = require('../../../../app/common/config');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
+const EVENTS = require('../../../../app/common/event_types');
 const Rulesets = require('../../../../app/sdk/rulesets/rulesetsLookup.coffee');
 const createSinglePlayerGame = require('../../../../server/lib/create_single_player_game.coffee');
 const GameManager = require('../../../../server/redis').GameManager;
@@ -31,6 +32,26 @@ describe('game setup', () => {
   });
 
   describe('setup', () => {
+    it('retains legacy empty-deck fatigue', () => {
+      const session = SDK.GameSession.getInstance();
+      const player = session.getCurrentPlayer();
+      player.setHasStartingHand(true);
+      session.getOpponentPlayer().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+      const playerDeck = player.getDeck();
+      playerDeck.setDrawPile([]);
+      const general = session.getGeneralForPlayerId(player.getPlayerId());
+      const healthBefore = general.getHP();
+      const validatorsBefore = session.getValidators();
+      session.setValidators([]);
+
+      session.executeAction(playerDeck.actionDrawCard());
+      session.setValidators(validatorsBefore);
+
+      expect(session.getRulesetId()).to.equal('legacy');
+      expect(general.getHP()).to.be.lessThan(healthBefore);
+    });
+
     it('uses legacy rules by default for ordinary game setup', () => {
       expect(SDK.GameSession.getInstance().getRulesetId()).to.equal('legacy');
       expect(SDK.GameSession.getInstance().getRulesetVersion()).to.equal(1);
@@ -210,6 +231,138 @@ describe('game setup', () => {
       session.executeAction(forcedReplace);
       expect(forcedReplace.getIsValid()).to.equal(false);
       expect(player.getDeck().getHand()).to.deep.equal(deckBefore);
+    });
+
+    it('does not draw, add, return, or replace cards after hex setup', () => {
+      const session = SDK.GameSession.create();
+      session.setIsRunningAsAuthoritative(true);
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-guard-1', name: 'Hex One', deck }, {
+        userId: 'hex-guard-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const player = session.getPlayer1();
+      const playerDeck = player.getDeck();
+      player.setHasStartingHand(true);
+      session.getPlayer2().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+
+      // Leave an empty slot and a card in the draw pile to exercise both
+      // automatic refill generation and direct draw execution.
+      const drawnCard = playerDeck.getCardIndexInHandAtIndex(0);
+      playerDeck.removeCardIndexFromHand(drawnCard);
+      session.applyCardToDeck(playerDeck, drawnCard, session.getCardByIndex(drawnCard));
+      const handBefore = playerDeck.getHand().slice();
+      const drawPileBefore = playerDeck.getDrawPile().slice();
+      const resolvedMutationEvents = [];
+      const originalPushBufferableEvent = session.pushBufferableEvent;
+      session.pushBufferableEvent = function (event) {
+        if (event.type === EVENTS.action || event.type === EVENTS.after_action) resolvedMutationEvents.push(event.type);
+        return originalPushBufferableEvent.apply(this, arguments);
+      };
+      expect(playerDeck.actionsDrawCardsToRefillHand()).to.deep.equal([]);
+      expect(playerDeck.actionsDrawNewCards()).to.deep.equal([]);
+
+      const draw = playerDeck.actionDrawCard();
+      session.executeAction(draw);
+      expect(draw.getIsValid()).to.equal(false);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal(drawPileBefore);
+
+      const add = new SDK.PutCardInHandAction(session, player.getPlayerId(), { id: SDK.Cards.Faction1.SilverguardSquire });
+      session.executeAction(add);
+      expect(add.getIsValid()).to.equal(false);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal(drawPileBefore);
+
+      // Return-to-hand effects use the same insertion action with an existing
+      // card instance; they must not refill the spent slot either.
+      const returnToHand = new SDK.PutCardInHandAction(session, player.getPlayerId(), handBefore[1]);
+      session.executeAction(returnToHand);
+      expect(returnToHand.getIsValid()).to.equal(false);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+
+      // Exercise forced replacement even with the configurable validator list
+      // removed; the fixed-hand rule is enforced by shared action validation.
+      const validatorsBefore = session.getValidators();
+      session.setValidators([]);
+      const replace = player.actionReplaceCardFromHand(1);
+      replace.forcedReplace = true;
+      session.executeAction(replace);
+      session.setValidators(validatorsBefore);
+      expect(replace.getIsValid()).to.equal(false);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal(drawPileBefore);
+
+      const returnToDeck = new SDK.PutCardInDeckAction(session, player.getPlayerId(), handBefore[1]);
+      session.executeAction(returnToDeck);
+      expect(returnToDeck.getIsValid()).to.equal(false);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal(drawPileBefore);
+
+      for (let i = 0; i < playerDeck.getHand().length; i++) {
+        const cardIndex = playerDeck.getCardIndexInHandAtIndex(i);
+        if (cardIndex != null) playerDeck.removeCardIndexFromHand(cardIndex);
+      }
+      const emptyHandBefore = playerDeck.getHand().slice();
+      playerDeck.setDrawPile([]);
+      const healthBefore = session.getGeneralForPlayerId(player.getPlayerId()).getHP();
+      const emptyDeckDraw = playerDeck.actionDrawCard();
+      session.executeAction(emptyDeckDraw);
+      expect(emptyDeckDraw.getIsValid()).to.equal(false);
+      expect(session.getGeneralForPlayerId(player.getPlayerId()).getHP()).to.equal(healthBefore);
+      expect(playerDeck.getHand()).to.deep.equal(emptyHandBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal([]);
+      expect(resolvedMutationEvents).to.deep.equal([]);
+      session.pushBufferableEvent = originalPushBufferableEvent;
+    });
+
+    it('ends a hex turn without refilling or fatigue while still advancing the turn', () => {
+      const session = SDK.GameSession.create();
+      session.setIsRunningAsAuthoritative(true);
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-turn-1', name: 'Hex One', deck }, {
+        userId: 'hex-turn-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const player = session.getCurrentPlayer();
+      player.setHasStartingHand(true);
+      session.getPlayer2().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+      const playerDeck = player.getDeck();
+      const cardToLeaveInDeck = playerDeck.getCardIndexInHandAtIndex(0);
+      playerDeck.removeCardIndexFromHand(cardToLeaveInDeck);
+      session.applyCardToDeck(playerDeck, cardToLeaveInDeck, session.getCardByIndex(cardToLeaveInDeck));
+      // Spend the remaining slots so turn progression is also covered when
+      // the fixed hand is completely empty.
+      for (let i = 0; i < playerDeck.getHand().length; i++) {
+        const cardIndex = playerDeck.getCardIndexInHandAtIndex(i);
+        if (cardIndex != null) playerDeck.removeCardIndexFromHand(cardIndex);
+      }
+      const handBefore = playerDeck.getHand().slice();
+      const drawPileBefore = playerDeck.getDrawPile().slice();
+      const healthBefore = session.getGeneralForPlayerId(player.getPlayerId()).getHP();
+      const turnsBefore = session.getNumberOfTurns();
+      const reserveBefore = player.getReserveMana();
+      const maximumManaBefore = player.getMaximumMana();
+
+      session.executeAction(session.actionEndTurn());
+
+      expect(session.getNumberOfTurns()).to.be.greaterThan(turnsBefore);
+      expect(playerDeck.getHand()).to.deep.equal(handBefore);
+      expect(playerDeck.getDrawPile()).to.deep.equal(drawPileBefore);
+      expect(session.getGeneralForPlayerId(player.getPlayerId()).getHP()).to.equal(healthBefore);
+      expect(player.getMaximumMana()).to.equal(maximumManaBefore + Math.min(3, reserveBefore));
+
+      const snapshot = JSON.parse(session.serializeToJSON(session));
+      const restored = SDK.GameSession.create();
+      restored.deserializeSessionFromFirebase(snapshot);
+      expect(restored.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(restored.getPlayerById(player.getPlayerId()).getDeck().getHand()).to.deep.equal(handBefore);
+      expect(restored.getPlayerById(player.getPlayerId()).getDeck().getDrawPile()).to.deep.equal(drawPileBefore);
+      expect(restored.getPlayerById(player.getPlayerId()).getMaximumMana()).to.equal(player.getMaximumMana());
     });
 
     it('rejects a hex play when its slot no longer contains the selected card instance', () => {
