@@ -2882,7 +2882,10 @@ class CardFactory_CoreSet_Neutral
           spellFilterType: SpellFilterType.EnemyDirect
           damageAmount: 2
           _private: {
-            followupSourcePattern: CONFIG.PATTERN_3x3
+            followupSourcePattern: if gameSession.getRulesetId() is 'practice-sandbox-hex' then [
+              {q: 1, r: 0}, {q: 1, r: -1}, {q: 0, r: -1}
+              {q: -1, r: 0}, {q: -1, r: 1}, {q: 0, r: 1}
+            ] else CONFIG.PATTERN_3x3
             fxResource: ["FX.Cards.Spell.FollowupDamageDevour"]
           }
         }

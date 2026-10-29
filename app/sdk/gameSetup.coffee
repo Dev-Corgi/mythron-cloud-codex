@@ -9,6 +9,7 @@ BattleMapTemplate = require './battleMapTemplate'
 CosmeticsFactory = require './cosmetics/cosmeticsFactory'
 ModifierStartsInHand = require 'app/sdk/modifiers/modifierStartsInHand'
 _ = require("underscore")
+CardEligibility = require './rulesets/cardEligibility'
 
 GameSetup = {}
 
@@ -28,6 +29,9 @@ GameSetup = {}
 ###
 GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaTiles=false) ->
   if gameSession?
+    for playerData in [player1Data, player2Data]
+      eligibility = CardEligibility.validateSetupData(gameSession, playerData)
+      throw new Error(eligibility.reason) unless eligibility.valid
     #Logger.module("SDK").debug("[G:#{gameSession.gameId}]", "GameSetup.setupNewSession", player1Data, player2Data)
     #Logger.module("SDK").debug("GameSetup: player 1 battlemap indexes -> #{player1Data.battleMapIndexes}")
 
@@ -256,6 +260,9 @@ GameSetup.addCardsToBoard = (gameSession, boardCardsData, owner) ->
 GameSetup.setupNewSessionFromExistingSessionData = (gameSession, existingGameSessionData) ->
   # Carry the match ruleset into replay reconstruction before setting up players/cards.
   gameSession.setRuleset(existingGameSessionData?.rulesetId, existingGameSessionData?.rulesetVersion)
+  for playerSetupData in (existingGameSessionData?.gameSetupData?.players ? [])
+    eligibility = CardEligibility.validateSetupData(gameSession, playerSetupData)
+    throw new Error(eligibility.reason) unless eligibility.valid
   # store game setup data
   gameSetupData = existingGameSessionData.gameSetupData
   gameSession.gameSetupData = gameSetupData

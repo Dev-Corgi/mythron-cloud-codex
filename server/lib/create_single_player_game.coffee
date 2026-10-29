@@ -18,6 +18,7 @@ GameFormat = require '../../app/sdk/gameFormat'
 Factions = require '../../app/sdk/cards/factionsLookup'
 FactionFactory = require '../../app/sdk/cards/factionFactory'
 Cards = require '../../app/sdk/cards/cardsLookupComplete'
+CardEligibility = require '../../app/sdk/rulesets/cardEligibility'
 
 # ai
 UsableDecks = require '../ai/decks/usable_decks'
@@ -95,6 +96,9 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
       aiDeck = UsableDecks.getUsableDeckForIdentifier(aiGeneralId, aiDeckId)
     else
       aiDeck = UsableDecks.getAutomaticUsableDeck(aiGeneralId, aiDifficulty, aiNumRandomCards)
+
+    if gameType is GameType.SinglePlayer
+      aiDeck = [{id: aiGeneralId}].concat((CardEligibility.getPracticeBotRoster() ? []).map((id) -> {id: id}))
 
     # generate players data
     player1DataForGame =

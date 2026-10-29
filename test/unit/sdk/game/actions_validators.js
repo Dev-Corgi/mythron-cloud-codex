@@ -13,18 +13,12 @@ Logger.enabled = false;
 
 describe('actions: validators', () => {
   beforeEach(() => {
-    // get all cards
-    const allCards = SDK.GameSession.getCardCaches().getType(SDK.CardType.Unit).getIsGeneral(false).getCards();
-    const cardsThatCost1 = _.filter(allCards, (card) => card.getManaCost() === 1
-        && (card.getFactionId() === SDK.Factions.Neutral || card.getFactionId() === SDK.Factions.Faction1)
-        && (card.modifiersContextObjects == null || card.modifiersContextObjects.length === 0));
-
     // define test decks
     const playerDecks = [
       { id: SDK.Cards.Faction1.General },
-      { id: _.sample(cardsThatCost1).getId() },
-      { id: _.sample(cardsThatCost1).getId() },
-      { id: _.sample(cardsThatCost1).getId() },
+      { id: SDK.Cards.Neutral.Maw },
+      { id: SDK.Cards.Neutral.Maw },
+      { id: SDK.Cards.Neutral.Maw },
     ];
 
     // setup test session

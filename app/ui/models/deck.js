@@ -3,6 +3,7 @@
 var Logger = require('app/common/logger');
 var CONFIG = require('app/common/config');
 var SDK = require('app/sdk');
+var CardEligibility = SDK.CardEligibility;
 var UtilsEnv = require('app/common/utils/utils_env');
 var GameDataManager = require('app/ui/managers/game_data_manager');
 var ProgressionManager = require('app/ui/managers/progression_manager');
@@ -145,6 +146,11 @@ var DeckModel = Backbone.Model.extend({
   changeCardModel: function (cardModel, deltaCount) {
     var cardId = cardModel.get('id');
     var factionId = cardModel.get('factionId');
+    var purpose = this.get('purpose') || this.get('deck_purpose');
+    var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
+    if (isNewRulesDeck && deltaCount > 0 && !CardEligibility.isDeckChoiceId(cardId)) {
+      return false;
+    }
     if (cardId != null && (this.get('isStarter') || ProgressionManager.getInstance().isFactionUnlocked(factionId))) {
       deltaCount || (deltaCount = 1);
 

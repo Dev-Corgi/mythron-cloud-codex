@@ -37,6 +37,7 @@ CardType = require('../../../../app/sdk/cards/cardType')
 Rarity = require('../../../../app/sdk/cards/rarityLookup')
 Cards = require '../../../../app/sdk/cards/cardsLookupComplete'
 GameSetups = require '../../../ai/decks/game_setups'
+CardEligibility = require '../../../../app/sdk/rulesets/cardEligibility'
 CosmeticsFactory = require '../../../../app/sdk/cosmetics/cosmeticsFactory'
 
 awsRegion = config.get('aws.region')
@@ -349,6 +350,10 @@ router.post "/single_player", (req, res, next) ->
     else if card.id?
       return { id: card.id }
   )
+
+  eligibility = CardEligibility.validateDeck(deck)
+  if !eligibility.valid
+    return res.status(400).json({error: eligibility.reason})
 
   # get user faction
   generalId = deck[0].id

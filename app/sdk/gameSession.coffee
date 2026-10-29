@@ -294,6 +294,7 @@ UtilsGameSession = require 'app/common/utils/utils_game_session'
 UtilsPosition = require 'app/common/utils/utils_position'
 GameType = require './gameType'
 Rulesets = require './rulesets/rulesetsLookup'
+CardEligibility = require './rulesets/cardEligibility'
 GameFormat = require './gameFormat'
 Player = require './player'
 BattleMapTemplate = require './battleMapTemplate'
@@ -1977,6 +1978,30 @@ class _GameSession extends SDKObject
         @onInvalidAction(action, action.getValidatorType(), action.getValidationMessage(), action.getValidationMessagePosition())
       return
 
+    if CardEligibility.isNewRules(@) and action instanceof ApplyCardToBoardAction
+      candidate = action.getCard()
+      submittedCardData = action.getCardDataOrIndex()
+      submittedCardId = if _.isObject(submittedCardData) and submittedCardData.id? then submittedCardData.id else candidate?.getId()
+      unless candidate? and submittedCardId is candidate.getId() and CardEligibility.isAllowedRuntimeCard(@, candidate, action)
+        action.setIsValid(false)
+        action.setValidatorType("ValidatorCardEligibility")
+        action.setValidationMessage("This card is not audited for Practice and Sandbox.")
+        if emitEventWhenInvalid
+          @onInvalidAction(action, action.getValidatorType(), action.getValidationMessage(), action.getValidationMessagePosition())
+        return
+
+    if CardEligibility.isNewRules(@) and action instanceof GenerateSignatureCardAction
+      candidate = action.getCard()
+      submittedCardData = action.getCardDataOrIndex()
+      submittedCardId = if _.isObject(submittedCardData) and submittedCardData.id? then submittedCardData.id else candidate?.getId()
+      unless candidate? and submittedCardId is candidate.getId() and CardEligibility.isSignatureForPlayer(@, submittedCardId, action.getOwnerId())
+        action.setIsValid(false)
+        action.setValidatorType("ValidatorCardEligibility")
+        action.setValidationMessage("This signature card is not audited for this general.")
+        if emitEventWhenInvalid
+          @onInvalidAction(action, action.getValidatorType(), action.getValidationMessage(), action.getValidationMessagePosition())
+        return
+
     # emit modify action
     # this event allows cards to check an action and modify it before anything else happens
     # for example, followups must be modified before the primary validation event
@@ -3002,6 +3027,8 @@ class _GameSession extends SDKObject
    ###
   applyCardToBoard: (card, x, y, cardDataOrIndex, sourceAction) ->
     isValidApplication = false
+
+    return false if CardEligibility.isNewRules(@) and card? and !CardEligibility.isAllowedRuntimeCard(@, card, sourceAction)
 
     if card? and !card.getIsActive()
       # apply card data received
