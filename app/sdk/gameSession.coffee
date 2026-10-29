@@ -1331,6 +1331,12 @@ class _GameSession extends SDKObject
       Logger.module("SDK").debug("[G:#{@.gameId}]", "GS.p_endTurn -> turn count: #{@getNumberOfTurns()}")
       currentPlayer = @getCurrentPlayer()
 
+      if @getRulesetId() is "practice-sandbox-hex"
+        transferredMana = Math.min(3, currentPlayer.getReserveMana())
+        currentPlayer.setReserveMana(currentPlayer.getReserveMana() - transferredMana)
+        currentPlayer.maximumMana += transferredMana
+        currentPlayer.remainingMana += transferredMana
+
       # set current turn as ended
       @currentTurn.setEnded(true)
 
@@ -1377,7 +1383,9 @@ class _GameSession extends SDKObject
         player.lastRemainingMana = player.getRemainingMana()
 
         # update mana for players
-        if player.getIsCurrentPlayer()
+        if @getRulesetId() is "practice-sandbox-hex"
+          # Spendable mana persists; reserve transfers happen at the owner's end turn.
+        else if player.getIsCurrentPlayer()
           # player 2 starts out with one more mana than player 1, so don't increment on first turn change
           # otherwise, give player +1 max mana (up to 9) at each new turn start when they are current player
           if player.maximumMana < CONFIG.MAX_MANA and @getNumberOfTurns() > 1

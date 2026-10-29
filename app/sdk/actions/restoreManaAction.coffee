@@ -19,6 +19,8 @@ class RestoreManaAction extends Action
   _execute: () ->
     super()
 
+    return if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+
     owner = @getOwner()
     if owner?
       if owner.getRemainingMana() < owner.getMaximumMana()

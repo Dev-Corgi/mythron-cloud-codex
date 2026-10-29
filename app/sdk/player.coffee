@@ -35,6 +35,7 @@ class Player extends SDKObject
   maximumMana: null
   playerId: null
   remainingMana: null
+  reserveMana: 0
   signatureCardIndices: null
   signatureCardActive: false # signature card can only be cast when it is active
   startingMana: null
@@ -230,6 +231,15 @@ class Player extends SDKObject
   setStartingMana: (val) ->
     @startingMana = @remainingMana = @maximumMana = @lastRemainingMana = @lastMaximumMana = val
 
+  setReserveMana: (val) ->
+    val = 0 unless isFinite(val)
+    val = Math.floor(val)
+    maxReserve = Math.max(0, 20 - (@maximumMana or 0))
+    @reserveMana = Math.min(maxReserve, Math.max(0, val))
+
+  getReserveMana: () ->
+    return @reserveMana
+
   getRemainingMana: () ->
     mana = @remainingMana
     for manaModifier in @getActivePlayerModifiersByClass(PlayerModifierManaModifier) by -1
@@ -249,7 +259,7 @@ class Player extends SDKObject
       mana += manaModifier.bonusMana
 
     # player can never have more than MAX_MANA cores
-    if mana > CONFIG.MAX_MANA
+    if @getGameSession()?.getRulesetId() isnt "practice-sandbox-hex" and mana > CONFIG.MAX_MANA
       mana = CONFIG.MAX_MANA
 
     return Math.max(0, mana)
@@ -509,6 +519,7 @@ class Player extends SDKObject
       numCardsInHand: (() -> return @getDeck().getNumCardsInHand() ).bind(@)
       remainingMana: (() -> return @getRemainingMana() ).bind(@)
       maximumMana: (() -> return @getMaximumMana() ).bind(@)
+      reserveMana: (() -> return @getReserveMana() ).bind(@)
     }
 
   # endregion ACTION STATE RECORD
@@ -531,6 +542,10 @@ class Player extends SDKObject
   deserialize: (data) ->
     # Write the deserialized data
     UtilsJavascript.fastExtend(@,data)
+
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+      reserveMana = if data.reserveMana? then data.reserveMana else 20 - (@maximumMana or 0)
+      @setReserveMana(reserveMana)
 
     # deserialize deck
     @deck = new Deck(@getGameSession(), @getPlayerId())

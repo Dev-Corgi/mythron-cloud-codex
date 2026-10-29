@@ -117,6 +117,15 @@ GameSetup.setupPlayerBasics = (gameSession, player, playerData) ->
   if player.getIsRanked()
     player.setRank(playerData.rank)
   if playerData.startingMana? then player.setStartingMana(playerData.startingMana)
+  if gameSession.getRulesetId() is "practice-sandbox-hex"
+    if player.getPlayerId() is gameSession.getPlayer1().getPlayerId()
+      player.setStartingMana(3)
+      player.setReserveMana(17)
+    else
+      player.setStartingMana(4)
+      player.setReserveMana(16)
+  else if playerData.reserveMana?
+    player.setReserveMana(playerData.reserveMana)
 
 GameSetup.createGeneral = (gameSession, player, generalCardData) ->
   # create general
@@ -302,6 +311,7 @@ GameSetup.createGameSetupDataForPlayer = (gameSession, player, playerData) ->
   playerGameSetupData.factionId = playerGeneral.getFactionId()
   playerGameSetupData.generalId = playerGeneral.getId()
   playerGameSetupData.startingMana = player.getStartingMana()
+  playerGameSetupData.reserveMana = player.getReserveMana()
   if (playerData.ticketId)
     playerGameSetupData.ticketId = playerData.ticketId
   if (playerData.riftRating?)

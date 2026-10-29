@@ -15,6 +15,8 @@ class BonusManaCoreAction extends Action
   _execute: () ->
     super()
 
+    return if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+
     owner = @getOwner()
     if owner?
       #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "BonusManaCoreAction::execute for #{owner} grant 1 bonus mana core"

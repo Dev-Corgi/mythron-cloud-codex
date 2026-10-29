@@ -21,6 +21,8 @@ class BonusManaAction extends Action
   _execute: () ->
     super()
 
+    return if @getGameSession().getRulesetId() is "practice-sandbox-hex"
+
     target = @getTarget()
     if target? and !target.isOwnedByGameSession()
       owner = target.getOwner()
