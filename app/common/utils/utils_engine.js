@@ -848,20 +848,21 @@ UtilsEngine.rebuild = function () {
   // hand
   const cardsExpandX = Math.min(100.0, (UtilsEngine.getGSIWinWidth() - CONFIG.REF_WINDOW_SIZE.width) * 0.125);
   const cardsExpandY = Math.min(100.0, (UtilsEngine.getGSIWinHeight() - CONFIG.REF_WINDOW_SIZE.height) * 0.35);
+  const handSlotCount = isHexSession() ? 8 : CONFIG.MAX_HAND_SIZE;
   UtilsEngine._cardsInHandStartPosition = cc.p(
-    winCenterPosition.x - (CONFIG.HAND_CARD_SIZE * (CONFIG.MAX_HAND_SIZE - 1)) * 0.5 + CONFIG.HAND_OFFSET_X - cardsExpandX,
+    winCenterPosition.x - (CONFIG.HAND_CARD_SIZE * (handSlotCount - 1)) * 0.5 + CONFIG.HAND_OFFSET_X - cardsExpandX,
     winCenterPosition.y - UtilsEngine._screenBoardSize.height * 0.5 - CONFIG.HAND_CARD_SIZE * 0.4 + CONFIG.HAND_OFFSET_Y - cardsExpandY,
   );
   UtilsEngine._cardsInHandEndPosition = cc.p(
-    UtilsEngine._cardsInHandStartPosition.x + (CONFIG.HAND_CARD_SIZE * CONFIG.MAX_HAND_SIZE - CONFIG.HAND_CARD_SIZE * 0.5) + cardsExpandX * 2,
+    UtilsEngine._cardsInHandStartPosition.x + (CONFIG.HAND_CARD_SIZE * handSlotCount - CONFIG.HAND_CARD_SIZE * 0.5) + cardsExpandX * 2,
     UtilsEngine._cardsInHandStartPosition.y,
   );
   UtilsEngine._cardsInHandStartPositionForCSS = cc.p(
-    UtilsEngine.getGSIWinWidth() * 0.5 - (CONFIG.HAND_CARD_SIZE * (CONFIG.MAX_HAND_SIZE - 1)) * 0.5 + CONFIG.HAND_OFFSET_X - cardsExpandX,
+    UtilsEngine.getGSIWinWidth() * 0.5 - (CONFIG.HAND_CARD_SIZE * (handSlotCount - 1)) * 0.5 + CONFIG.HAND_OFFSET_X - cardsExpandX,
     UtilsEngine.getGSIWinHeight() * 0.5 - UtilsEngine._screenBoardSize.height * 0.5 - CONFIG.HAND_CARD_SIZE * 0.4 + CONFIG.HAND_OFFSET_Y - cardsExpandY,
   );
   UtilsEngine._cardsInHandEndPositionForCSS = cc.p(
-    UtilsEngine._cardsInHandStartPositionForCSS.x + (CONFIG.HAND_CARD_SIZE * CONFIG.MAX_HAND_SIZE - CONFIG.HAND_CARD_SIZE * 0.5) + cardsExpandX * 2,
+    UtilsEngine._cardsInHandStartPositionForCSS.x + (CONFIG.HAND_CARD_SIZE * handSlotCount - CONFIG.HAND_CARD_SIZE * 0.5) + cardsExpandX * 2,
     UtilsEngine._cardsInHandStartPositionForCSS.y,
   );
 

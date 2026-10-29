@@ -121,6 +121,157 @@ describe('game setup', () => {
       expect(SDK.GameSession.getInstance().getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
     });
 
+    it('puts all eight hex deck cards into matching fixed hand slots in deck order', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-slots-1', name: 'Hex One', deck }, {
+        userId: 'hex-slots-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const hand = session.getPlayer1().getDeck().getHand();
+      expect(hand).to.have.length(8);
+      expect(session.getPlayer1().getDeck().getDrawPile()).to.deep.equal([]);
+      expect(hand.map((index) => session.getCardByIndex(index).getId())).to.deep.equal(deck.slice(1).map((card) => card.id));
+      expect(session.getPlayer2().getDeck().getHand()).to.have.length(8);
+      expect(session.getPlayer2().getDeck().getDrawPile()).to.deep.equal([]);
+    });
+
+    it('keeps excess cards from unvalidated input instead of dropping them', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 9; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-extra-1', name: 'Hex One', deck }, {
+        userId: 'hex-extra-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const hand = session.getPlayer1().getDeck().getHand();
+      const drawPile = session.getPlayer1().getDeck().getDrawPile();
+      expect(hand).to.have.length(8);
+      expect(drawPile).to.have.length(1);
+      expect(session.getCardByIndex(drawPile[0]).getId()).to.equal(SDK.Cards.Faction1.SilverguardSquire);
+    });
+
+    it('preserves empty hex hand slots when rebuilding setup data', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-restore-1', name: 'Hex One', deck }, {
+        userId: 'hex-restore-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const originalHand = session.getPlayer1().getDeck().getHand();
+      const spentCardIndex = originalHand[3];
+      session.getPlayer1().getDeck().removeCardIndexFromHand(spentCardIndex);
+      const snapshot = JSON.parse(session.serializeToJSON(session));
+      const restored = SDK.GameSession.create();
+      restored.deserializeSessionFromFirebase(snapshot);
+      expect(restored.getPlayer1().getDeck().getHand()).to.have.length(8);
+      expect(restored.getPlayer1().getDeck().getHand()[3]).to.equal(null);
+
+      snapshot.gameSetupData.players[0].startingHand[3] = null;
+      const replay = SDK.GameSession.create();
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, snapshot);
+      const restoredHand = replay.getPlayer1().getDeck().getHand();
+      expect(restoredHand).to.have.length(8);
+      expect(restoredHand[3]).to.equal(null);
+      expect(restoredHand[4]).to.equal(snapshot.gameSetupData.players[0].startingHand[4].index);
+    });
+
+    it('rejects new-rules mulligan and replacement while preserving fixed slots', () => {
+      const session = SDK.GameSession.create();
+      session.setIsRunningAsAuthoritative(true);
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-start-1', name: 'Hex One', deck }, {
+        userId: 'hex-start-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const player = session.getPlayer1();
+      const deckBefore = player.getDeck().getHand().slice();
+      const mulligan = player.actionDrawStartingHand([0]);
+      session.executeAction(mulligan);
+      expect(mulligan.getIsValid()).to.equal(false);
+      expect(player.getDeck().getHand()).to.deep.equal(deckBefore);
+
+      const confirmation = player.actionDrawStartingHand([]);
+      session.executeAction(confirmation);
+      expect(confirmation.getIsValid()).to.equal(true);
+      player.setHasStartingHand(true);
+      session.getPlayer2().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+      const replace = player.actionReplaceCardFromHand(0);
+      session.executeAction(replace);
+      expect(replace.getIsValid()).to.equal(false);
+      expect(player.getDeck().getHand()).to.deep.equal(deckBefore);
+
+      const forcedReplace = player.actionReplaceCardFromHand(1);
+      forcedReplace.forcedReplace = true;
+      session.executeAction(forcedReplace);
+      expect(forcedReplace.getIsValid()).to.equal(false);
+      expect(player.getDeck().getHand()).to.deep.equal(deckBefore);
+    });
+
+    it('rejects a hex play when its slot no longer contains the selected card instance', () => {
+      const session = SDK.GameSession.create();
+      session.setIsRunningAsAuthoritative(false);
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-stale-1', name: 'Hex One', deck }, {
+        userId: 'hex-stale-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const player = session.getPlayer1();
+      player.setHasStartingHand(true);
+      session.getPlayer2().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+      const card = player.getDeck().getCardInHandAtIndex(0);
+      const target = card.getValidTargetPositions()[0];
+      const action = player.actionPlayCardFromHand(0, target);
+      const actionData = JSON.parse(session.serializeToJSON(action));
+      const originalIndex = player.getDeck().getCardIndexInHandAtIndex(0);
+      const nextIndex = player.getDeck().getCardIndexInHandAtIndex(1);
+      player.getDeck().getHand()[0] = nextIndex;
+      player.getDeck().flushCachedCardsInHand();
+      session.setIsRunningAsAuthoritative(true);
+      const receivedAction = session.deserializeActionFromFirebase(actionData);
+      session.executeAction(receivedAction);
+      expect(receivedAction.expectedHandCardIndex).to.equal(originalIndex);
+      expect(receivedAction.getIsValid()).to.equal(false);
+      expect(player.getDeck().getCardIndexInHandAtIndex(0)).to.equal(nextIndex);
+    });
+
+    it('clears only the played hex slot and rejects a later play from that empty slot', () => {
+      const session = SDK.GameSession.create();
+      session.setIsRunningAsAuthoritative(true);
+      session.setRuleset('practice-sandbox-hex', 1);
+      const deck = [{ id: SDK.Cards.Faction1.General }];
+      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Faction1.SilverguardSquire });
+      SDK.GameSetup.setupNewSession(session, { userId: 'hex-play-1', name: 'Hex One', deck }, {
+        userId: 'hex-play-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.General }, ...deck.slice(1)],
+      }, true);
+      const player = session.getPlayer1();
+      player.setHasStartingHand(true);
+      session.getPlayer2().setHasStartingHand(true);
+      session.setStatus(SDK.GameStatus.active);
+      const deckHand = player.getDeck().getHand();
+      const before = deckHand.slice();
+      const card = player.getDeck().getCardInHandAtIndex(0);
+      const target = card.getValidTargetPositions()[0];
+      const action = player.actionPlayCardFromHand(0, target);
+      session.executeAction(action);
+      expect(action.getIsValid()).to.equal(true);
+      expect(deckHand[0]).to.equal(null);
+      for (let index = 1; index < before.length; index++) {
+        expect(deckHand[index]).to.equal(before[index]);
+      }
+
+      const emptySlotAction = player.actionPlayCardFromHand(0, target);
+      session.executeAction(emptySlotAction);
+      expect(emptySlotAction.getIsValid()).to.equal(false);
+      expect(deckHand[0]).to.equal(null);
+    });
+
     it('expect no cards to be in the void', () => {
       const cards = SDK.GameSession.getInstance().getCards();
       for (let i = 0, il = cards.length; i < il; i++) {

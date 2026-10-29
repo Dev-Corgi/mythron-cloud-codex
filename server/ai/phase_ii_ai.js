@@ -1342,7 +1342,7 @@ var ai_preProc_playCard_module_draw = function (card, target, gameSession) {
   let score = 0;
   if (card.drawCardsPostPlay !== null) {
     const numberOfCardsInHand = gameSession.getCurrentPlayer().getDeck().getNumCardsInHand();
-    const maxHandSize = CONFIG.MAX_HAND_SIZE;
+    const maxHandSize = gameSession.getCurrentPlayer().getDeck().getMaxHandSize();
     const remainingManaAfterCast = gameSession.getCurrentPlayer().getRemainingMana() - card.getManaCost();
     var maxPotentialDraw = maxHandSize - numberOfCardsInHand;
     var cardsToDraw = card.drawCardsPostPlay;

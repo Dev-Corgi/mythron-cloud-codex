@@ -38,7 +38,7 @@ class DrawStartingHandAction extends Action
       @mulliganedHandCardsData = []
       @newHandCardsData = []
 
-      if @getGameSession().isNew() and needsStartingHand and @mulliganIndices.length > 0 and @mulliganIndices.length <= CONFIG.STARTING_HAND_REPLACE_COUNT
+      if @getGameSession().getRulesetId() isnt "practice-sandbox-hex" and @getGameSession().isNew() and needsStartingHand and @mulliganIndices.length > 0 and @mulliganIndices.length <= CONFIG.STARTING_HAND_REPLACE_COUNT
         #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "#{@.type}::execute -> computing starting hand. Mulligan indices [#{@mulliganIndices.toString()}]"
         # only allow draw starting hand for new game where this player does not yet have a starting hand
         hand = deck.getHand()

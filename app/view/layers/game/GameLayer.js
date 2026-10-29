@@ -1268,7 +1268,7 @@ var GameLayer = FXCompositeLayer.extend({
    */
   getMulliganIndices() {
     const mulliganIndices = [];
-    if (this.getIsChooseHand()) {
+    if (this.getIsChooseHand() && SDK.GameSession.getInstance().getRulesetId() !== 'practice-sandbox-hex') {
       const cardNodes = this.getBottomDeckLayer().getCardNodes();
 
       // get mulligan indices from selected cards
@@ -3609,7 +3609,7 @@ var GameLayer = FXCompositeLayer.extend({
             showDuration = Math.max(showDuration, this.showSpeechForPlayer(this.getPlayerById(playerId), i18next.t('game_ui.out_of_cards_message'), null, CONFIG.DIALOGUE_OUT_OF_CARDS_DURATION, false, 0.3));
           }
         } else if (action.getIsBurnedCard()) {
-          if (action.getOwner().getDeck().getCardsInHandExcludingMissing().length == CONFIG.MAX_HAND_SIZE) {
+          if (action.getOwner().getDeck().getCardsInHandExcludingMissing().length == action.getOwner().getDeck().getMaxHandSize()) {
             // show hand too full dialogue
             var dialogDuration = 0.0;
             if (!_.contains(this._currentSdkStepInterface.hasShownHandFullForPlayerIds, playerId)) {
@@ -6341,7 +6341,7 @@ var GameLayer = FXCompositeLayer.extend({
       if (SDK.GameSession.getInstance().getIsMyFollowupActiveAndCancellable() || !!(this._player.getSelectedCard() || this._player.getSelectedEntityNode())) {
         NavigationManager.getInstance().requestUserTriggeredCancel();
       }
-    } else if (this.getIsChooseHand()) {
+    } else if (this.getIsChooseHand() && SDK.GameSession.getInstance().getRulesetId() !== 'practice-sandbox-hex') {
       // toggle cards to be mulliganed from starting hand
       const cardNode = this.getNodeUnderMouse(this.bottomDeckLayer.getCardNodes(), mouseScreenPosition.x, mouseScreenPosition.y);
       if (cardNode) {

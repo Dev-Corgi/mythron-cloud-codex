@@ -12,6 +12,7 @@ const ReplaceNode = require('../../nodes/cards/ReplaceNode');
 const BaseParticleSystem = require('../../nodes/BaseParticleSystem');
 const BottomDeckCardNode = require('../../nodes/cards/BottomDeckCardNode');
 const CardNode = require('../../nodes/cards/CardNode');
+const HandSlotUtils = require('./handSlotUtils');
 
 /** **************************************************************************
  BottomDeckLayer
@@ -47,7 +48,8 @@ var BottomDeckLayer = BaseLayer.extend({
     this._backgroundFrameSprite.setAnchorPoint(cc.p(0.5, 0.0));
 
     // create card nodes
-    for (let i = 0; i < CONFIG.MAX_HAND_SIZE; i++) {
+    const maxHandSize = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.MAX_HAND_SIZE);
+    for (let i = 0; i < maxHandSize; i++) {
       const cardNode = BottomDeckCardNode.create();
       this.cardNodes.push(cardNode);
     }
@@ -100,7 +102,7 @@ var BottomDeckLayer = BaseLayer.extend({
   _updateCardsLayoutForStartingHand() {
     const winCenterPosition = UtilsEngine.getGSIWinCenterPosition();
     const cardNodes = this.getCardNodes();
-    const numCards = CONFIG.STARTING_HAND_SIZE;
+    const numCards = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.STARTING_HAND_SIZE);
     const cardsStartPosition = cc.p(winCenterPosition.x - (CONFIG.HAND_CARD_SIZE * (numCards - 1)) * 0.5, winCenterPosition.y);
     for (let i = 0; i < numCards; i++) {
       const cardNode = cardNodes[i];
@@ -115,7 +117,7 @@ var BottomDeckLayer = BaseLayer.extend({
 
   _updateCardsLayoutForActiveGame() {
     const cardNodes = this.getCardNodes();
-    const numCards = CONFIG.MAX_HAND_SIZE;
+    const numCards = cardNodes.length;
     const cardsStartPosition = UtilsEngine.getCardsInHandStartPosition();
     const cardsEndPosition = UtilsEngine.getCardsInHandEndPosition();
     const dx = (cardsEndPosition.x - cardsStartPosition.x) / (numCards - 0.25);
@@ -250,7 +252,7 @@ var BottomDeckLayer = BaseLayer.extend({
 
     // ensure card is added
     const cardNodes = this.getCardNodes();
-    const numCards = CONFIG.STARTING_HAND_SIZE;
+    const numCards = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.STARTING_HAND_SIZE);
     for (let i = 0; i < numCards; i++) {
       const cardNode = cardNodes[i];
       if (!cardNode.isRunning()) {
@@ -270,7 +272,7 @@ var BottomDeckLayer = BaseLayer.extend({
 
       // show cards
       const cardNodes = this.getCardNodes();
-      const numCards = CONFIG.STARTING_HAND_SIZE;
+      const numCards = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.STARTING_HAND_SIZE);
       let showDelay = 0.0;
       for (let i = 0; i < numCards; i++) {
         const cardNode = cardNodes[i];
@@ -497,10 +499,8 @@ var BottomDeckLayer = BaseLayer.extend({
    * Binds this view to the current deck as set in the model (SDK layer). Immediately will update all card slots to show the current state.
    */
   bindHand(cardFadeDuration) {
-    const cardNodes = this.getCardNodes();
-    for (let i = 0, il = cardNodes.length; i < il; i++) {
-      this.bindCardNodeAtIndex(i, cardFadeDuration);
-    }
+    const hand = SDK.GameSession.getInstance().getMyPlayer().getDeck().getHand();
+    HandSlotUtils.bindHandSlots(hand, this.getCardNodes(), (handIndex) => this.bindCardNodeAtIndex(handIndex, cardFadeDuration));
   },
 
   /** *

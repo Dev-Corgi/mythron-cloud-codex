@@ -11,11 +11,15 @@ class ValidatorReplaceCardFromHand extends Validator
     super(event)
     gameSession = @getGameSession()
     action = event.action
-    if action? and action.getIsValid() and action instanceof ReplaceCardFromHandAction and !(action.getIsForcedReplace())
+    if action? and action.getIsValid() and action instanceof ReplaceCardFromHandAction
       owner = action.getOwner()
       if owner instanceof Player
         deck = owner.getDeck()
-        if (gameSession.getIsRunningAsAuthoritative() or owner.getPlayerId() == gameSession.getMyPlayerId()) and !deck.getCardIndexInHandAtIndex(action.indexOfCardInHand)?
+        if gameSession.getRulesetId() is "practice-sandbox-hex"
+          @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.out_of_replaces_message"))
+        else if action.getIsForcedReplace()
+          return
+        else if (gameSession.getIsRunningAsAuthoritative() or owner.getPlayerId() == gameSession.getMyPlayerId()) and !deck.getCardIndexInHandAtIndex(action.indexOfCardInHand)?
           @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.invalid_card_to_replace_message"))
         else if !deck.getCanReplaceCardThisTurn()
           @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.out_of_replaces_message"))

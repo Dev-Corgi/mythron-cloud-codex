@@ -24,7 +24,10 @@ class Deck extends SDKObject
     # do not define properties here that should only serialize if different from the default
     @drawPile = []
     @hand = []
-    @hand.length = CONFIG.MAX_HAND_SIZE
+    @hand.length = @getMaxHandSize()
+    if @getGameSession()?.getRulesetId?() is "practice-sandbox-hex"
+      for i in [0...@hand.length]
+        @hand[i] = null
     @setOwnerId(ownerId)
 
   getPrivateDefaults: (gameSession) ->
@@ -45,6 +48,9 @@ class Deck extends SDKObject
 
   getOwner: () ->
     return @getGameSession().getPlayerById(@ownerId)
+
+  getMaxHandSize: () ->
+    return if @getGameSession()?.getRulesetId?() and @getGameSession().getRulesetId() is "practice-sandbox-hex" then 8 else CONFIG.MAX_HAND_SIZE
 
   setDrawPile: (val) ->
     @drawPile = val
@@ -167,7 +173,7 @@ class Deck extends SDKObject
    * @returns {Number}
    ###
   getFirstEmptySpaceInHand: () ->
-    for i in [0...CONFIG.MAX_HAND_SIZE]
+    for i in [0...@getMaxHandSize()]
       if !@hand[i]? then return i
     return null # if no emtpy space in hand, return null
 
@@ -177,7 +183,7 @@ class Deck extends SDKObject
    ###
   getNumCardsInHand: () ->
     numCards = 0
-    for i in [0...CONFIG.MAX_HAND_SIZE]
+    for i in [0...@getMaxHandSize()]
       if @hand[i]? then numCards++
     return numCards
 
@@ -196,7 +202,7 @@ class Deck extends SDKObject
   actionsDrawCardsToRefillHand: ()->
     actions = []
     # return enough actions to refill hand
-    for i in [0...CONFIG.MAX_HAND_SIZE]
+    for i in [0...@getMaxHandSize()]
       # only return an action at hand space if space is empty
       if !@hand[i]? then actions.push(@actionDrawCard())
     return actions
@@ -213,7 +219,7 @@ class Deck extends SDKObject
     numRemainingActions += cardDrawChange # final number of actions to create after modifiers
 
     # first try to re-fill empty slots in action bar with cards
-    for i in [0...CONFIG.MAX_HAND_SIZE]
+    for i in [0...@getMaxHandSize()]
       if numRemainingActions is 0 # stop producing draw card actions when per turn limit is reached
         break
       # only return an action at hand space if space is empty
@@ -259,7 +265,7 @@ class Deck extends SDKObject
 
     if cardIndex?
       # find first empty place in hand, and insert card there
-      for i in [0...CONFIG.MAX_HAND_SIZE]
+      for i in [0...@getMaxHandSize()]
         if !@hand[i]?
           @hand[i] = cardIndex
           indexOfCardInHand = i
@@ -332,7 +338,7 @@ class Deck extends SDKObject
     return @numCardsReplacedThisTurn
 
   getCanReplaceCardThisTurn: () ->
-    if @getOwner().getPlayerModifiersByClass(PlayerModifierCannotReplace).length > 0
+    if @getGameSession().getRulesetId() is "practice-sandbox-hex" or @getOwner().getPlayerModifiersByClass(PlayerModifierCannotReplace).length > 0
       return false
     else
       replacesAllowedThisTurn = CONFIG.MAX_REPLACE_PER_TURN
@@ -350,7 +356,7 @@ class Deck extends SDKObject
     UtilsJavascript.fastExtend(@, data)
 
     # ensure hand is correct length
-    @hand.length = CONFIG.MAX_HAND_SIZE
+    @hand.length = @getMaxHandSize()
 
   # endregion SERIALIZATION
 

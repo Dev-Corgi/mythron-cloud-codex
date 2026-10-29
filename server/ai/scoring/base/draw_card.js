@@ -14,7 +14,7 @@ const ScoreForDraw = function (card, targetCard, amount) {
 
   let numberOfCardsInHand = targetCard.getOwner().getDeck().getNumCardsInHand();
   const numberOfCardsInDeck = targetCard.getOwner().getDeck().getNumCardsInDrawPile();
-  const maxHandSize = CONFIG.MAX_HAND_SIZE;
+  const maxHandSize = targetCard.getOwner().getDeck().getMaxHandSize();
   let maxPotentialDraw = Math.min(numberOfCardsInDeck, maxHandSize - numberOfCardsInHand);
   let cardsToDraw = amount;
   // console.log("score: ", score);

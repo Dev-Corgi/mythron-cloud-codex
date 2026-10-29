@@ -533,7 +533,8 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
 
     if (!SDK.GameSession.current().getIsSpectateMode()) {
       // store choose hand UI
-      var chooseHandItemView = new GameChooseHandItemView({ model: new Backbone.Model({ maxMulliganCount: CONFIG.STARTING_HAND_REPLACE_COUNT }) });
+      var fixedHand = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+      var chooseHandItemView = new GameChooseHandItemView({ model: new Backbone.Model({ maxMulliganCount: fixedHand ? 0 : CONFIG.STARTING_HAND_REPLACE_COUNT, isFixedHand: fixedHand }) });
       this.chooseHandView = chooseHandItemView;
 
       // listen for submit

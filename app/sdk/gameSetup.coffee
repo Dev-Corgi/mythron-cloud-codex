@@ -154,6 +154,10 @@ GameSetup.setupDeck = (gameSession, player) ->
 
   # store deck properties
   playerDeck.setOwnerId(player.getPlayerId())
+  playerDeck.getHand().length = playerDeck.getMaxHandSize()
+  if gameSession.getRulesetId() is "practice-sandbox-hex"
+    for index in [0...playerDeck.getHand().length]
+      playerDeck.getHand()[index] = null
 
 GameSetup.addCardsToDeck = (gameSession, player, playerData, playerCardsData) ->
   if playerCardsData?
@@ -164,6 +168,23 @@ GameSetup.addCardsToDeck = (gameSession, player, playerData, playerCardsData) ->
 
     # remove first as it should always be general
     playerCardsData.shift()
+
+    if gameSession.getRulesetId() is "practice-sandbox-hex"
+      # Hex matches expose the full, original deck order as fixed hand slots.
+      for index in [0...8]
+        cardData = playerCardsData[index]
+        continue unless cardData?
+        card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
+        if card?
+          card.setOwner(player)
+          gameSession.applyCardToHand(playerDeck, cardData, card, index)
+      # Preserve excess cards on malformed/unvalidated legacy deck input instead of losing them.
+      for cardData in playerCardsData[8..]
+        card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
+        if card?
+          card.setOwner(player)
+          gameSession.applyCardToDeck(playerDeck, cardData, card)
+      return
 
     # change starting hand size as needed
     if playerData.startingHandSize?
@@ -271,9 +292,14 @@ GameSetup.addCardsToDeckFromData = (gameSession, player, playerGameSetupData) ->
     gameSession.applyCardToDeck(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
 
   # add cards to hand
-  for cardData in playerGameSetupData.startingHand
+  for cardData, index in playerGameSetupData.startingHand
     if cardData?
-      gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
+      if gameSession.getRulesetId() is "practice-sandbox-hex"
+        gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData), index)
+      else
+        gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
+    else if gameSession.getRulesetId() is "practice-sandbox-hex"
+      playerDeck.getHand()[index] = null
 
 # endregion SETUP FROM DATA
 

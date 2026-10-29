@@ -32,6 +32,8 @@ class ValidatorExecuteExplicitAction extends Validator
             if owner.getHasStartingHand()
               # player is attempting to draw multiple starting hands
               @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.cant_draw_starting_hand_again_message"))
+            else if gameSession.getRulesetId() is "practice-sandbox-hex" and action.getMulliganIndices().length > 0
+              @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.max_replaces_reached_message"))
             else if action.getMulliganIndices().length > CONFIG.STARTING_HAND_REPLACE_COUNT
               # player is attempting to mulligan more than allowed
               @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.max_replaces_reached_message"))

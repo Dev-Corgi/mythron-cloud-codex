@@ -30,7 +30,8 @@ class ValidatorPlayCard extends Validator
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))
       else if gameSession.getIsRunningAsAuthoritative() or owner.getPlayerId() == gameSession.getMyPlayerId()
         if action instanceof PlayCardFromHandAction
-          if card.getIndex() != owner.getDeck().getCardIndexInHandAtIndex(action.indexOfCardInHand)
+          currentCardIndex = owner.getDeck().getCardIndexInHandAtIndex(action.indexOfCardInHand)
+          if card.getIndex() != currentCardIndex or (gameSession.getRulesetId() is "practice-sandbox-hex" and action.expectedHandCardIndex isnt currentCardIndex)
             # playing a card that does not match the index in hand
             @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_message"))
           else # validate that player is not simply stalling out the game

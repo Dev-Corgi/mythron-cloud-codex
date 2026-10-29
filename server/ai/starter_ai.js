@@ -652,7 +652,7 @@ StarterAI.prototype = {
       playableCards = _.sortBy(playableCards, (card) => ScoreForCard(card)).reverse();
 
       // try to play each card until one is played
-      const hasFullHand = myPlayer.getDeck().getNumCardsInHand() >= CONFIG.MAX_HAND_SIZE;
+      const hasFullHand = myPlayer.getDeck().getNumCardsInHand() >= myPlayer.getDeck().getMaxHandSize();
       for (let i = 0, il = playableCards.length; i < il; i++) {
         const card = playableCards[i];
         // don't allow artifacts that are buffs unless we have more than 1 in hand or hand is full
@@ -910,7 +910,7 @@ StarterAI.prototype = {
         return true;
       }
 
-      const hasFullHand = player.getDeck().getNumCardsInHand() >= CONFIG.MAX_HAND_SIZE;
+      const hasFullHand = player.getDeck().getNumCardsInHand() >= player.getDeck().getMaxHandSize();
       if (!hasFullHand) {
         // summon that is not followup
         if (!card.getIsFollowup() && this._getCardIsSpawn(card)) {
@@ -1074,7 +1074,7 @@ StarterAI.prototype = {
 
             // detemine use threshold
             let useThreshold;
-            if (player.getDeck().getNumCardsInHand() >= CONFIG.MAX_HAND_SIZE) {
+            if (player.getDeck().getNumCardsInHand() >= player.getDeck().getMaxHandSize()) {
               // attempt to make space when hand is full
               useThreshold = 0.0;
             } else if (card instanceof SDK.Unit && !hasIntents) {
@@ -1162,12 +1162,14 @@ StarterAI.prototype = {
       switch (CARD_INTENT[cardId]) {
       case 'draw':
       case 'draw_bbs':
-        var cardsInHand = this.getGameSession().getCurrentPlayer().getDeck().getNumCardsInHand();
+        var currentDeck = this.getGameSession().getCurrentPlayer().getDeck();
+        var cardsInHand = currentDeck.getNumCardsInHand();
+        var maxHandSize = currentDeck.getMaxHandSize();
         if (CARD_INTENT[cardId].indexOf('bbs') !== -1) {
-          if (cardsInHand > CONFIG.MAX_HAND_SIZE - CONFIG.CARD_DRAW_PER_TURN) { // don't cast if we have full hand or will after end-turn draw
+          if (cardsInHand > maxHandSize - CONFIG.CARD_DRAW_PER_TURN) { // don't cast if we have full hand or will after end-turn draw
             validTargetPositions = [];
           }
-        } else if (cardsInHand > (CONFIG.MAX_HAND_SIZE - (CONFIG.CARD_DRAW_PER_TURN + 1))) { // don't cast if we have full hand -2 (4) or more cards
+        } else if (cardsInHand > (maxHandSize - (CONFIG.CARD_DRAW_PER_TURN + 1))) { // don't cast if we have full hand -2 (4) or more cards
           validTargetPositions = [];
         }
         break;

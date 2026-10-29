@@ -415,7 +415,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     var stateAtAction = sdkPlayer.getActionStateRecord().getStateAtAction(action);
     var currDeckSize = stateAtAction.numCards;
     var currHandSize = stateAtAction.numCardsInHand;
-    var maxHandSize = CONFIG.MAX_HAND_SIZE;
+    var maxHandSize = sdkPlayer.getDeck().getMaxHandSize();
     var maxDeckSize = SDK.GameSession.getInstance().isGauntlet() ? CONFIG.MAX_DECK_SIZE_GAUNTLET : CONFIG.MAX_DECK_SIZE;
 
     this.ui.$deckCountCurrent.text(currDeckSize);

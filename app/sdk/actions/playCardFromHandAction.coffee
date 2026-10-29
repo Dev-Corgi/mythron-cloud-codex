@@ -11,6 +11,7 @@ class PlayCardFromHandAction extends PlayCardAction
   # if we override the card data, we need to retain any mana cost change for the original card being played from hand
   # only used when overrideCardData is true
   overridenManaCost: null
+  expectedHandCardIndex: null
 
   constructor: (gameSession, ownerId, x, y, handIndex) ->
     @type ?= PlayCardFromHandAction.type
@@ -21,6 +22,8 @@ class PlayCardFromHandAction extends PlayCardAction
       super(gameSession, ownerId, x, y)
 
     @indexOfCardInHand = handIndex
+    if handIndex? and ownerId? and gameSession?.getRulesetId?() is "practice-sandbox-hex"
+      @expectedHandCardIndex = gameSession.getPlayerById(ownerId)?.getDeck()?.getCardIndexInHandAtIndex(handIndex)
 
   getPrivateDefaults: (gameSession) ->
     p = super(gameSession)
@@ -67,6 +70,13 @@ class PlayCardFromHandAction extends PlayCardAction
         @_private.cachedCard = @getOwner().getDeck().getCardInHandAtIndex(@indexOfCardInHand)
 
     return super()
+
+  scrubSensitiveData: (actionData, scrubFromPerspectiveOfPlayerId, forSpectator) ->
+    actionData = super(actionData, scrubFromPerspectiveOfPlayerId, forSpectator)
+    card = @getCard()
+    if card? and card.isHideable(scrubFromPerspectiveOfPlayerId, forSpectator)
+      actionData.expectedHandCardIndex = null
+    return actionData
 
   _execute: () ->
     if @getGameSession().getIsRunningAsAuthoritative()

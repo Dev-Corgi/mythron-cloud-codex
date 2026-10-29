@@ -451,7 +451,7 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
       // enemy hand
       if (CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Enemy.value)) {
         const deck = gameSession.getOpponentPlayerOfPlayerId(ownerId).getDeck();
-        for (let i = 0; i < CONFIG.MAX_HAND_SIZE; i++) {
+        for (let i = 0; i < deck.getMaxHandSize(); i++) {
           const cardInHand = deck.getCardInHandAtIndex(i);
           if (cardInHand != null) {
             if (cardInHand instanceof Unit) {
@@ -474,7 +474,7 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
       // friendly hand
       if (CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Friendly.value)) {
         const deck = gameSession.getPlayerById(ownerId).getDeck();
-        for (let i = 0; i < CONFIG.MAX_HAND_SIZE; i++) {
+        for (let i = 0; i < deck.getMaxHandSize(); i++) {
           const cardInHand = deck.getCardInHandAtIndex(i);
           if (cardInHand != null) {
             if (cardInHand instanceof Unit) {
@@ -680,7 +680,7 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
     // case: cards in hand
     if (CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Enemy.value)) {
       const deck = gameSession.getOpponentPlayerOfPlayerId(ownerId).getDeck();
-      for (let i = 0; i < CONFIG.MAX_HAND_SIZE; i++) {
+      for (let i = 0; i < deck.getMaxHandSize(); i++) {
         const cardInHand = deck.getCardInHandAtIndex(i);
         if (cardInHand != null) {
           if (cardInHand instanceof Unit) {
@@ -702,7 +702,7 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
 
     if (CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Friendly.value)) {
       const deck = gameSession.getPlayerById(ownerId).getDeck();
-      for (let i = 0; i < CONFIG.MAX_HAND_SIZE; i++) {
+      for (let i = 0; i < deck.getMaxHandSize(); i++) {
         const cardInHand = deck.getCardInHandAtIndex(i);
         if (cardInHand != null) {
           if (cardInHand instanceof Unit) {

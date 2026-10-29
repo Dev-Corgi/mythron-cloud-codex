@@ -1803,6 +1803,7 @@ ai_isValidActionForUI = (gameId, action) ->
 ai_showUIForAction = (gameId, action, actionDelayTime) ->
   if ai_isValidTurn(gameId) and ai_isValidActionForUI(gameId, action) and _.isNumber(actionDelayTime) and actionDelayTime > 0.25
     aiPlayerId = games[gameId].ai.getMyPlayerId()
+    maxHandSize = games[gameId].session.getPlayerById(aiPlayerId).getDeck().getMaxHandSize()
 
     # stop any previous UI animations
     ai_stopUITimeouts(gameId)
@@ -1839,12 +1840,12 @@ ai_showUIForAction = (gameId, action, actionDelayTime) ->
     if action instanceof SDK.ReplaceCardFromHandAction
       intent = selectEventData.intentType = SDK.IntentType.DeckIntent
       handIndex = selectEventData.handIndex = action.getIndexOfCardInHand()
-      selectPosition = { x: Math.round((handIndex + 0.5) * (CONFIG.BOARDCOL / CONFIG.MAX_HAND_SIZE)), y: -1 }
+      selectPosition = { x: Math.round((handIndex + 0.5) * (CONFIG.BOARDCOL / maxHandSize)), y: -1 }
     else if action instanceof SDK.ApplyCardToBoardAction
       if action instanceof SDK.PlayCardFromHandAction
         intent = selectEventData.intentType = SDK.IntentType.DeckIntent
         handIndex = selectEventData.handIndex = action.getIndexOfCardInHand()
-        selectPosition = { x: Math.round((handIndex + 0.5) * (CONFIG.BOARDCOL / CONFIG.MAX_HAND_SIZE)), y: -1 }
+        selectPosition = { x: Math.round((handIndex + 0.5) * (CONFIG.BOARDCOL / maxHandSize)), y: -1 }
         targetPosition = action.getTargetPosition()
       else if action instanceof SDK.PlaySignatureCardAction
         intent = selectEventData.intentType = SDK.IntentType.DeckIntent
