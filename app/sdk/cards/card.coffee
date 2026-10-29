@@ -244,7 +244,10 @@ class Card extends SDKObject
     @_stopWaitingForTerminate()
     @setIsRemoved(false)
     @setLocation(CardLocation.Board)
-    @setPosition({x: x, y: y})
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      @setPosition({q: x, r: y})
+    else
+      @setPosition({x: x, y: y})
     @setIsPlayed(true)
     @onApplyModifiersForApplyToNewLocation()
     @updateCachedState()
@@ -936,12 +939,16 @@ class Card extends SDKObject
     @position = position
 
   getPositionX: () ->
+    if @position? and @getGameSession()?.getRulesetId() is 'practice-sandbox-hex' then return @position.q
     if @position? then return @position.x else return -1
 
   getPositionY: () ->
+    if @position? and @getGameSession()?.getRulesetId() is 'practice-sandbox-hex' then return @position.r
     if @position? then return @position.y else return -1
 
   getPosition: () ->
+    if @position? and @getGameSession()?.getRulesetId() is 'practice-sandbox-hex'
+      return {q: @position.q, r: @position.r}
     if @position? then return {x: @position.x, y: @position.y} else return {x: -1, y: -1}
 
   ###*

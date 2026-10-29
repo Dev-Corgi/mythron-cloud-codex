@@ -68,27 +68,35 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
 
     # always add general before adding cards but after setting up deck
     # because general may attempt to access deck and cards may attempt to add modifiers to the general
-    general1Position = player1Data.startingGeneralPosition
-    if general1Position?
-      general1X = general1Position.x
-      general1Y = general1Position.y
-    if !general1X? then general1X = 0
-    if !general1Y? then general1Y = 2
+    if gameSession.getRulesetId() is "practice-sandbox-hex"
+      general1X = -2
+      general1Y = 4
+    else
+      general1Position = player1Data.startingGeneralPosition
+      if general1Position?
+        general1X = general1Position.x
+        general1Y = general1Position.y
+      if !general1X? then general1X = 0
+      if !general1Y? then general1Y = 2
     GameSetup.addGeneral(gameSession, player1, general1, general1X, general1Y)
 
-    general2Position = player2Data.startingGeneralPosition
-    if general2Position?
-      general2X = general2Position.x
-      general2Y = general2Position.y
-    if !general2X? then general2X = 8
-    if !general2Y? then general2Y = 2
+    if gameSession.getRulesetId() is "practice-sandbox-hex"
+      general2X = 2
+      general2Y = 4
+    else
+      general2Position = player2Data.startingGeneralPosition
+      if general2Position?
+        general2X = general2Position.x
+        general2Y = general2Position.y
+      if !general2X? then general2X = 8
+      if !general2Y? then general2Y = 2
     GameSetup.addGeneral(gameSession, player2, general2, general2X, general2Y)
 
     # setup cards in decks and hands
     GameSetup.addCardsToDeck(gameSession, player1, player1Data, player1Data.deck)
     GameSetup.addCardsToDeck(gameSession, player2, player2Data, player2Data.deck)
 
-    if !withoutManaTiles
+    if !withoutManaTiles and gameSession.getRulesetId() isnt "practice-sandbox-hex"
       # create and apply special tiles
       gameSession.applyCardToBoard(gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.BonusMana}), 4, 0)
       gameSession.applyCardToBoard(gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.BonusMana}), 4, 4)
@@ -203,7 +211,10 @@ GameSetup.addCardsToBoard = (gameSession, boardCardsData, owner) ->
           card.setOwner(owner)
 
         # apply to board
-        gameSession.applyCardToBoard(card, position.x, position.y, cardData)
+        if gameSession.getRulesetId() is "practice-sandbox-hex"
+          gameSession.applyCardToBoard(card, position.q, position.r, cardData)
+        else
+          gameSession.applyCardToBoard(card, position.x, position.y, cardData)
 
         if card instanceof Entity
           card.refreshExhaustion()

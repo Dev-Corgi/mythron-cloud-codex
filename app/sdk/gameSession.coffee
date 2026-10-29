@@ -2995,7 +2995,10 @@ class _GameSession extends SDKObject
       cardIndex = @_indexCardAsNeeded(card, card.getIndex() || cardDataOrIndex)
 
       # check whether card application is valid
-      targetPosition = {x: x, y: y}
+      if @getRulesetId() is 'practice-sandbox-hex'
+        targetPosition = {q: x, r: y}
+      else
+        targetPosition = {x: x, y: y}
       isValidApplication = @getBoard().isOnBoard(targetPosition) and
           (!CardType.getIsEntityCardType(card.getType()) or
             !@getBoard().getObstructionAtPositionForEntity(targetPosition, card) or

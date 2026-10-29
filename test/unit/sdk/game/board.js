@@ -73,6 +73,66 @@ describe('board', () => {
     expect(SDK.GameSession.getInstance().getBoard().isOnBoard({ x: 9, y: 5 })).to.equal(false);
   });
 
+  it('enumerates and bounds the 45 axial cells for the hex ruleset', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    const positions = board.getPositions();
+    expect(positions).to.have.length(45);
+    expect(new Set(positions.map((position) => `${position.q},${position.r}`)).size).to.equal(45);
+    expect(positions.every((position) => board.isOnBoard(position))).to.equal(true);
+    expect(board.isOnBoard({ q: 0, r: 0 })).to.equal(true);
+    expect(board.isOnBoard({ q: 5, r: 4 })).to.equal(false);
+    expect(board.isOnBoard({ q: 0.5, r: 0 })).to.equal(false);
+    expect(board.isOnBoard({ x: 0, y: 0 })).to.equal(false);
+  });
+
+  it('round trips every rendered hex cell and exposes bounded six-neighbor topology', () => {
+    const Topology = SDK.HexTopology;
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    for (let c = 0; c <= 8; c++) {
+      for (let k = 0; k <= 4; k++) {
+        const axial = Topology.renderedToAxial(c, k);
+        expect(Topology.axialToRendered(axial)).to.deep.equal({ c, k });
+      }
+    }
+    expect(board.getHexNeighbors({ q: 0, r: 2 })).to.deep.equal([
+      { q: 1, r: 2 }, { q: -1, r: 2 }, { q: 0, r: 3 },
+      { q: 0, r: 1 }, { q: 1, r: 1 }, { q: -1, r: 3 },
+    ]);
+    expect(board.getHexNeighbors({ q: -2, r: 4 })).to.have.length(3);
+    expect(board.getHexNeighbors({ q: 50, r: 50 })).to.deep.equal([]);
+    expect(board.getHexDistance({ q: -2, r: 4 }, { q: 2, r: 4 })).to.equal(4);
+    expect(board.getHexPositionsInRange({ q: -2, r: 4 }, 1)).to.have.length(4);
+    expect(board.getHexPath({ q: -2, r: 4 }, { q: 2, r: 4 })).to.have.length(4);
+  });
+
+  it('finds a shortest in-bounds route when the straight hex line leaves the board', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    const path = board.getHexPath({ q: 4, r: 0 }, { q: 3, r: 2 });
+    expect(path).to.have.length(2);
+    expect(path[path.length - 1]).to.deep.equal({ q: 3, r: 2 });
+    expect(path.every((position) => board.isOnBoard(position))).to.equal(true);
+    expect(board.getHexPath({ q: 4, r: 0 }, { q: 4, r: 0 })).to.deep.equal([]);
+  });
+
+  it('returns axial components from coordinate accessors only for the hex ruleset', () => {
+    const session = SDK.GameSession.getInstance();
+    const card = session.getGeneralForPlayer1();
+    session.setRuleset('practice-sandbox-hex', 1);
+    card.setPosition({ q: -2, r: 4 });
+    expect(card.getPositionX()).to.equal(-2);
+    expect(card.getPositionY()).to.equal(4);
+    session.setRuleset('legacy', 1);
+    card.setPosition({ x: 0, y: 2 });
+    expect(card.getPositionX()).to.equal(0);
+    expect(card.getPositionY()).to.equal(2);
+  });
+
   it('expect board.getCardAtPosition to find card at 0, 2', () => {
     expect(SDK.GameSession.getInstance().getBoard().getCardAtPosition({ x: 0, y: 2 }) instanceof SDK.Card).to.equal(true);
   });

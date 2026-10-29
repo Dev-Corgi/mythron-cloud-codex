@@ -105,6 +105,22 @@ describe('game setup', () => {
       expect(developerSession.getRulesetId()).to.equal('legacy');
     });
 
+    it('places hex generals at the opposite center-edge axial cells while legacy starts stay square', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 1);
+      SDK.GameSetup.setupNewSession(session, {
+        userId: 'hex-player-1', name: 'Hex Player 1', deck: [{ id: SDK.Cards.Faction1.General }],
+      }, {
+        userId: 'hex-player-2', name: 'Hex Player 2', deck: [{ id: SDK.Cards.Faction4.General }],
+      }, true);
+      expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
+      expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 2, r: 4 });
+      expect(session.getBoard().isOnBoard(session.getGeneralForPlayer1().getPosition())).to.equal(true);
+      expect(session.getBoard().isOnBoard(session.getGeneralForPlayer2().getPosition())).to.equal(true);
+      expect(session.getBoard().getUnitAtPosition({ q: -2, r: 4 })).to.equal(session.getGeneralForPlayer1());
+      expect(SDK.GameSession.getInstance().getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
+    });
+
     it('expect no cards to be in the void', () => {
       const cards = SDK.GameSession.getInstance().getCards();
       for (let i = 0, il = cards.length; i < il; i++) {

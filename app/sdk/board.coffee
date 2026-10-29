@@ -7,6 +7,7 @@ CardType =             require './cards/cardType'
 Entity =     require './entities/entity'
 ApplyCardToBoardAction =     require './actions/applyCardToBoardAction'
 _ = require 'underscore'
+HexTopology = require './rulesets/hexTopology'
 
 class Board extends SDKObject
 
@@ -41,6 +42,11 @@ class Board extends SDKObject
 
   getPositions: () ->
     positions = []
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for c in [0..8]
+        for k in [0..4]
+          positions.push(HexTopology.renderedToAxial(c, k))
+      return positions
     for x in [0...@columnCount]
       for y in [0...@rowCount]
         positions.push({x:x,y:y})
@@ -48,6 +54,10 @@ class Board extends SDKObject
 
   getUnobstructedPositions: () ->
     positions = []
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for position in @getPositions()
+        if !@getObstructionAtPosition(position) then positions.push(position)
+      return positions
     for x in [0...@columnCount]
       for y in [0...@rowCount]
         position = {x:x,y:y}
@@ -57,6 +67,10 @@ class Board extends SDKObject
 
   getUnobstructedPositionsForEntity: (entity) ->
     positions = []
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      for position in @getPositions()
+        if !@getObstructionAtPositionForEntity(position, entity) then positions.push(position)
+      return positions
     for x in [0...@columnCount]
       for y in [0...@rowCount]
         position = {x:x,y:y}
@@ -84,7 +98,59 @@ class Board extends SDKObject
     return positions
 
   isOnBoard: (position) ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return HexTopology.isOnBoard(position)
     return position? and position.x >= 0 and position.y >= 0 and position.x < @columnCount and position.y < @rowCount
+
+  positionsEqual: (positionA, positionB) ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return positionA? and positionB? and positionA.q is positionB.q and positionA.r is positionB.r
+    return UtilsPosition.getPositionsAreEqual(positionA, positionB)
+
+  getHexNeighbors: (position) ->
+    return [] unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position)
+    return (neighbor for neighbor in HexTopology.getNeighbors(position) when @isOnBoard(neighbor))
+
+  getHexDistance: (positionA, positionB) ->
+    return null unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(positionA) and @isOnBoard(positionB)
+    return HexTopology.getDistance(positionA, positionB)
+
+  getHexPositionsInRange: (position, radius) ->
+    return [] unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(position)
+    return HexTopology.getPositionsInRange(position, radius, (candidate) => @isOnBoard(candidate))
+
+  getHexPath: (start, finish) ->
+    return [] unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @isOnBoard(start) and @isOnBoard(finish)
+    startKey = "#{start.q},#{start.r}"
+    finishKey = "#{finish.q},#{finish.r}"
+    return [] if startKey is finishKey
+
+    queue = [start]
+    visited = {}
+    parentByKey = {}
+    visited[startKey] = true
+    queueIndex = 0
+
+    while queueIndex < queue.length and !visited[finishKey]
+      current = queue[queueIndex]
+      queueIndex++
+      currentKey = "#{current.q},#{current.r}"
+      for neighbor in @getHexNeighbors(current)
+        neighborKey = "#{neighbor.q},#{neighbor.r}"
+        unless visited[neighborKey]
+          visited[neighborKey] = true
+          parentByKey[neighborKey] = currentKey
+          queue.push(neighbor)
+
+    return [] unless visited[finishKey]
+
+    path = []
+    currentKey = finishKey
+    while currentKey isnt startKey
+      parts = currentKey.split(',')
+      path.push({q: parseInt(parts[0], 10), r: parseInt(parts[1], 10)})
+      currentKey = parentByKey[currentKey]
+    return path.reverse()
 
   addCard: (card) ->
     if card?
@@ -219,7 +285,7 @@ class Board extends SDKObject
 
       # get card at position
       for c in cards
-        if c.getIsActive() and UtilsPosition.getPositionsAreEqual(pos, c.position) and (allowUntargetable or c.getIsTargetable())
+        if c.getIsActive() and @positionsEqual(pos, c.position) and (allowUntargetable or c.getIsTargetable())
           # each time we find an active card on this space, count it towards the number of cards queued up to be removed
           if numRemovalInQueue > 0
             numRemovalInQueue--
