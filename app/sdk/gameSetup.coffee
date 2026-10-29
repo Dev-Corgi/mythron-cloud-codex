@@ -213,6 +213,8 @@ GameSetup.addCardsToBoard = (gameSession, boardCardsData, owner) ->
 # region SETUP FROM DATA
 
 GameSetup.setupNewSessionFromExistingSessionData = (gameSession, existingGameSessionData) ->
+  # Carry the match ruleset into replay reconstruction before setting up players/cards.
+  gameSession.setRuleset(existingGameSessionData?.rulesetId, existingGameSessionData?.rulesetVersion)
   # store game setup data
   gameSetupData = existingGameSessionData.gameSetupData
   gameSession.gameSetupData = gameSetupData

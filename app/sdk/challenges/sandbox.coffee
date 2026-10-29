@@ -43,6 +43,7 @@ class Sandbox extends Challenge
   setupSessionModes: (gameSession) ->
     super(gameSession)
     gameSession.setGameType(GameType.Sandbox)
+    gameSession.setRuleset("practice-sandbox-hex", 1)
 
   setupOpponentAgent: () ->
     # no agent needed for sandbox

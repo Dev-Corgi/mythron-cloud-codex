@@ -6,6 +6,11 @@ const _ = require('underscore');
 const CONFIG = require('../../../../app/common/config');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
+const Rulesets = require('../../../../app/sdk/rulesets/rulesetsLookup.coffee');
+const createSinglePlayerGame = require('../../../../server/lib/create_single_player_game.coffee');
+const GameManager = require('../../../../server/redis').GameManager;
+const GamesModule = require('../../../../server/lib/data_access/games.coffee');
+const Promise = require('bluebird');
 const UtilsSDK = require('../../../utils/utils_sdk');
 
 // disable the logger for cleaner test output
@@ -26,6 +31,80 @@ describe('game setup', () => {
   });
 
   describe('setup', () => {
+    it('uses legacy rules by default for ordinary game setup', () => {
+      expect(SDK.GameSession.getInstance().getRulesetId()).to.equal('legacy');
+      expect(SDK.GameSession.getInstance().getRulesetVersion()).to.equal(1);
+    });
+
+    it('selects Practice rules only from the server-side single-player entry', () => {
+      expect(Rulesets.getServerRulesetForGameType(SDK.GameType.SinglePlayer)).to.deep.equal({ id: 'practice-sandbox-hex', version: 1 });
+      expect(Rulesets.getServerRulesetForGameType(SDK.GameType.BossBattle)).to.deep.equal({ id: 'legacy', version: 1 });
+    });
+
+    it('assigns the authoritative ruleset to the session before serialization', () => {
+      const practiceSession = SDK.GameSession.create();
+      Rulesets.assignServerRulesetToSession(practiceSession, SDK.GameType.SinglePlayer);
+      const practiceSnapshot = JSON.parse(practiceSession.serializeToJSON(practiceSession));
+      expect(practiceSnapshot.rulesetId).to.equal('practice-sandbox-hex');
+      expect(practiceSnapshot.rulesetVersion).to.equal(1);
+
+      const bossBattleSession = SDK.GameSession.create();
+      Rulesets.assignServerRulesetToSession(bossBattleSession, SDK.GameType.BossBattle);
+      const bossBattleSnapshot = JSON.parse(bossBattleSession.serializeToJSON(bossBattleSession));
+      expect(bossBattleSnapshot.rulesetId).to.equal('legacy');
+      expect(bossBattleSnapshot.rulesetVersion).to.equal(1);
+    });
+
+    it('creates and saves Practice sessions with the server-selected ruleset', () => {
+      const originalGenerateGameId = GameManager.generateGameId;
+      const originalSaveGameSession = GameManager.saveGameSession;
+      const originalNewUserGame = GamesModule.newUserGame;
+      let savedSnapshot = null;
+      GameManager.generateGameId = () => Promise.resolve('ruleset-test-game');
+      GameManager.saveGameSession = (gameId, serializedSession) => {
+        savedSnapshot = JSON.parse(serializedSession);
+        return Promise.resolve();
+      };
+      GamesModule.newUserGame = () => Promise.resolve();
+
+      const practiceDeck = SDK.FactionFactory.factionForIdentifier(SDK.Factions.Faction1).starterDeck;
+      const aiGeneralId = SDK.Cards.Faction2.General;
+      return createSinglePlayerGame(
+        'ruleset-test-player',
+        'Practice Test',
+        SDK.GameType.SinglePlayer,
+        practiceDeck,
+        null,
+        null,
+        'ruleset-test-ai',
+        'Practice AI',
+        aiGeneralId,
+        null,
+        1,
+        0,
+        null,
+        null,
+      ).then(() => {
+        expect(savedSnapshot.rulesetId).to.equal('practice-sandbox-hex');
+        expect(savedSnapshot.rulesetVersion).to.equal(1);
+      }).finally(() => {
+        GameManager.generateGameId = originalGenerateGameId;
+        GameManager.saveGameSession = originalSaveGameSession;
+        GamesModule.newUserGame = originalNewUserGame;
+      });
+    });
+
+    it('selects the new rules only for the concrete local Sandbox entry', () => {
+      const session = SDK.GameSession.create();
+      new SDK.Sandbox().setupSessionModes(session);
+      expect(session.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(session.getRulesetVersion()).to.equal(1);
+
+      const developerSession = SDK.GameSession.create();
+      new SDK.SandboxDeveloper().setupSessionModes(developerSession);
+      expect(developerSession.getRulesetId()).to.equal('legacy');
+    });
+
     it('expect no cards to be in the void', () => {
       const cards = SDK.GameSession.getInstance().getCards();
       for (let i = 0, il = cards.length; i < il; i++) {

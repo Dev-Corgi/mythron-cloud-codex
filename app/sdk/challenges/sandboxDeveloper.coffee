@@ -10,6 +10,7 @@ class SandboxDeveloper extends Sandbox
 
   setupSessionModes: (gameSession) ->
     super(gameSession)
+    gameSession.setRuleset("legacy", 1)
     gameSession.setIsDeveloperMode(true)
 
 module.exports = SandboxDeveloper

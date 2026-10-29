@@ -293,6 +293,7 @@ UtilsJavascript = require 'app/common/utils/utils_javascript'
 UtilsGameSession = require 'app/common/utils/utils_game_session'
 UtilsPosition = require 'app/common/utils/utils_position'
 GameType = require './gameType'
+Rulesets = require './rulesets/rulesetsLookup'
 GameFormat = require './gameFormat'
 Player = require './player'
 BattleMapTemplate = require './battleMapTemplate'
@@ -353,6 +354,8 @@ class _GameSession extends SDKObject
   gameId: "N/A"
   gameType: null # see GameType lookup
   gameFormat: null # see GameType lookup
+  rulesetId: Rulesets.defaultRuleset.id
+  rulesetVersion: Rulesets.defaultRuleset.version
   index: 0
   lastActionTimestamp:null
   modifiersByIndex:null # master map of modifiers played in this game
@@ -864,6 +867,20 @@ class _GameSession extends SDKObject
 
   getGameType: () ->
     return @gameType
+
+  setRuleset: (rulesetId, rulesetVersion) ->
+    rulesetId ?= Rulesets.defaultRuleset.id
+    rulesetVersion ?= Rulesets.defaultRuleset.version
+    ruleset = Rulesets.getRuleset(rulesetId, rulesetVersion)
+    throw new Error("Unsupported ruleset #{rulesetId} version #{rulesetVersion}") unless ruleset?
+    @rulesetId = ruleset.id
+    @rulesetVersion = ruleset.version
+
+  getRulesetId: () ->
+    return @rulesetId ? Rulesets.defaultRuleset.id
+
+  getRulesetVersion: () ->
+    return @rulesetVersion ? Rulesets.defaultRuleset.version
 
   setGameFormat: (val) ->
     @gameFormat = val
@@ -3417,6 +3434,9 @@ class _GameSession extends SDKObject
    ###
   deserializeSessionFromFirebase: (sessionData) ->
     #Logger.module("SDK").debug("[G:#{@.gameId}]", "GS.deserializeSessionFromFirebase")
+    # Resolve identity before copying data or rebuilding any session state. Older snapshots
+    # have no ruleset metadata and therefore retain the legacy rules.
+    @setRuleset(sessionData?.rulesetId, sessionData?.rulesetVersion)
     # emit event that we're deserializing
     # this allows any existing sdk objects to clean themselves up
     @pushEvent({type: EVENTS.before_deserialize, gameSession: @}, {blockActionExecution: true})

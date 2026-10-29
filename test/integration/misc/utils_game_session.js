@@ -11,6 +11,59 @@ const SDK = require('../../../app/sdk.coffee');
 const UtilsSDK = require('../../utils/utils_sdk');
 
 describe('UtilsGameSession', () => {
+  describe('ruleset persistence', () => {
+    it('round trips a supported ruleset and defaults historical snapshots to legacy', () => {
+      UtilsSDK.setupSession(
+        SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction1, 30),
+        SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction2, 30),
+      );
+      const session = SDK.GameSession.current();
+      session.setRuleset('practice-sandbox-hex', 1);
+      const serialized = JSON.parse(session.serializeToJSON(session));
+      const restored = SDK.GameSession.create();
+      restored.deserializeSessionFromFirebase(serialized);
+      expect(restored.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(restored.getRulesetVersion()).to.equal(1);
+
+      const replay = SDK.GameSession.create();
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, JSON.parse(JSON.stringify(serialized)));
+      expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(replay.getRulesetVersion()).to.equal(1);
+
+      delete serialized.rulesetId;
+      delete serialized.rulesetVersion;
+      const historical = SDK.GameSession.create();
+      historical.deserializeSessionFromFirebase(serialized);
+      expect(historical.getRulesetId()).to.equal('legacy');
+      expect(historical.getRulesetVersion()).to.equal(1);
+
+      const historicalReplay = SDK.GameSession.create();
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(historicalReplay, serialized);
+      expect(historicalReplay.getRulesetId()).to.equal('legacy');
+      expect(historicalReplay.getRulesetVersion()).to.equal(1);
+    });
+
+    it('rejects unknown rulesets before snapshot reconstruction', () => {
+      const session = SDK.GameSession.create();
+      expect(() => session.deserializeSessionFromFirebase({
+        rulesetId: 'unknown',
+        rulesetVersion: 1,
+        board: { cards: [999] },
+      })).to.throw(/Unsupported ruleset/);
+      expect(session.getRulesetId()).to.equal('legacy');
+    });
+
+    it('rejects unsupported versions before snapshot reconstruction', () => {
+      const session = SDK.GameSession.create();
+      expect(() => session.deserializeSessionFromFirebase({
+        rulesetId: 'practice-sandbox-hex',
+        rulesetVersion: 2,
+        board: { cards: [999] },
+      })).to.throw(/Unsupported ruleset/);
+      expect(session.getRulesetId()).to.equal('legacy');
+    });
+  });
+
   describe('scrubGameSessionData / card.isScrubbable', () => {
     beforeEach(() => {
       // define test decks.  Spells do not work.  Only add minions and generals this way

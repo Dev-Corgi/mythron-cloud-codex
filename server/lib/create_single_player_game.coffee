@@ -11,6 +11,7 @@ config = require '../../config/config'
 # sdk
 GameSetup = require '../../app/sdk/gameSetup'
 GameType = require '../../app/sdk/gameType'
+Rulesets = require '../../app/sdk/rulesets/rulesetsLookup'
 GameStatus = require '../../app/sdk/gameStatus'
 GameSession = require '../../app/sdk/gameSession'
 GameFormat = require '../../app/sdk/gameFormat'
@@ -150,6 +151,9 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
     # create GameSession
     @.newGameSession = GameSession.create()
     @.newGameSession.gameType = gameType
+    # Practice is created only through the validated /single_player route. The ruleset
+    # is chosen by this server-owned path before GameSetup sees the session.
+    Rulesets.assignServerRulesetToSession(@.newGameSession, gameType)
     @.newGameSession.gameFormat = GameFormat.Legacy
     @.newGameSession.version = version
     @.newGameSession.setIsRunningAsAuthoritative(true)
