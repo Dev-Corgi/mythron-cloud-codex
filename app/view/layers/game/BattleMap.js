@@ -9,6 +9,7 @@ const Promise = require('bluebird');
 const RSX = require('app/data/resources');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const UtilsPosition = require('app/common/utils/utils_position');
+const UtilsHexView = require('app/common/utils/utils_hex_view');
 const AmbientLightColorTo = require('app/view/actions/AmbientLightColorTo');
 const BaseParticleSystem = require('app/view/nodes/BaseParticleSystem');
 const BaseSprite = require('app/view/nodes/BaseSprite');
@@ -264,7 +265,7 @@ var BattleMap = cc.Class.extend({
       for (var i = 0, il = floorTileMap.length; i < il; i++) {
         const tileSprite = floorTileMap[i];
         const { boardPosition } = tileSprite;
-        tileSprite.setPosition(UtilsEngine.transformBoardToScreen(cc.p(boardPosition.x, boardPosition.y)));
+        tileSprite.setPosition(UtilsEngine.transformBoardToScreen(boardPosition));
       }
     }
 
@@ -802,15 +803,28 @@ var BattleMap = cc.Class.extend({
   _setupTiles() {
     // generate floor tiles
     const board = SDK.GameSession.getInstance().getBoard();
-    const rowCount = board.getRowCount();
-    const columnCount = board.getColumnCount();
     this._floorTileMap = [];
-    for (let row = 0; row < rowCount; row++) {
-      for (let col = 0; col < columnCount; col++) {
+    const positions = board.getPositions();
+    for (let i = 0; i < positions.length; i++) {
+      const position = positions[i];
+      if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+        const tileSprite = UtilsHexView.createHexNode(
+          position,
+          UtilsEngine.getScreenBoardOrigin(),
+          CONFIG.FLOOR_TILE_COLOR,
+          { r: 56, g: 65, b: 76 },
+          2,
+        );
+        tileSprite.boardPosition = { q: position.q, r: position.r };
+        const mapIndex = UtilsHexView.getCellIndex(position);
+        tileSprite.mapIndex = mapIndex;
+        this._floorTileMap[mapIndex] = tileSprite;
+        this._targetLayer.getTileLayer().addTile(tileSprite, 0, 0);
+      } else {
         const tileSprite = TileMapGridSprite.create();
         tileSprite.setColor(CONFIG.FLOOR_TILE_COLOR);
-        tileSprite.boardPosition = cc.p(col, row);
-        const mapIndex = UtilsPosition.getMapIndexFromPosition(columnCount, col, row);
+        tileSprite.boardPosition = cc.p(position.x, position.y);
+        const mapIndex = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y);
         tileSprite.mapIndex = mapIndex;
         this._floorTileMap[mapIndex] = tileSprite;
         this._targetLayer.getTileLayer().addBoardBatchedTile(tileSprite, 0, 0);
@@ -1554,11 +1568,11 @@ var BattleMap = cc.Class.extend({
           let forPlayer2;
           if (SDK.GameSession.getInstance().getMyPlayer() === SDK.GameSession.getInstance().getPlayer2()) {
             // player 2 starts showing tiles from bottom right
-            startTile = floorTileMap[UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), board.getColumnCount() - 1, 0)];
+            startTile = floorTileMap[SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex' ? 40 : UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), board.getColumnCount() - 1, 0)];
             forPlayer2 = true;
           } else {
             // player 1 starts showing tiles from bottom left
-            startTile = floorTileMap[UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), 0, 0)];
+            startTile = floorTileMap[SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex' ? 0 : UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), 0, 0)];
             forPlayer2 = false;
           }
           let floorTilesShowing = [startTile];
@@ -1566,29 +1580,41 @@ var BattleMap = cc.Class.extend({
           while (floorTilesShowing.length > 0) {
             const tileSprite = floorTilesShowing.shift();
             const { boardPosition } = tileSprite;
-            const col = boardPosition.x;
-            const row = boardPosition.y;
             const { mapIndex } = tileSprite;
-
-            // mark this tile as shown
-            if (floorTilesShown[mapIndex] == null) {
+            const wasShown = floorTilesShown[mapIndex] != null;
+            if (!wasShown) {
               floorTilesShown[mapIndex] = tileSprite;
-
-              // fade in staggered
               tileSprite.setOpacity(0.0);
               tileSprite.runAction(cc.sequence(
                 cc.delayTime(showDelay),
                 cc.EaseExponentialIn.create(cc.fadeTo(duration * 0.3, CONFIG.FLOOR_TILE_OPACITY)),
               ));
-
-              // scale in staggered
               const scale = tileSprite.getScale();
               tileSprite.setScale(0.0);
               tileSprite.runAction(cc.sequence(
                 cc.delayTime(showDelay),
                 cc.EaseBackOut.create(cc.scaleTo(duration, scale)),
               ));
-
+            }
+            if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+              if (!wasShown) {
+                const neighbors = board.getHexNeighbors(boardPosition);
+                for (let ni = 0; ni < neighbors.length; ni++) {
+                  const neighborSprite = floorTileMap[UtilsHexView.getCellIndex(neighbors[ni])];
+                  if (neighborSprite && !floorTilesShown[neighborSprite.mapIndex]) floorTilesToShowNext.push(neighborSprite);
+                }
+              }
+              if (floorTilesShowing.length === 0) {
+                showDelay += duration * 0.1;
+                floorTilesShowing = floorTilesToShowNext;
+                floorTilesToShowNext = [];
+              }
+              // Continue with the next axial wave; square traversal is legacy only.
+              continue;
+            }
+            const col = boardPosition.x;
+            const row = boardPosition.y;
+            if (!wasShown) {
               // get tiles around and add to end of show queue
               const mapIndexUp = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), col, row + 1);
               const tileSpriteUp = floorTileMap[mapIndexUp];

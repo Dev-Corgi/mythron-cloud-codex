@@ -7,6 +7,7 @@ const RSX = require('app/data/resources');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const audio_engine = require('app/audio/audio_engine');
 const UtilsPosition = require('app/common/utils/utils_position');
+const UtilsHexView = require('app/common/utils/utils_hex_view');
 const _ = require('underscore');
 const i18next = require('i18next');
 const BaseSprite = require('./nodes/BaseSprite');
@@ -43,6 +44,26 @@ const EntityNodeVisualStateTag = require('./nodes/visualStateTags/EntityNodeVisu
  Player.create()
  // used to manage individual view properties of each player
  *************************************************************************** */
+function positionsEqual(positionA, positionB) {
+  if (positionA && positionB && Number.isInteger(positionA.q) && Number.isInteger(positionA.r)
+    && Number.isInteger(positionB.q) && Number.isInteger(positionB.r)) {
+    return SDK.GameSession.getInstance().getBoard().positionsEqual(positionA, positionB);
+  }
+  return UtilsPosition.getPositionsAreEqual(positionA, positionB);
+}
+function arraysOfPositionsEqual(positionsA, positionsB) {
+  if (positionsA == null || positionsB == null || positionsA.length !== positionsB.length) return positionsA === positionsB;
+  for (let i = 0; i < positionsA.length; i++) {
+    if (!positionsEqual(positionsA[i], positionsB[i])) return false;
+  }
+  return true;
+}
+function mapHasPosition(map, position) {
+  if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+    return !!map[UtilsHexView.getCellIndex(position)];
+  }
+  return UtilsPosition.getMapHasPosition(SDK.GameSession.getInstance().getBoard().getColumnCount(), map, position);
+}
 const Player = cc.Class.extend({
 
   boardTileZOrder: 1,
@@ -354,8 +375,8 @@ const Player = cc.Class.extend({
     if (screenLocation != null) {
       this.mouseScreenPosition = cc.p(screenLocation.x, screenLocation.y);
       this.mouseGlobalScaleInvertedScreenPosition = UtilsEngine.transformPositionFromGlobalScale(this.mouseScreenPosition);
-      this.mouseBoardUnroundedPosition = UtilsEngine.transformTileMapToBoard(this.mouseGlobalScaleInvertedScreenPosition);
-      const mouseBoardPosition = UtilsEngine.transformTileMapToBoardIndex(this.mouseGlobalScaleInvertedScreenPosition);
+      this.mouseBoardUnroundedPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenPosition, false);
+      const mouseBoardPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenPosition, true);
       this.setMouseBoardPosition(mouseBoardPosition);
 
       // check state of dragging
@@ -376,9 +397,14 @@ const Player = cc.Class.extend({
     if (boardLocation != null) {
       this.mouseScreenPosition = UtilsEngine.transformBoardToScreen(boardLocation);
       this.mouseGlobalScaleInvertedScreenPosition = UtilsEngine.transformPositionFromGlobalScale(this.mouseScreenPosition);
-      this.mouseBoardUnroundedPosition = cc.p(boardLocation.x, boardLocation.y);
-      const mouseBoardPosition = cc.p(Math.floor(boardLocation.x), Math.floor(boardLocation.y));
-      this.setMouseBoardPosition(mouseBoardPosition);
+      if (Number.isInteger(boardLocation.q) && Number.isInteger(boardLocation.r)) {
+        this.mouseBoardUnroundedPosition = { q: boardLocation.q, r: boardLocation.r };
+        this.setMouseBoardPosition(this.mouseBoardUnroundedPosition);
+      } else {
+        this.mouseBoardUnroundedPosition = cc.p(boardLocation.x, boardLocation.y);
+        const mouseBoardPosition = cc.p(Math.floor(boardLocation.x), Math.floor(boardLocation.y));
+        this.setMouseBoardPosition(mouseBoardPosition);
+      }
 
       // check state of dragging
       if (this.mouseDown && !this.mouseDragging && performance.now() - this.mouseDownAt >= CONFIG.DRAGGING_DELAY) {
@@ -399,13 +425,16 @@ const Player = cc.Class.extend({
    * @param {Vec2} boardLocation
    */
   setMouseBoardPosition(boardLocation) {
-    if (!UtilsPosition.getPositionsAreEqual(this.mouseBoardPosition, boardLocation)) {
+    const board = SDK.GameSession.getInstance().getBoard();
+    if (!positionsEqual(this.mouseBoardPosition, boardLocation)) {
       this.setHoverDirty(true);
-      this.mouseBoardPosition = cc.p(boardLocation.x, boardLocation.y);
-      this.mouseScreenBoardPosition = UtilsEngine.transformBoardToScreen(this.mouseBoardPosition);
-      this.mouseTileMapBoardPosition = UtilsEngine.transformScreenToTileMap(this.mouseScreenBoardPosition);
+      this.mouseBoardPosition = boardLocation && (Number.isInteger(boardLocation.q) && Number.isInteger(boardLocation.r)
+        ? { q: boardLocation.q, r: boardLocation.r }
+        : cc.p(boardLocation.x, boardLocation.y));
+      this.mouseScreenBoardPosition = this.mouseBoardPosition ? UtilsEngine.transformBoardToScreen(this.mouseBoardPosition) : null;
+      this.mouseTileMapBoardPosition = this.mouseScreenBoardPosition ? UtilsEngine.transformScreenToTileMap(this.mouseScreenBoardPosition) : null;
       this.mouseWasOnBoard = this.mouseIsOnBoard;
-      this.mouseIsOnBoard = SDK.GameSession.getInstance().getBoard().isOnBoard(this.mouseBoardPosition);
+      this.mouseIsOnBoard = !!(this.mouseBoardPosition && board.isOnBoard(this.mouseBoardPosition));
     }
   },
 
@@ -417,8 +446,8 @@ const Player = cc.Class.extend({
     if (screenLocation != null) {
       this.mouseScreenDownPosition = cc.p(screenLocation.x, screenLocation.y);
       this.mouseGlobalScaleInvertedScreenDownPosition = UtilsEngine.transformPositionFromGlobalScale(this.mouseScreenDownPosition);
-      this.mouseBoardDownPosition = UtilsEngine.transformTileMapToBoardIndex(this.mouseGlobalScaleInvertedScreenDownPosition);
-      this.mouseBoardUnroundedDownPosition = UtilsEngine.transformTileMapToBoard(this.mouseGlobalScaleInvertedScreenDownPosition);
+      this.mouseBoardDownPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenDownPosition, true);
+      this.mouseBoardUnroundedDownPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenDownPosition, false);
       this.mouseDown = true;
       this.mouseDragging = false;
       this.mouseDownAt = Date.now();
@@ -433,8 +462,8 @@ const Player = cc.Class.extend({
     if (screenLocation != null) {
       this.mouseScreenUpPosition = cc.p(screenLocation.x, screenLocation.y);
       this.mouseGlobalScaleInvertedScreenUpPosition = UtilsEngine.transformPositionFromGlobalScale(this.mouseScreenUpPosition);
-      this.mouseBoardUpPosition = UtilsEngine.transformTileMapToBoardIndex(this.mouseGlobalScaleInvertedScreenUpPosition);
-      this.mouseBoardUnroundedUpPosition = UtilsEngine.transformTileMapToBoard(this.mouseGlobalScaleInvertedScreenUpPosition);
+      this.mouseBoardUpPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenUpPosition, true);
+      this.mouseBoardUnroundedUpPosition = UtilsEngine.transformPointerTileMapToBoard(this.mouseGlobalScaleInvertedScreenUpPosition, false);
       this.mouseDown = false;
       this.mouseDragging = false;
     }
@@ -1404,7 +1433,10 @@ const Player = cc.Class.extend({
                   const attackableTarget = attackableTargets[i];
                   const attackableEntityNode = gameLayer.getNodeForSdkCard(attackableTarget);
                   const attackableTargetPosition = attackableTarget.getPosition();
-                  const attackableTargetTile = TileMapLargeSprite.create();
+                  const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+                  const attackableTargetTile = isHex
+                    ? UtilsHexView.createHexNode(attackableTargetPosition, UtilsEngine.getScreenBoardOrigin(), CONFIG.AGGRO_COLOR, CONFIG.AGGRO_COLOR, 2)
+                    : TileMapLargeSprite.create();
 
                   // set as valid target
                   if (attackableEntityNode != null) {
@@ -1414,8 +1446,8 @@ const Player = cc.Class.extend({
 
                   // remove from attack pattern
                   for (let j = attackPattern.length - 1; j >= 0; j--) {
-                    var attackPosition = attackPattern[i];
-                    if (attackPosition.x === attackableTargetPosition.x && attackPosition.y === attackableTargetPosition.y) {
+                    const attackPosition = attackPattern[j];
+                    if (positionsEqual(attackPosition, attackableTargetPosition)) {
                       attackPattern.splice(j, 1);
                       break;
                     }
@@ -1423,9 +1455,10 @@ const Player = cc.Class.extend({
 
                   // show tile for target
                   attackableTargetTile.setPosition(UtilsEngine.transformBoardToScreen(attackableTargetPosition));
-                  attackableTargetTile.setColor(CONFIG.AGGRO_COLOR);
+                  if (!isHex) attackableTargetTile.setColor(CONFIG.AGGRO_COLOR);
                   allTiles.push(attackableTargetTile);
-                  this.getTileLayer().addBoardBatchedTile(attackableTargetTile, this.attackableTargetTileZOrder, opacity, fadeDuration);
+                  if (isHex) this.getTileLayer().addTile(attackableTargetTile, this.attackableTargetTileZOrder, opacity, fadeDuration);
+                  else this.getTileLayer().addBoardBatchedTile(attackableTargetTile, this.attackableTargetTileZOrder, opacity, fadeDuration);
                 }
               }
             }
@@ -1445,7 +1478,7 @@ const Player = cc.Class.extend({
               attackLocations = [];
               for (var i = 0, il = attackPattern.length; i < il; i++) {
                 var attackPosition = attackPattern[i];
-                if (!UtilsPosition.getMapHasPosition(SDK.GameSession.getInstance().getBoard().getColumnCount(), moveMap, attackPosition)) {
+                if (!mapHasPosition(moveMap, attackPosition)) {
                   attackLocations.push(attackPosition);
                 }
               }
@@ -1614,7 +1647,7 @@ const Player = cc.Class.extend({
           let sameSpellPositions;
           if (forMyCardAction && card instanceof SDK.Spell) {
             spellAffectBoardPositions = card.getAffectPositionsFromPattern(mouseBoardPosition);
-            sameSpellPositions = UtilsPosition.getArraysOfPositionsAreEqual(spellAffectBoardPositions, this._mouseOverSpellAffectBoardPositions);
+            sameSpellPositions = arraysOfPositionsEqual(spellAffectBoardPositions, this._mouseOverSpellAffectBoardPositions);
           }
           this.removeHover((mouseIsOnBoard ? 0.0 : fadeDuration), true, sameSpellPositions);
           this.hovering = true;
@@ -1632,11 +1665,7 @@ const Player = cc.Class.extend({
 
               // hover tile
               needsPassiveHover = false;
-              var hoverTileSprite = TileMapHoverSprite.create();
-              hoverTileSprite.setPosition(mouseScreenBoardPosition);
-              hoverTileSprite.setColor(CONFIG.CARD_OPPONENT_COLOR);
-              this.mouseOverTiles.push(hoverTileSprite);
-              this.getTileLayer().addBoardBatchedTile(hoverTileSprite, this.mouseOverTileZOrder, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration);
+              this._addBoardHoverTile(mouseScreenBoardPosition, CONFIG.CARD_OPPONENT_COLOR, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration, this.mouseOverTileZOrder);
 
               let pathSource;
               if (!this.getShouldShowTargetingPathFromGeneral() || selectedCardNode != null) {
@@ -1677,11 +1706,7 @@ const Player = cc.Class.extend({
                 } else {
                   this.showSpawnTile(mouseScreenBoardPosition, opacity, fadeDuration, altColor);
 
-                  var hoverTileSprite = TileMapHoverSprite.create();
-                  hoverTileSprite.setPosition(mouseScreenBoardPosition);
-                  hoverTileSprite.setColor(color);
-                  this.mouseOverTiles.push(hoverTileSprite);
-                  this.getTileLayer().addBoardBatchedTile(hoverTileSprite, this.mouseOverTileZOrder, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration);
+                  this._addBoardHoverTile(mouseScreenBoardPosition, color, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration, this.mouseOverTileZOrder);
                 }
               }
             } else if (selectedSdkEntity) {
@@ -1696,11 +1721,7 @@ const Player = cc.Class.extend({
 
                   this.setIntentType(SDK.IntentType.DamageIntent);
 
-                  var hoverTileSprite = TileMapHoverSprite.create();
-                  hoverTileSprite.setPosition(mouseScreenBoardPosition);
-                  hoverTileSprite.setColor(CONFIG.AGGRO_COLOR);
-                  this.mouseOverTiles.push(hoverTileSprite);
-                  this.getTileLayer().addBoardBatchedTile(hoverTileSprite, this.mouseOverTileZOrder, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration);
+                  this._addBoardHoverTile(mouseScreenBoardPosition, CONFIG.AGGRO_COLOR, CONFIG.TILE_HOVER_OPACITY, hoverFadeDuration, this.mouseOverTileZOrder);
                 } else {
                   pathColor = CONFIG.AGGRO_OPPONENT_COLOR;
                 }
@@ -1747,11 +1768,7 @@ const Player = cc.Class.extend({
               this.showOpponentTile(mouseScreenBoardPosition, this.boardTileZOrder, opacity, fadeDuration, CONFIG.AGGRO_OPPONENT_ALT_COLOR);
             }
 
-            var hoverTileSprite = TileMapHoverSprite.create();
-            hoverTileSprite.setPosition(mouseScreenBoardPosition);
-            hoverTileSprite.setColor((isForMyPlayer || isAltPlayer) ? CONFIG.MOUSE_OVER_COLOR : CONFIG.MOUSE_OVER_OPPONENT_COLOR);
-            this.mouseOverTiles.push(hoverTileSprite);
-            this.getTileLayer().addBoardBatchedTile(hoverTileSprite, this.boardTileZOrder, CONFIG.TILE_FAINT_OPACITY, hoverFadeDuration);
+            this._addBoardHoverTile(mouseScreenBoardPosition, (isForMyPlayer || isAltPlayer) ? CONFIG.MOUSE_OVER_COLOR : CONFIG.MOUSE_OVER_OPPONENT_COLOR, CONFIG.TILE_FAINT_OPACITY, hoverFadeDuration, this.boardTileZOrder);
 
             // passive hover usually means passive path/target
             activePath = activeTarget = false;
@@ -1807,7 +1824,7 @@ const Player = cc.Class.extend({
 
         // check that path has at least a start and end
         if (path && path.length > 1) {
-          if (!UtilsPosition.getArraysOfPositionsAreEqual(this.pathLocs, path)) {
+          if (!arraysOfPositionsEqual(this.pathLocs, path)) {
             // store path and show new
             if (pathColor == null) {
               pathColor = !isForMyPlayer && !isAltPlayer ? CONFIG.AGGRO_OPPONENT_ALT_COLOR : (directPath && selectedSdkEntity ? CONFIG.AGGRO_ALT_COLOR : CONFIG.PATH_COLOR);
@@ -1980,6 +1997,16 @@ const Player = cc.Class.extend({
     // always remove previous tile path
     this.removePath(fadeDuration);
 
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+      const origin = UtilsEngine.getScreenBoardOrigin();
+      for (let i = 0; i < boardPath.length; i++) {
+        const tile = UtilsHexView.createHexNode(boardPath[i], origin, color, color, 2);
+        this.pathTiles.push(tile);
+        this.getTileLayer().addTile(tile, this.pathTileZOrder, opacity, fadeDuration);
+      }
+      return;
+    }
+
     // convert board path to screen path
     const screenPositions = [];
     for (i = 0, il = boardPath.length; i < il; i++) {
@@ -2145,9 +2172,34 @@ const Player = cc.Class.extend({
 
   /* region SPECIAL TILES */
 
+  _createBoardOverlayTile(position, color, createLegacyTile) {
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+      const axialPosition = position && Number.isInteger(position.q) && Number.isInteger(position.r)
+        ? position
+        : UtilsHexView.screenToPosition(position, UtilsEngine.getScreenBoardOrigin());
+      if (!axialPosition) return null;
+      const tileColor = color || { r: 255, g: 255, b: 255 };
+      return UtilsHexView.createHexNode(axialPosition, UtilsEngine.getScreenBoardOrigin(), tileColor, tileColor, 2);
+    }
+    const tile = createLegacyTile();
+    tile.setPosition(position);
+    if (color) tile.setColor(color);
+    return tile;
+  },
+
+  _addBoardHoverTile(position, color, opacity, fadeDuration, zOrder) {
+    const hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+    const tile = this._createBoardOverlayTile(position, color, () => TileMapHoverSprite.create());
+    if (!tile) return;
+    this.mouseOverTiles.push(tile);
+    if (hex) this.getTileLayer().addTile(tile, zOrder, opacity, fadeDuration);
+    else this.getTileLayer().addBoardBatchedTile(tile, zOrder, opacity, fadeDuration);
+  },
+
   showBoxTileForSelect(position, opacity, fadeDuration, color) {
     if (!this.selectedBoxTile) {
-      this.selectedBoxTile = TileBoxSprite.create();
+      this.selectedBoxTile = this._createBoardOverlayTile(position, color, () => TileBoxSprite.create());
+      if (!this.selectedBoxTile) return;
       this.selectedTiles.push(this.selectedBoxTile);
     }
     this._showPulsingScaleTile(this.selectedBoxTile, position, opacity, fadeDuration, color);
@@ -2160,7 +2212,8 @@ const Player = cc.Class.extend({
   },
   showBoxTileForAction(position, opacity, fadeDuration, color) {
     if (!this.selectedActionTile) {
-      this.selectedActionTile = TileBoxSprite.create();
+      this.selectedActionTile = this._createBoardOverlayTile(position, color, () => TileBoxSprite.create());
+      if (!this.selectedActionTile) return;
     }
     this._showPulsingScaleTile(this.selectedActionTile, position, opacity, fadeDuration, color);
   },
@@ -2181,11 +2234,10 @@ const Player = cc.Class.extend({
     }
 
     if (!this.targetTile) {
-      if (spriteIdentifier === RSX.tile_attack.frame) {
-        this.targetTile = TileAttackSprite.create();
-      } else {
-        this.targetTile = BaseSprite.create(spriteIdentifier);
-      }
+      this.targetTile = this._createBoardOverlayTile(position, color, () => (spriteIdentifier === RSX.tile_attack.frame
+        ? TileAttackSprite.create()
+        : BaseSprite.create(spriteIdentifier)));
+      if (!this.targetTile) return;
       if (active) {
         // active should be shown as a pulsing scale tile in the tilemap
         this._showPulsingScaleTile(this.targetTile, position, opacity, fadeDuration, color);
@@ -2214,7 +2266,8 @@ const Player = cc.Class.extend({
   showSpawnTile(position, opacity, fadeDuration, color) {
     color || (color = CONFIG.NEUTRAL_COLOR);
     if (!this.cardTile) {
-      this.cardTile = TileSpawnSprite.create();
+      this.cardTile = this._createBoardOverlayTile(position, color, () => TileSpawnSprite.create());
+      if (!this.cardTile) return;
     }
     this._showPulsingScaleTile(this.cardTile, position, opacity, fadeDuration, color);
   },
@@ -2227,7 +2280,8 @@ const Player = cc.Class.extend({
   showSpellTile(position, opacity, fadeDuration, color) {
     color || (color = CONFIG.NEUTRAL_COLOR);
     if (!this.cardTile) {
-      this.cardTile = TileSpellSprite.create();
+      this.cardTile = this._createBoardOverlayTile(position, color, () => TileSpellSprite.create());
+      if (!this.cardTile) return;
     }
     this._showPulsingScaleTile(this.cardTile, position, opacity, fadeDuration, color);
   },
@@ -2240,7 +2294,8 @@ const Player = cc.Class.extend({
   showCardTile(position, opacity, fadeDuration, color) {
     if (color == null) { color = CONFIG.NEUTRAL_ALT_COLOR; }
     if (!this.cardTile) {
-      this.cardTile = TileCardSprite.create();
+      this.cardTile = this._createBoardOverlayTile(position, color, () => TileCardSprite.create());
+      if (!this.cardTile) return;
     }
     this._showPulsingScaleTile(this.cardTile, position, opacity, fadeDuration, color);
   },
@@ -2254,7 +2309,8 @@ const Player = cc.Class.extend({
     if (opacity == null) { opacity = CONFIG.TILE_FAINT_OPACITY; }
     if (color == null) { color = CONFIG.AGGRO_OPPONENT_ALT_COLOR; }
     if (!this.opponentTile) {
-      this.opponentTile = TileOpponentSprite.create();
+      this.opponentTile = this._createBoardOverlayTile(position, color, () => TileOpponentSprite.create());
+      if (!this.opponentTile) return;
     }
     this._showSpecialTile(this.opponentTile, position, zOrder, opacity, fadeDuration, color);
   },
@@ -2267,7 +2323,8 @@ const Player = cc.Class.extend({
   showGlowTileForAction(position, zOrder, opacity, fadeDuration, color) {
     if (opacity == null) { opacity = 50; }
     if (!this.selectedActionTile) {
-      this.selectedActionTile = TileGlowSprite.create();
+      this.selectedActionTile = this._createBoardOverlayTile(position, color, () => TileGlowSprite.create());
+      if (!this.selectedActionTile) return;
     }
     this._showSpecialTile(this.selectedActionTile, position, zOrder, opacity, fadeDuration, color);
   },

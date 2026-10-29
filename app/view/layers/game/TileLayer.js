@@ -4,6 +4,7 @@ const Logger = require('app/common/logger');
 const CONFIG = require('app/common/config');
 const UtilsPosition = require('app/common/utils/utils_position');
 const UtilsEngine = require('app/common/utils/utils_engine');
+const UtilsHexView = require('app/common/utils/utils_hex_view');
 const RSX = require('app/data/resources');
 const BaseLayer = require('app/view/layers/BaseLayer');
 const BaseSprite = require('app/view/nodes/BaseSprite');
@@ -221,18 +222,25 @@ var TileLayer = BaseLayer.extend({
       const board = SDK.GameSession.getInstance().getBoard();
       const x = parseInt(mapNode.x);
       const y = parseInt(mapNode.y);
+      const hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+      const width = hex ? 9 : CONFIG.BOARDCOL;
+      const height = hex ? 5 : CONFIG.BOARDROW;
       const vl = x > 0;
-      const vr = x < CONFIG.BOARDCOL - 1;
+      const vr = x < width - 1;
       const vb = y > 0;
-      const vt = y < CONFIG.BOARDROW - 1;
-      const il = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x - 1, y);
-      const ir = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x + 1, y);
-      const it = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x, y + 1);
-      const ib = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x, y - 1);
-      const itl = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x - 1, y + 1);
-      const itr = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x + 1, y + 1);
-      const ibl = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x - 1, y - 1);
-      const ibr = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), x + 1, y - 1);
+      const vt = y < height - 1;
+      const indexAt = (col, row) => {
+        if (hex) return col * 5 + row;
+        return UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), col, row);
+      };
+      const il = indexAt(x - 1, y);
+      const ir = indexAt(x + 1, y);
+      const it = indexAt(x, y + 1);
+      const ib = indexAt(x, y - 1);
+      const itl = indexAt(x - 1, y + 1);
+      const itr = indexAt(x + 1, y + 1);
+      const ibl = indexAt(x - 1, y - 1);
+      const ibr = indexAt(x + 1, y - 1);
 
       nl = vl && map[il];
       nr = vr && map[ir];
@@ -269,6 +277,8 @@ var TileLayer = BaseLayer.extend({
   },
 
   updateMergedTileTextures(filePrefix, map, altMap) {
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') return;
+
     const tiles = [];
     // update textures of tiles in map based on map and altMap
     for (let i = 0, il = map.length; i < il; i++) {
@@ -303,10 +313,14 @@ var TileLayer = BaseLayer.extend({
         const values = this._getMergedTileCornerValues(mapNode, map, altMap);
         const { x } = mapNode;
         const { y } = mapNode;
-        const tlTileSprite = this.displayMergedTile(filePrefix, values.tl, x, y, -1, 1, tlColor, 0);
-        const trTileSprite = this.displayMergedTile(filePrefix, values.tr, x, y, 1, 1, trColor, 90);
-        const brTileSprite = this.displayMergedTile(filePrefix, values.br, x, y, 1, -1, brColor, 180);
-        const blTileSprite = this.displayMergedTile(filePrefix, values.bl, x, y, -1, -1, blColor, 270);
+        const hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+        const boardPoint = hex ? { q: mapNode.q, r: mapNode.r } : null;
+        const pointX = boardPoint || x;
+        const pointY = boardPoint ? undefined : y;
+        const tlTileSprite = this.displayMergedTile(filePrefix, values.tl, pointX, pointY, -1, 1, tlColor, 0);
+        const trTileSprite = this.displayMergedTile(filePrefix, values.tr, pointX, pointY, 1, 1, trColor, 90);
+        const brTileSprite = this.displayMergedTile(filePrefix, values.br, pointX, pointY, 1, -1, brColor, 180);
+        const blTileSprite = this.displayMergedTile(filePrefix, values.bl, pointX, pointY, -1, -1, blColor, 270);
         mapNode.tlTileSprite = tlTileSprite;
         mapNode.trTileSprite = trTileSprite;
         mapNode.brTileSprite = brTileSprite;
@@ -329,6 +343,26 @@ var TileLayer = BaseLayer.extend({
    */
   getMapFromBoardPositions(positions, map) {
     map || (map = []);
+
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+      for (let i = 0; i < positions.length; i++) {
+        const position = positions[i];
+        const rendered = UtilsHexView.getRenderedPosition(position);
+        if (rendered) {
+          map[UtilsHexView.getCellIndex(position)] = {
+            x: rendered.c,
+            y: rendered.k,
+            q: position.q,
+            r: position.r,
+            tlTileSprite: null,
+            trTileSprite: null,
+            brTileSprite: null,
+            blTileSprite: null,
+          };
+        }
+      }
+      return map;
+    }
 
     const baseMap = UtilsPosition.getMapFromPositions(SDK.GameSession.getInstance().getBoard().getColumnCount(), positions);
     for (let i = 0, il = baseMap.length; i < il; i++) {
@@ -372,7 +406,7 @@ var TileLayer = BaseLayer.extend({
     const tileSize = tileSprite._contentSize.width;
     const offsetSize = tileSize * 0.5;
     const tileScale = (CONFIG.TILESIZE * 0.5) / tileSize;
-    const tilePosition = UtilsEngine.transformBoardToScreen(cc.p(boardX, boardY));
+    const tilePosition = boardX && Number.isInteger(boardX.q) ? UtilsEngine.transformBoardToScreen(boardX) : UtilsEngine.transformBoardToScreen(cc.p(boardX, boardY));
     tilePosition.x += (offsetX || 0) * offsetSize * tileScale;
     tilePosition.y += (offsetY || 0) * offsetSize * tileScale;
     tileSprite.setPosition(tilePosition);
@@ -402,6 +436,20 @@ var TileLayer = BaseLayer.extend({
    */
   displayMergedTiles(locs, map, altMap, filePrefix, zOrder, opacity, fadeDuration, color, tiles) {
     if (locs && locs.length > 0) {
+      if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+        tiles || (tiles = []);
+        const origin = UtilsEngine.getScreenBoardOrigin();
+        const tileColor = color || { r: 255, g: 255, b: 255 };
+        for (let i = 0; i < locs.length; i++) {
+          const position = locs[i];
+          if (!UtilsHexView.getRenderedPosition(position)) continue;
+          const tileSprite = UtilsHexView.createHexNode(position, origin, tileColor, tileColor, 2);
+          tiles.push(tileSprite);
+          this.addTile(tileSprite, zOrder, opacity, fadeDuration);
+        }
+        return tiles;
+      }
+
       map || (map = this.getMapFromBoardPositions(locs));
       tiles || (tiles = []);
       const board = SDK.GameSession.getInstance().getBoard();
@@ -409,13 +457,17 @@ var TileLayer = BaseLayer.extend({
       // check tile neighbors by vertex
       for (let i = 0, il = locs.length; i < il; i++) {
         const location = locs[i];
-        const values = this._getMergedTileCornerValues(location, map, altMap);
-        const tlTileSprite = this.displayMergedTile(filePrefix, values.tl, location.x, location.y, -1, 1, color, 0);
-        const trTileSprite = this.displayMergedTile(filePrefix, values.tr, location.x, location.y, 1, 1, color, 90);
-        const brTileSprite = this.displayMergedTile(filePrefix, values.br, location.x, location.y, 1, -1, color, 180);
-        const blTileSprite = this.displayMergedTile(filePrefix, values.bl, location.x, location.y, -1, -1, color, 270);
+        const hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+        const rendered = hex ? UtilsHexView.getRenderedPosition(location) : null;
+        const mapLocation = hex ? { x: rendered.c, y: rendered.k } : location;
+        const values = this._getMergedTileCornerValues(mapLocation, map, altMap);
+        const point = hex ? location : null;
+        const tlTileSprite = this.displayMergedTile(filePrefix, values.tl, point || location.x, point ? undefined : location.y, -1, 1, color, 0);
+        const trTileSprite = this.displayMergedTile(filePrefix, values.tr, point || location.x, point ? undefined : location.y, 1, 1, color, 90);
+        const brTileSprite = this.displayMergedTile(filePrefix, values.br, point || location.x, point ? undefined : location.y, 1, -1, color, 180);
+        const blTileSprite = this.displayMergedTile(filePrefix, values.bl, point || location.x, point ? undefined : location.y, -1, -1, color, 270);
 
-        const mapNode = map[UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), location.x, location.y)];
+        const mapNode = map[hex ? UtilsHexView.getCellIndex(location) : UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), location.x, location.y)];
         mapNode.tlTileSprite = tlTileSprite;
         mapNode.trTileSprite = trTileSprite;
         mapNode.brTileSprite = brTileSprite;

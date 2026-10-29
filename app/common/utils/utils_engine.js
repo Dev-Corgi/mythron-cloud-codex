@@ -8,6 +8,16 @@ module.exports = UtilsEngine;
 
 const CONFIG = require('../config');
 const Logger = require('../logger.coffee');
+const UtilsHexView = require('./utils_hex_view');
+
+function isHexSession() {
+  try {
+    const session = require('../../sdk.coffee').GameSession.getInstance();
+    return !!(session && session.getRulesetId() === 'practice-sandbox-hex');
+  } catch (e) {
+    return false;
+  }
+}
 
 /**
  * Returns the origin of the static reference window used for layout calculations.
@@ -452,6 +462,9 @@ UtilsEngine.transformRectFromGlobalScale = function (rect) {
  * @returns {Vec2}
  */
 UtilsEngine.transformBoardToScreen = function (boardPoint) {
+  if (boardPoint && Number.isInteger(boardPoint.q) && Number.isInteger(boardPoint.r) && isHexSession()) {
+    return UtilsHexView.positionToScreen(boardPoint, UtilsEngine._screenBoardOrigin);
+  }
   return cc.p(boardPoint.x * CONFIG.TILESIZE + UtilsEngine._screenBoardOrigin.x, boardPoint.y * CONFIG.TILESIZE + UtilsEngine._screenBoardOrigin.y);
 };
 /**
@@ -462,6 +475,13 @@ UtilsEngine.transformBoardToScreen = function (boardPoint) {
 UtilsEngine.transformScreenToBoard = function (screenPoint) {
   return cc.p((screenPoint.x - UtilsEngine._screenBoardOrigin.x) / CONFIG.TILESIZE, (screenPoint.y - UtilsEngine._screenBoardOrigin.y) / CONFIG.TILESIZE);
 };
+
+/** Convert screen coordinates to a legal axial board cell, rejecting gaps. */
+UtilsEngine.transformHexScreenToBoard = function (screenPoint) {
+  return UtilsHexView.screenToPosition(screenPoint, UtilsEngine._screenBoardOrigin);
+};
+
+UtilsEngine.transformHexScreenToBoardIndex = UtilsEngine.transformHexScreenToBoard;
 
 /**
  * Transform a point in screen scale to board scale.
@@ -528,6 +548,17 @@ UtilsEngine.transformBoardToTileMap = function (boardPoint) {
  */
 UtilsEngine.transformTileMapToBoardIndex = function (tileMapPoint) {
   return UtilsEngine.transformScreenToBoardIndex(this.transformTileMapToScreen(tileMapPoint));
+};
+UtilsEngine.transformHexTileMapToBoard = function (tileMapPoint) {
+  return UtilsEngine.transformHexScreenToBoard(this.transformTileMapToScreen(tileMapPoint));
+};
+UtilsEngine.transformHexTileMapToBoardIndex = UtilsEngine.transformHexTileMapToBoard;
+
+/** Convert a pointer location in tile-map space to a board cell. */
+UtilsEngine.transformPointerTileMapToBoard = function (tileMapPoint, rounded) {
+  const screenPoint = UtilsEngine.transformTileMapToScreen(tileMapPoint);
+  if (isHexSession()) return UtilsHexView.screenToPosition(screenPoint, UtilsEngine._screenBoardOrigin);
+  return rounded ? UtilsEngine.transformScreenToBoardIndex(screenPoint) : UtilsEngine.transformScreenToBoard(screenPoint);
 };
 /**
  * Transform a point in tile map space to board space unrounded.
@@ -805,13 +836,13 @@ UtilsEngine.rebuild = function () {
   // cache layout positions
   const winCenterPosition = UtilsEngine.getGSIWinCenterPosition();
   UtilsEngine._refWindowOrigin = cc.p(cc.winSize.width - CONFIG.REF_WINDOW_SIZE.width, cc.winSize.height - CONFIG.REF_WINDOW_SIZE.height);
-  UtilsEngine._screenBoardSize = cc.size(
-    CONFIG.BOARDCOL * CONFIG.TILESIZE,
-    CONFIG.BOARDROW * CONFIG.TILESIZE,
-  );
+  const isHexBoard = isHexSession();
+  UtilsEngine._screenBoardSize = isHexBoard
+    ? cc.size(UtilsHexView.getBoardPixelSize().width, UtilsHexView.getBoardPixelSize().height)
+    : cc.size(CONFIG.BOARDCOL * CONFIG.TILESIZE, CONFIG.BOARDROW * CONFIG.TILESIZE);
   UtilsEngine._screenBoardOrigin = cc.p(
-    Math.round((cc.winSize.width - UtilsEngine._screenBoardSize.width) * 0.5 + CONFIG.TILESIZE * 0.5 + CONFIG.TILEOFFSET_X),
-    Math.round((cc.winSize.height - UtilsEngine._screenBoardSize.height) * 0.5 + CONFIG.TILESIZE * 0.5 + CONFIG.TILEOFFSET_Y),
+    Math.round((cc.winSize.width - UtilsEngine._screenBoardSize.width) * 0.5 + (isHexBoard ? UtilsHexView.getHexRadius() * Math.sqrt(3) * 0.5 : CONFIG.TILESIZE * 0.5) + CONFIG.TILEOFFSET_X),
+    Math.round((cc.winSize.height - UtilsEngine._screenBoardSize.height) * 0.5 + (isHexBoard ? UtilsEngine._screenBoardSize.height - UtilsHexView.getHexRadius() : CONFIG.TILESIZE * 0.5) + CONFIG.TILEOFFSET_Y),
   );
 
   // hand

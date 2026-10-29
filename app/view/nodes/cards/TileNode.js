@@ -221,14 +221,24 @@ const TileNode = EntityNode.extend({
 
   onBeforeShowMove(event) {
     const action = event && event.action;
-    if (action && UtilsPosition.getPositionsAreEqual(action.getSourcePosition(), this.getBoardPosition())) {
+    const board = SDK.GameSession.getInstance().getBoard();
+    const equal = (a, b) => {
+      if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') return board.positionsEqual(a, b);
+      return UtilsPosition.getPositionsAreEqual(a, b);
+    };
+    if (action && equal(action.getSourcePosition(), this.getBoardPosition())) {
       this.showCurrentState();
     }
   },
 
   onAfterShowMove(event) {
     const action = event && event.action;
-    if (action && UtilsPosition.getPositionsAreEqual(action.getTargetPosition(), this.getBoardPosition())) {
+    const board = SDK.GameSession.getInstance().getBoard();
+    const equal = (a, b) => {
+      if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') return board.positionsEqual(a, b);
+      return UtilsPosition.getPositionsAreEqual(a, b);
+    };
+    if (action && equal(action.getTargetPosition(), this.getBoardPosition())) {
       this.showCurrentState();
     }
   },

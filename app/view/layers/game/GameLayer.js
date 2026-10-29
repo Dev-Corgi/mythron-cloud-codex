@@ -12,6 +12,7 @@ const _ = require('underscore');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const UtilsPosition = require('app/common/utils/utils_position');
+const UtilsHexView = require('app/common/utils/utils_hex_view');
 const NodeFactory = require('app/view/helpers/NodeFactory');
 const TweenTypes = require('app/view/actions/TweenTypes');
 const Player = require('app/view/Player');
@@ -63,6 +64,20 @@ const Player2Layer = require('./Player2Layer');
 const Player1Layer = require('./Player1Layer');
 const BottomDeckLayer = require('./BottomDeckLayer');
 const TileLayer = require('./TileLayer');
+
+function getBoardPositionXY(position) {
+  if (!position) return { x: null, y: null };
+  if (Number.isInteger(position.q) && Number.isInteger(position.r)) return { x: position.q, y: position.r };
+  return position;
+}
+function getBoardMapIndex(board, position) {
+  return Number.isInteger(position && position.q) ? UtilsHexView.getCellIndex(position) : UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y);
+}
+function getActionPositionArgs(position) {
+  return SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
+    ? { q: position.q, r: position.r }
+    : { x: position.x, y: position.y };
+}
 
 // custom UI modules
 // var TimeMaelstromUIModule = require('app/view/ui_modules/TimeMaelstromUIModule');
@@ -866,16 +881,17 @@ var GameLayer = FXCompositeLayer.extend({
       let activeExactNode;
       let inactiveApproximateNode;
       let inactiveExactNode;
-      const approximate = boardY !== (boardY | 0);
+      const hexBoard = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+      const approximate = !hexBoard && boardY !== (boardY | 0);
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const nodeBoardPosition = node.getBoardPosition();
-        const nodeBoardX = nodeBoardPosition.x;
-        const nodeBoardY = nodeBoardPosition.y;
+        const nodeBoardX = hexBoard ? nodeBoardPosition.q : nodeBoardPosition.x;
+        const nodeBoardY = hexBoard ? nodeBoardPosition.r : nodeBoardPosition.y;
         const dx = boardX - nodeBoardX;
         const dy = boardY - nodeBoardY;
-        const isExactX = dx <= 0.5 && dx >= -0.5;
-        const isExactY = dy <= 0.5 && dy >= -0.5;
+        const isExactX = hexBoard ? dx === 0 : dx <= 0.5 && dx >= -0.5;
+        const isExactY = hexBoard ? dy === 0 : dy <= 0.5 && dy >= -0.5;
         const isExact = isExactX && isExactY;
         const isApproximate = approximate && isExactX && !isExactY && dy < 0.5 + CONFIG.TILE_TARGET_PCT && dy > 0.5;
         const isTargetable = !_.isFunction(node.getIsTargetable) || node.getIsTargetable();
@@ -927,6 +943,9 @@ var GameLayer = FXCompositeLayer.extend({
   onSetupTransitionIn() {
     FXCompositeLayer.prototype.onSetupTransitionIn.call(this);
     Logger.module('ENGINE').log('GameLayer.onSetupTransitionIn');
+
+    // Recompute the board display origin after the match ruleset is resolved.
+    UtilsEngine.rebuild();
 
     // setup battle
     this._battleMap.setup();
@@ -999,7 +1018,8 @@ var GameLayer = FXCompositeLayer.extend({
       } else if (validationMessagePosition) {
         // show message at position
         var validationMessagePosition = validationMessagePosition;
-        const entityNode = this.getEntityNodeAtBoardPosition(validationMessagePosition.x, validationMessagePosition.y, true, true);
+        const validationViewPosition = getBoardPositionXY(validationMessagePosition);
+        const entityNode = this.getEntityNodeAtBoardPosition(validationViewPosition.x, validationViewPosition.y, true, true);
         if (entityNode) {
           this.showInstructionForSdkNode(entityNode, validationMessage);
         } else {
@@ -4054,7 +4074,7 @@ var GameLayer = FXCompositeLayer.extend({
           const columnCount = SDK.GameSession.getInstance().getBoard().getColumnCount();
           for (let i = 0, il = applyEffectPositions.length; i < il; i++) {
             const boardPosition = applyEffectPositions[i];
-            const fxMapIndex = UtilsPosition.getMapIndexFromPosition(columnCount, boardPosition.x, boardPosition.y);
+            const fxMapIndex = getBoardMapIndex(SDK.GameSession.getInstance().getBoard(), boardPosition);
             if (this._currentStepAutoFXMap[fxMapIndex] == null) {
               const autoFXOptions = {
                 targetBoardPosition: boardPosition,
@@ -4157,7 +4177,7 @@ var GameLayer = FXCompositeLayer.extend({
         const columnCount = SDK.GameSession.getInstance().getBoard().getColumnCount();
         for (let i = 0, il = applyEffectPositions.length; i < il; i++) {
           const boardPosition = applyEffectPositions[i];
-          const mapIndex = UtilsPosition.getMapIndexFromPosition(columnCount, boardPosition.x, boardPosition.y);
+          const mapIndex = getBoardMapIndex(SDK.GameSession.getInstance().getBoard(), boardPosition);
           if (this._currentStepTargetingMap[mapIndex] == null) {
             // mark location as used so we only show targeting arrow fx once at any position in a sequence
             this._currentStepTargetingMap[mapIndex] = action;
@@ -4783,8 +4803,12 @@ var GameLayer = FXCompositeLayer.extend({
 
       // update auto fx
       if (forAutoFX) {
-        const autoFXPosition = options.targetBoardPosition || options.sourceBoardPosition || UtilsEngine.transformTileMapToBoardIndex(node.getPosition());
-        const fxMapIndex = UtilsPosition.getMapIndexFromPosition(SDK.GameSession.getInstance().getBoard().getColumnCount(), autoFXPosition.x, autoFXPosition.y);
+        const autoFXPosition = options.targetBoardPosition || options.sourceBoardPosition || (
+          SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
+            ? UtilsEngine.transformHexTileMapToBoardIndex(node.getPosition())
+            : UtilsEngine.transformTileMapToBoardIndex(node.getPosition())
+        );
+        const fxMapIndex = getBoardMapIndex(SDK.GameSession.getInstance().getBoard(), autoFXPosition);
         let fxNodes = this._currentStepAutoFXMap[fxMapIndex];
 
         if (!fxNodes) {
@@ -5017,7 +5041,8 @@ var GameLayer = FXCompositeLayer.extend({
 
   displaySelectEntityParticles(boardX, boardY) {
     const pEmitter = BaseParticleSystem.create({ plistFile: RSX.ptcl_dot_square_select.plist, pixelGridAligned: true });
-    const emitterPosition = UtilsEngine.transformBoardToTileMap(cc.p(boardX, boardY));
+    const position = boardX && typeof boardX === 'object' ? boardX : cc.p(boardX, boardY);
+    const emitterPosition = UtilsEngine.transformBoardToTileMap(position);
     pEmitter.setPosition(emitterPosition);
     pEmitter.setScale(0.8);
     pEmitter.update(0.3);
@@ -5027,7 +5052,8 @@ var GameLayer = FXCompositeLayer.extend({
 
   addEntityNodeHighlightTagsAtLocs(locs, color, freq, minAlpha, maxAlpha, tagId) {
     for (let i = 0; i < locs.length; i++) {
-      this.addEntityNodeHighlightTagsAtBoardPosition(locs[i].x, locs[i].y, color, freq, minAlpha, maxAlpha, tagId);
+      const position = getBoardPositionXY(locs[i]);
+      this.addEntityNodeHighlightTagsAtBoardPosition(position.x, position.y, color, freq, minAlpha, maxAlpha, tagId);
     }
   },
 
@@ -6137,7 +6163,11 @@ var GameLayer = FXCompositeLayer.extend({
     if (isActive && !event.isStopped) {
       // check mouse board position against last played entity board positions
       // only allow hover on position if we've hovered a different position than any played entity position
-      const lastPlayedEntityBoardPosition = _.find(this._lastPlayedCardBoardPositions, (cardBoardPosition) => cardBoardPosition.x === mouseBoardPosition.x && cardBoardPosition.y === mouseBoardPosition.y);
+      let mouseViewPosition = getBoardPositionXY(mouseBoardPosition);
+      const lastPlayedEntityBoardPosition = _.find(this._lastPlayedCardBoardPositions, (cardBoardPosition) => {
+        const viewPosition = getBoardPositionXY(cardBoardPosition);
+        return viewPosition.x === mouseViewPosition.x && viewPosition.y === mouseViewPosition.y;
+      });
       if (lastPlayedEntityBoardPosition == null) {
         // if player is in a tutorial and is selecting an entity or has no selection
         // use rounded board index to make targeting easier
@@ -6156,8 +6186,9 @@ var GameLayer = FXCompositeLayer.extend({
         } else {
           mouseBoardPosition = this._player.getMouseBoardPosition();
         }
+        mouseViewPosition = getBoardPositionXY(mouseBoardPosition);
         // try to always get entity at the board position
-        let entityNode = this.getEntityNodeAtBoardPosition(mouseBoardPosition.x, mouseBoardPosition.y, true, true);
+        let entityNode = this.getEntityNodeAtBoardPosition(mouseViewPosition.x, mouseViewPosition.y, true, true);
         if (entityNode == null && !this._player.getIsTakingSelectionAction()) {
           // allow selection of a moving unit intersected by mouse as long as nothing else is selected
           entityNode = this.getMovingUnitNodeUnderMouse(mouseScreenPosition.x, mouseScreenPosition.y, true, true);
@@ -6427,7 +6458,8 @@ var GameLayer = FXCompositeLayer.extend({
             // node hovering may be blocked when the selected node is the same as the node being hovered
             const mouseBoardUnroundedUpPosition = this._player.getMouseBoardUnroundedUpPosition();
             const mouseScreenUpPosition = this._player.getMouseScreenUpPosition();
-            const entityNodeUnderMouse = this.getEntityNodeAtBoardPosition(mouseBoardUnroundedUpPosition.x, mouseBoardUnroundedUpPosition.y, true, true);
+            const mouseViewUpPosition = getBoardPositionXY(mouseBoardUnroundedUpPosition);
+            const entityNodeUnderMouse = mouseViewUpPosition && this.getEntityNodeAtBoardPosition(mouseViewUpPosition.x, mouseViewUpPosition.y, true, true);
             const cardNodeUnderMouse = this.getNodeUnderMouse(this.bottomDeckLayer.getCardNodes(), mouseScreenUpPosition.x, mouseScreenUpPosition.y);
             if ((!selectedEntityNode || !entityNodeUnderMouse || selectedEntityNode !== entityNodeUnderMouse) && (!selectedSdkCard || !cardNodeUnderMouse || selectedSdkCard !== cardNodeUnderMouse.getSdkCard())) {
               this._mouseSelectAtBoardOrScreenPosition(mouseBoardUnroundedUpPosition, mouseScreenUpPosition);
@@ -6531,7 +6563,8 @@ var GameLayer = FXCompositeLayer.extend({
 
   _mouseSelectNewCardFromBoardAtBoardOrScreenPosition(boardPosition, screenPosition) {
     // try to always get entity at the board position first, then a moving unit intersected by mouse
-    this._mouseSelectEntity(this.getEntityNodeAtBoardPosition(boardPosition.x, boardPosition.y) || this.getMovingUnitNodeUnderMouse(screenPosition.x, screenPosition.y));
+    const hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+    this._mouseSelectEntity((boardPosition && this.getEntityNodeAtBoardPosition(hex ? boardPosition.q : boardPosition.x, hex ? boardPosition.r : boardPosition.y)) || this.getMovingUnitNodeUnderMouse(screenPosition.x, screenPosition.y));
   },
 
   _mouseSelectEntity(entityNode) {
@@ -6552,7 +6585,7 @@ var GameLayer = FXCompositeLayer.extend({
           this._player.setSelectedEntityNode(entityNode);
           const selectedSdkEntity = this._player.getSelectedSdkEntity();
 
-          this.displaySelectEntityParticles(selectedSdkEntity.position.x, selectedSdkEntity.position.y);
+          this.displaySelectEntityParticles(selectedSdkEntity.getPosition());
 
           this.stopMouseOverButNotPlayer();
           this._player.removeHover();
@@ -6567,7 +6600,10 @@ var GameLayer = FXCompositeLayer.extend({
     // create the followup action
     const mouseBoardPosition = this._player.getMouseBoardPosition();
     if (followupCard != null && SDK.GameSession.getInstance().getBoard().isOnBoard(mouseBoardPosition)) {
-      actionToExecute = this._player.getSdkPlayer().actionPlayFollowup(followupCard, mouseBoardPosition.x, mouseBoardPosition.y);
+      const position = getActionPositionArgs(mouseBoardPosition);
+      actionToExecute = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
+        ? this._player.getSdkPlayer().actionPlayFollowup(followupCard, position)
+        : this._player.getSdkPlayer().actionPlayFollowup(followupCard, position.x, position.y);
     } else if (SDK.GameSession.getInstance().getIsMyFollowupActiveAndCancellable()) {
       NavigationManager.getInstance().requestUserTriggeredCancel();
     }
@@ -6582,7 +6618,10 @@ var GameLayer = FXCompositeLayer.extend({
       const mouseBoardPosition = this._player.getMouseBoardPosition();
       if (SDK.GameSession.getInstance().getBoard().isOnBoard(mouseBoardPosition)) {
         // create play card action
-        actionToExecute = this._player.getSdkPlayer().actionPlaySignatureCard(mouseBoardPosition.x, mouseBoardPosition.y);
+        const position = getActionPositionArgs(mouseBoardPosition);
+        actionToExecute = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
+          ? this._player.getSdkPlayer().actionPlaySignatureCard(position)
+          : this._player.getSdkPlayer().actionPlaySignatureCard(position.x, position.y);
       } else {
         const mouseScreenPosition = this._player.getMouseScreenPosition();
         const replaceNode = this.getNodeUnderMouse(this.bottomDeckLayer.getReplaceNode(), mouseScreenPosition.x, mouseScreenPosition.y);
@@ -6603,7 +6642,10 @@ var GameLayer = FXCompositeLayer.extend({
       const mouseBoardPosition = this._player.getMouseBoardPosition();
       if (SDK.GameSession.getInstance().getBoard().isOnBoard(mouseBoardPosition)) {
         // create play card action
-        actionToExecute = this._player.getSdkPlayer().actionPlayCardFromHand(selectedHandIndex, mouseBoardPosition.x, mouseBoardPosition.y);
+        const position = getActionPositionArgs(mouseBoardPosition);
+        actionToExecute = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
+          ? this._player.getSdkPlayer().actionPlayCardFromHand(selectedHandIndex, position)
+          : this._player.getSdkPlayer().actionPlayCardFromHand(selectedHandIndex, position.x, position.y);
       } else {
         const mouseScreenPosition = this._player.getMouseScreenPosition();
         const replaceNode = this.getNodeUnderMouse(this.bottomDeckLayer.getReplaceNode(), mouseScreenPosition.x, mouseScreenPosition.y);
@@ -6631,7 +6673,7 @@ var GameLayer = FXCompositeLayer.extend({
         actionToExecute = selectedSdkEntity.actionAttack(mouseOverSdkEntity);
       } else if (selectedSdkEntity.getCanMove() && selectedSdkEntity.getMovementRange().getIsPositionValid(SDK.GameSession.getInstance().getBoard(), selectedSdkEntity, mouseBoardPosition)) {
         // move to location
-        actionToExecute = selectedSdkEntity.actionMove({ x: mouseBoardPosition.x, y: mouseBoardPosition.y });
+        actionToExecute = selectedSdkEntity.actionMove(getActionPositionArgs(mouseBoardPosition));
       }
     }
 

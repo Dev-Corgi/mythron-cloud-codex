@@ -8,6 +8,7 @@ const SDK = require('app/sdk');
 const DATA = require('app/data');
 const Promise = require('bluebird');
 const UtilsEngine = require('app/common/utils/utils_engine');
+const UtilsHexView = require('app/common/utils/utils_hex_view');
 const UtilsPosition = require('app/common/utils/utils_position');
 const ActionStateRecord = require('app/common/actionStateRecord');
 const audio_engine = require('../../../audio/audio_engine');
@@ -227,7 +228,12 @@ const EntityNode = SdkNode.extend({
   },
 
   getAutoZOrderIndex() {
-    return this.getBoardPosition().y;
+    const position = this.getBoardPosition();
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+      const rendered = UtilsHexView.getRenderedPosition(position);
+      return rendered ? rendered.k : 0;
+    }
+    return position.y;
   },
 
   updateSupportNodePositions() {
@@ -378,11 +384,18 @@ const EntityNode = SdkNode.extend({
   getMoveTileCount(sourceBoardPosition, targetBoardPosition) {
     let tileCount = 0;
 
-    if (sourceBoardPosition != null && targetBoardPosition != null && !UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition)) {
-      const diffX = targetBoardPosition.x - sourceBoardPosition.x;
-      const diffY = targetBoardPosition.y - sourceBoardPosition.y;
-      const distance = Math.sqrt((diffX * diffX) + (diffY * diffY));
-      tileCount = Math.floor(distance);
+    if (sourceBoardPosition != null && targetBoardPosition != null) {
+      const board = SDK.GameSession.getInstance().getBoard();
+      const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+      const samePosition = isHex ? board.positionsEqual(sourceBoardPosition, targetBoardPosition) : UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition);
+      if (!samePosition) {
+        if (isHex) tileCount = board.getHexDistance(sourceBoardPosition, targetBoardPosition) || 0;
+        else {
+          const diffX = targetBoardPosition.x - sourceBoardPosition.x;
+          const diffY = targetBoardPosition.y - sourceBoardPosition.y;
+          tileCount = Math.floor(Math.sqrt((diffX * diffX) + (diffY * diffY)));
+        }
+      }
 
       if (this.sdkCard != null && this.sdkCard.hasActiveModifierClass(SDK.ModifierFlying)) {
         tileCount = Math.min(tileCount, CONFIG.ENTITY_MOVE_FLYING_FIXED_TILE_COUNT);
@@ -1053,17 +1066,20 @@ const EntityNode = SdkNode.extend({
     const gameLayer = scene && scene.getGameLayer();
 
     // show teleport if positions are different
-    const sourceBoardPosition = UtilsEngine.transformScreenToBoard(this.getPosition());
-    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && this.canChangeState() && !UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition)) {
+    const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+    const sourceBoardPosition = isHex ? action.getSourcePosition() : UtilsEngine.transformScreenToBoard(this.getPosition());
+    const board = SDK.GameSession.getInstance().getBoard();
+    const positionsEqual = sourceBoardPosition && targetBoardPosition && (isHex ? board.positionsEqual(sourceBoardPosition, targetBoardPosition) : UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition));
+    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && this.canChangeState() && !positionsEqual) {
       this.stopShowingMove();
       this.stopShowingTeleport();
       this.showBaseState();
 
       const sourceTileMapPosition = UtilsEngine.transformBoardToTileMap(sourceBoardPosition);
       const targetTileMapPosition = UtilsEngine.transformBoardToTileMap(targetBoardPosition);
-      const dx = targetBoardPosition.x - sourceBoardPosition.x;
-      const dy = targetBoardPosition.y - sourceBoardPosition.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const dx = isHex ? board.getHexDistance(sourceBoardPosition, targetBoardPosition) : targetBoardPosition.x - sourceBoardPosition.x;
+      const dy = isHex ? 0 : targetBoardPosition.y - sourceBoardPosition.y;
+      const distance = isHex ? dx : Math.sqrt(dx * dx + dy * dy);
 
       // create fx
       const sourceFX = DATA.dataForIdentifiersWithFilter(action.getFXResource(), SDK.FXType.MoveSourceFX);
@@ -1249,8 +1265,12 @@ const EntityNode = SdkNode.extend({
           this.setAutoZOrderOffset(0.1);
 
           // flip, position, and set as moving
-          if (sourceBoardPosition.x !== targetBoardPosition.x) {
-            this.entitySprite.setFlippedX(sourceBoardPosition.x > targetBoardPosition.x);
+          const sourceRendered = isHex ? UtilsHexView.getRenderedPosition(sourceBoardPosition) : sourceBoardPosition;
+          const targetRendered = isHex ? UtilsHexView.getRenderedPosition(targetBoardPosition) : targetBoardPosition;
+          const sourceColumn = sourceRendered.c == null ? sourceRendered.x : sourceRendered.c;
+          const targetColumn = targetRendered.c == null ? targetRendered.x : targetRendered.c;
+          if (sourceColumn !== targetColumn) {
+            this.entitySprite.setFlippedX(sourceColumn > targetColumn);
           }
 
           // don't show readiness while moving
