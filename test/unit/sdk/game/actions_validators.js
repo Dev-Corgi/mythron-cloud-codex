@@ -55,4 +55,33 @@ describe('actions: validators', () => {
 
     expect(playCardFromHandAction.getIsValid()).to.equal(false);
   });
+
+  it('validates hex unit targets against only the owner general neighbors', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    session.getGeneralForPlayerId(playerId).setPosition({ q: -2, r: 4 });
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setOwnerId(playerId);
+
+    expect(unit.getIsPositionValidTarget({ q: -1, r: 4 })).to.equal(true);
+    expect(unit.getIsPositionValidTarget({ q: 1, r: 2 })).to.equal(false);
+    expect(unit.getIsPositionValidTarget({ q: 50, r: 50 })).to.equal(false);
+  });
+
+  it('permits a hand summon at an unobstructed owner-general neighbor', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const player = session.getPlayer1();
+    session.getGeneralForPlayerId(player.getPlayerId()).setPosition({ q: -2, r: 4 });
+    const cardsInHand = player.getDeck().getCardsInHand();
+    const index = cardsInHand.findIndex((card) => card && card.getType() === SDK.CardType.Unit);
+    expect(index).to.be.at.least(0);
+
+    const action = player.actionPlayCardFromHand(index, { q: -1, r: 4 });
+    session.executeAction(action);
+
+    expect(action.getIsValid()).to.equal(true);
+    expect(session.getBoard().getUnitAtPosition({ q: -1, r: 4 })).not.to.equal(undefined);
+  });
 });

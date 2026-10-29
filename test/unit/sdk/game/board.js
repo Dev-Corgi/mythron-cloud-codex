@@ -77,6 +77,16 @@ describe('board', () => {
     expect(SDK.GameSession.getInstance().getBoard().isOnBoard({ x: 9, y: 5 })).to.equal(false);
   });
 
+  it('keeps legacy unit spawn positions around all allied units', () => {
+    const session = SDK.GameSession.getInstance();
+    const playerId = session.getPlayer1Id();
+    UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction4.Wraithling }, 6, 2, playerId);
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setOwnerId(playerId);
+
+    expect(unit.getValidTargetPositions()).to.deep.include({ x: 7, y: 2 });
+  });
+
   it('enumerates and bounds the 45 axial cells for the hex ruleset', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
@@ -89,6 +99,98 @@ describe('board', () => {
     expect(board.isOnBoard({ q: 5, r: 4 })).to.equal(false);
     expect(board.isOnBoard({ q: 0.5, r: 0 })).to.equal(false);
     expect(board.isOnBoard({ x: 0, y: 0 })).to.equal(false);
+  });
+
+  it('limits hex unit spawn prediction to unobstructed neighbors of its own general', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    const playerId = session.getPlayer1Id();
+    const general = session.getGeneralForPlayerId(playerId);
+    general.setPosition({ q: -2, r: 4 });
+
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setOwnerId(playerId);
+    const alliedOnlyPosition = { q: 1, r: 2 };
+    const alliedUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    alliedUnit.setOwnerId(playerId);
+    session.applyCardToBoard(alliedUnit, 0, 2, null, null);
+    const blockedPosition = { q: -1, r: 4 };
+    const enemyUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    enemyUnit.setOwnerId(session.getPlayer2Id());
+    session.applyCardToBoard(enemyUnit, blockedPosition.q, blockedPosition.r, null, null);
+
+    const validPositions = unit.getValidTargetPositions();
+    expect(validPositions).to.deep.equal([
+      { q: -1, r: 4 }, { q: -2, r: 5 }, { q: -1, r: 3 },
+    ].filter((position) => position.q !== blockedPosition.q || position.r !== blockedPosition.r));
+    expect(validPositions).to.not.deep.include(alliedOnlyPosition);
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, alliedOnlyPosition)).to.equal(false);
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, { q: 50, r: 50 })).to.equal(false);
+
+    const airdropTemplate = SDK.GameSession.getCardCaches().getType(SDK.CardType.Unit).getCards()
+      .find((card) => card.hasModifierClass(SDK.ModifierAirdrop));
+    expect(airdropTemplate).not.to.equal(undefined);
+    const airdropUnit = session.createCardForIdentifier(airdropTemplate.getId());
+    airdropUnit.setOwnerId(playerId);
+    airdropUnit.canBeAppliedAnywhere = true;
+    expect(airdropUnit.getCanBeAppliedAnywhere()).to.equal(true);
+    expect(airdropUnit.getValidTargetPositions()).to.deep.equal(validPositions);
+  });
+
+  it('returns no hex unit spawn destinations when its general cannot be resolved on board', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    session.getGeneralForPlayerId(playerId).setPosition({ q: 50, r: 50 });
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setOwnerId(playerId);
+    expect(unit.getValidTargetPositions()).to.deep.equal([]);
+  });
+
+  it('allows actionless hex board setup to restore units away from the general', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    unit.setOwnerId(playerId);
+
+    const isApplied = session.applyCardToBoard(unit, 0, 2, unit.createCardData(), null);
+
+    expect(isApplied).to.equal(true);
+    expect(session.getBoard().getUnitAtPosition({ q: 0, r: 2 })).not.to.equal(undefined);
+  });
+
+  it('accepts general-adjacent hex summons and rejects action-backed invalid destinations', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const playerId = session.getPlayer1Id();
+    session.getGeneralForPlayerId(playerId).setPosition({ q: -2, r: 4 });
+    const ally = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    ally.setOwnerId(playerId);
+    session.applyCardToBoard(ally, 0, 2, null, null);
+
+    expect(session.getBoard().isValidGeneralAdjacentSpawnPosition(ally, { q: -1, r: 4 })).to.equal(true);
+    const legalUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    legalUnit.setOwnerId(playerId);
+    const legalAction = new SDK.PlayCardAction(session, playerId, { q: -1, r: 4 }, { id: SDK.Cards.Faction4.Wraithling });
+    const legalApplication = session.applyCardToBoard(legalUnit, -1, 4, legalUnit.createCardData(), legalAction);
+    expect(legalApplication).to.equal(true);
+    expect(session.getBoard().getUnitAtPosition({ q: -1, r: 4 })).not.to.equal(undefined);
+
+    const invalidUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    invalidUnit.setOwnerId(playerId);
+    const action = new SDK.PlayCardAction(session, playerId, { q: 1, r: 2 }, { id: SDK.Cards.Faction4.Wraithling });
+    const invalidApplication = session.applyCardToBoard(invalidUnit, 1, 2, invalidUnit.createCardData(), action);
+    expect(invalidApplication).to.equal(false);
+    expect(session.getBoard().getUnitAtPosition({ q: 1, r: 2 })).to.equal(undefined);
+
+    const occupiedUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    occupiedUnit.setOwnerId(playerId);
+    const occupiedAction = new SDK.PlayCardAction(session, playerId, { q: -1, r: 4 }, { id: SDK.Cards.Faction4.Wraithling });
+    const occupiedApplication = session.applyCardToBoard(occupiedUnit, -1, 4, occupiedUnit.createCardData(), occupiedAction);
+    expect(occupiedApplication).to.equal(false);
+    expect(session.getBoard().getCardsAtPosition({ q: -1, r: 4 }, SDK.CardType.Unit)).to.have.length(1);
   });
 
   it('round trips every rendered hex cell and exposes bounded six-neighbor topology', () => {

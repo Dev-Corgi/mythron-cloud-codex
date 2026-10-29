@@ -177,7 +177,9 @@ class Entity extends Card
 
   getValidTargetPositions: () ->
     if !@_private.cachedValidTargetPositions?
-      if @getCanBeAppliedAnywhere()
+      if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getType() is CardType.Unit
+        validPositions = @getGameSession().getBoard().getValidSpawnPositions(@)
+      else if @getCanBeAppliedAnywhere()
         # some cards can be applied anywhere on board
         validPositions = @_getValidApplyAnywherePositions()
       else if @hasActiveModifierClass(ModifierCustomSpawn)

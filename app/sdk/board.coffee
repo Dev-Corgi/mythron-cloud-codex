@@ -387,6 +387,9 @@ class Board extends SDKObject
     return UtilsPosition.getPositionsFromMap(validMap)
 
   getValidSpawnPositions: (card) ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and card?.getType() is CardType.Unit
+      return @getValidGeneralAdjacentSpawnPositions(card)
+
     playerId = card.getOwnerId()
     validMap = []
     for entity in @getUnits(true) # can spawn around any allied units (including untargetable allies)
@@ -402,6 +405,24 @@ class Board extends SDKObject
           validMap[UtilsPosition.getMapIndexFromPosition(@columnCount, validPosition.x, validPosition.y)] = validPosition
 
     return UtilsPosition.getPositionsFromMap(validMap)
+
+  getValidGeneralAdjacentSpawnPositions: (card, allowQueued=true) ->
+    return [] unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and card? and card.getType() is CardType.Unit
+
+    general = @getGameSession().getGeneralForPlayerId(card.getOwnerId())
+    return [] unless general? and @isOnBoard(general.getPosition())
+
+    validPositions = []
+    for position in @getHexNeighbors(general.getPosition())
+      if !@getObstructionAtPositionForEntity(position, card, true, allowQueued)
+        validPositions.push(position)
+    return validPositions
+
+  isValidGeneralAdjacentSpawnPosition: (card, position, allowQueued=false) ->
+    return false unless @getGameSession().getRulesetId() is 'practice-sandbox-hex' and card? and card.getType() is CardType.Unit and @isOnBoard(position)
+    for candidate in @getValidGeneralAdjacentSpawnPositions(card, allowQueued)
+      return true if @positionsEqual(candidate, position)
+    return false
 
   getCardsWithinRadiusOfPosition: (position, type, radius=1, allowCardAtPosition=true, allowUntargetable, allowQueued) ->
 
