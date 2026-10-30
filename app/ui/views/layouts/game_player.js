@@ -40,6 +40,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     $handCountMax: '.hand-count-max',
     $manaCountCurrent: '.mana-count-current',
     $manaCountMax: '.mana-count-max',
+    $manaCountReserve: '.mana-count-reserve',
     $manaIcons: '.mana-icons',
     $generalPortraitImage: '.general-portrait-image',
     $generalHP: '.general-hp',
@@ -168,6 +169,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     var scene = Scene.getInstance();
     var gameLayer = scene && scene.getGameLayer();
     if (gameLayer != null) {
+      this.listenTo(gameLayer.getEventBus(), EVENTS.show_end_turn, this.onShowEndTurn);
       this.listenTo(gameLayer.getEventBus(), EVENTS.show_start_turn, this.onShowStartTurn);
       this.listenTo(gameLayer.getEventBus(), EVENTS.show_rollback, this.onShowRollback);
       this.listenTo(gameLayer.getEventBus(), EVENTS.before_show_action, this.onBeforeShowAction);
@@ -175,6 +177,14 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
       this.listenTo(gameLayer.getEventBus(), EVENTS.inspect_card_start, this.onInspectCardStart);
       this.listenTo(gameLayer.getEventBus(), EVENTS.inspect_card_stop, this.onInspectCardStop);
       this.listenTo(gameLayer.getEventBus(), EVENTS.game_selection_changed, this.onSelectionChanged);
+    }
+
+    // Refresh resource labels from the SDK action stream as soon as the rules
+    // change mana. Visual turn events can be delayed by their board animation.
+    var gameSession = SDK.GameSession.getInstance();
+    if (gameSession && gameSession.getEventBus()) {
+      this.listenTo(gameSession.getEventBus(), EVENTS.end_turn, this.onGameSessionTurnManaChanged);
+      this.listenTo(gameSession.getEventBus(), EVENTS.start_turn, this.onGameSessionTurnManaChanged);
     }
 
     // listen to global events
@@ -203,9 +213,14 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
 
   onShowEndTurn: function (event) {
     this.bindPlayerNonActionProperties();
+    this.bindMana();
   },
   onShowStartTurn: function (event) {
     this.bindPlayerNonActionProperties();
+    this.bindMana();
+  },
+  onGameSessionTurnManaChanged: function () {
+    this.bindMana();
   },
   onShowRollback: function (event) {
     this.bindPlayerNonActionProperties();
@@ -416,7 +431,10 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     var currDeckSize = stateAtAction.numCards;
     var currHandSize = stateAtAction.numCardsInHand;
     var maxHandSize = sdkPlayer.getDeck().getMaxHandSize();
-    var maxDeckSize = SDK.GameSession.getInstance().isGauntlet() ? CONFIG.MAX_DECK_SIZE_GAUNTLET : CONFIG.MAX_DECK_SIZE;
+    var isFixedPracticeDeck = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+    var maxDeckSize = isFixedPracticeDeck
+      ? currDeckSize + currHandSize
+      : (SDK.GameSession.getInstance().isGauntlet() ? CONFIG.MAX_DECK_SIZE_GAUNTLET : CONFIG.MAX_DECK_SIZE);
 
     this.ui.$deckCountCurrent.text(currDeckSize);
     this.ui.$deckCountMax.text(maxDeckSize);
@@ -432,14 +450,16 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     if (sdkPlayer) {
       var currMana;
       var currMaxMana;
-      var maxMana = CONFIG.MAX_MANA;
+      var currReserveMana;
+      var isHexPractice = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
       var isMyPlayer = sdkPlayer === SDK.GameSession.getInstance().getMyPlayer();
 
-      if (isMyPlayer) {
+      if (isMyPlayer || isHexPractice) {
         // for my player get mana direct from sdk
         // we don't want to delay showing my player's mana changes
         currMana = sdkPlayer.getRemainingMana();
         currMaxMana = sdkPlayer.getMaximumMana();
+        currReserveMana = sdkPlayer.getReserveMana();
       } else {
         // for opponent player get mana from state at action
         var scene = Scene.getInstance();
@@ -448,10 +468,17 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
         var stateAtAction = sdkPlayer.getActionStateRecord().getStateAtAction(action);
         currMana = stateAtAction.remainingMana;
         currMaxMana = stateAtAction.maximumMana;
+        currReserveMana = stateAtAction.reserveMana || 0;
       }
 
+      var maxMana = Math.max(CONFIG.MAX_MANA, currMaxMana);
+      this.$el.toggleClass('hex-practice-mana', isHexPractice);
+
       this.ui.$manaCountCurrent.text(currMana);
-      this.ui.$manaCountMax.text(sdkPlayer.getBaseMaximumMana());
+      this.ui.$manaCountMax.text(currMaxMana);
+      this.ui.$manaCountReserve
+        .toggle(isHexPractice && currReserveMana > 0)
+        .text(isHexPractice && currReserveMana > 0 ? '+' + currReserveMana : '');
 
       // show mana icons
       var $icons = this.ui.$manaIcons;
@@ -493,7 +520,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     var sdkPlayer = this.getSdkPlayer();
     if (sdkPlayer && sdkPlayer === SDK.GameSession.getInstance().getMyPlayer()) {
       var currMaxMana = sdkPlayer.getMaximumMana();
-      var maxMana = CONFIG.MAX_MANA;
+      var maxMana = Math.max(CONFIG.MAX_MANA, currMaxMana);
       var manaCost = card.getManaCost();
       var manaIcons = this.ui.$manaIcons.children().toArray().reverse();
       var i;

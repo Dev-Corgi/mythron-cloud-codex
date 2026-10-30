@@ -1258,7 +1258,7 @@ var ai_getScoreForAction = function (card, target, actionType, gameSession) {
   let score = 0;
   switch (actionType) {
   case SDK.MoveAction.type:
-    score = ScoreForCardAtTargetPosition(card, target, gameSession);
+    score = ScoreForCardAtTargetPosition(card, target);
     break;
   case SDK.AttackAction.type:
     var targetedEnemyUnit = gameSession.getBoard().getUnitAtPosition(target);
@@ -1323,7 +1323,7 @@ var ai_getScoreForPlayCardAction = function (card, target, gameSession) {
 var ai_preProc_playCard_module_summon = function (card, targetPosition, gameSession) {
   let score = 0;
   if (card.getType() == SDK.CardType.Unit) {
-    score += ScoreForCardAtTargetPosition(card, targetPosition, gameSession);
+    score += ScoreForCardAtTargetPosition(card, targetPosition);
     score += ScoreForUnit(card);
   }
   return score;
@@ -1502,7 +1502,8 @@ var ai_getDrawStartingHandPseudoAction = function (gameSession, playerId) {
       // mulligan non-summon spells and artifacts or cards with mana cost 1 above starting mana
       const mulliganIndices = [];
       const cardsInHand = myPlayer.getDeck().getCardsInHand();
-      for (let i = 0, il = cardsInHand.length; i < il; i++) {
+      // The fixed Practice roster starts with its exact hand and does not allow replacements.
+      if (gameSession.getRulesetId() !== "practice-sandbox-hex") for (let i = 0, il = cardsInHand.length; i < il; i++) {
         const card = cardsInHand[i];
         if (mulliganIndices.length < CONFIG.STARTING_HAND_REPLACE_COUNT && card != null && ((card instanceof SDK.Spell && CARD_INTENT[card.getBaseCardId()] != 'summon') || card instanceof SDK.Artifact || card.getManaCost() > myPlayer.getRemainingMana() + 1)) {
           // Logger.module("AI").debug("[G:" + this.getGameSession().gameId + "] _nextActionForNewGame -> mulligan " + card.getLogName() + "because it is a non summon spell, artifact, or costs too much mana");

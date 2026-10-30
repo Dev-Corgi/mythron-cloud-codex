@@ -14,8 +14,14 @@ const Logger = require('app/common/logger');
 
 const ScoreForCardAtTargetPosition = function (unit, positiontoEvaluate, bestObjective) {
   const gameSession = unit.getGameSession();
-  if (typeof bestObjective === 'undefined' || unit === bestObjective) {
+  if (typeof bestObjective === 'undefined' || unit === bestObjective || typeof bestObjective.getPosition !== 'function') {
     bestObjective = findBestObjectiveForCardAtTargetPosition(gameSession, unit, positiontoEvaluate);
+  }
+  // A summon can be scored before its owner has been indexed on the board, leaving
+  // the objective search empty. The opponent general is always a valid fallback.
+  if (bestObjective == null || typeof bestObjective.getPosition !== 'function') {
+    const ownerId = unit.getOwnerId() || gameSession.getAiPlayerId();
+    bestObjective = gameSession.getGeneralForOpponentOfPlayerId(ownerId);
   }
 
   // USED BY PREPROCESSING TO EVALUATE MOVES, SUMMONS, and TELEPORT SPELLS

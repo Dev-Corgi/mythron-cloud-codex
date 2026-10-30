@@ -527,21 +527,27 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
   showChooseHand: function () {
     Logger.module('UI').log('GameLayout.showChooseHand');
     var allPromises = [];
+    var isFixedPracticeHand = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
 
     // always show cards for choose hand
-    allPromises.push(Scene.getInstance().getGameLayer().showChooseHand());
+    var handRevealPromise = Scene.getInstance().getGameLayer().showChooseHand();
+    allPromises.push(handRevealPromise);
 
     if (!SDK.GameSession.current().getIsSpectateMode()) {
       // store choose hand UI
-      var fixedHand = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
-      var chooseHandItemView = new GameChooseHandItemView({ model: new Backbone.Model({ maxMulliganCount: fixedHand ? 0 : CONFIG.STARTING_HAND_REPLACE_COUNT, isFixedHand: fixedHand }) });
+      var chooseHandItemView = new GameChooseHandItemView({ model: new Backbone.Model({ maxMulliganCount: isFixedPracticeHand ? 0 : CONFIG.STARTING_HAND_REPLACE_COUNT, isFixedHand: isFixedPracticeHand }) });
       this.chooseHandView = chooseHandItemView;
 
       // listen for submit
       this.chooseHandView.on('confirm', this.showSubmitChosenHand, this);
 
       // show choose hand UI
-      allPromises.push(this.middleRegion.show(chooseHandItemView));
+      var chooseHandViewPromise = this.middleRegion.show(chooseHandItemView);
+      allPromises.push(chooseHandViewPromise);
+      if (isFixedPracticeHand) {
+        // Keep the hand reveal, but don't wait for an unnecessary confirmation.
+        chooseHandItemView.setConfirmButtonVisibility(false);
+      }
     } else {
       // spectators do not show choose hand UI
       this.chooseHandView = null;
@@ -601,6 +607,25 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
           allPromises.push(this.player1Region.show(new GamePlayerProfilePreview({ model: opponentProfile, collection: opponentRibbonCollection })));
         }
       }
+    }
+
+    // Submit as soon as the visual hand reveal completes. Waiting for the
+    // Marionette view transition or remote profile previews can stall forever.
+    if (isFixedPracticeHand) {
+      var autoSubmitTriggered = false;
+      var submitFixedPracticeHand = function () {
+        if (autoSubmitTriggered || this.chooseHandView == null) {
+          return;
+        }
+        autoSubmitTriggered = true;
+        this.showSubmitChosenHand();
+      }.bind(this);
+
+      // Prefer the animation completion signal. Some cocos scene transitions
+      // can leave its action callback pending, so keep a bounded fallback that
+      // lets the staggered card reveal finish before submitting the fixed hand.
+      handRevealPromise.then(submitFixedPracticeHand);
+      window.setTimeout(submitFixedPracticeHand, 2500);
     }
 
     return Promise.all(allPromises);

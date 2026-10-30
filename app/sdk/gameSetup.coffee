@@ -85,7 +85,7 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     GameSetup.addGeneral(gameSession, player1, general1, general1X, general1Y)
 
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      general2X = 2
+      general2X = 6
       general2Y = 4
     else
       general2Position = player2Data.startingGeneralPosition

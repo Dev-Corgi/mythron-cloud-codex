@@ -25,10 +25,10 @@ UtilsHexView.getHexRadius = function () {
 UtilsHexView.getBoardPixelSize = function () {
   const radius = UtilsHexView.getHexRadius();
   return {
-    // The nine column centers span 4 * sqrt(3) * radius. Include a
-    // half-hex at each edge so the reported size matches the drawn bounds.
-    width: Math.sqrt(3) * radius * 5,
-    height: radius * 15.5,
+    // Five horizontal pointy-top rows: 9, 8, 9, 8, 9 cells. Include the
+    // outer half-hex bounds around the centers.
+    width: Math.sqrt(3) * radius * 9,
+    height: radius * 8,
   };
 };
 
@@ -51,6 +51,7 @@ UtilsHexView.screenToPosition = function (point, origin) {
   for (let c = 0; c <= 8; c++) {
     for (let k = 0; k <= 4; k++) {
       const position = HexTopology.renderedToAxial(c, k);
+      if (!position) continue;
       const center = UtilsHexView.positionToScreen(position, origin);
       const dx = Math.abs(point.x - center.x);
       const dy = Math.abs(point.y - center.y);
@@ -92,9 +93,9 @@ UtilsHexView.createHexNode = function (position, origin, fillColor, borderColor,
     node.clear();
     node.drawPoly(
       UtilsHexView.getHexVertices(),
-      cc.color(current.fillColor.r, current.fillColor.g, current.fillColor.b, 255),
+      cc.color(current.fillColor.r, current.fillColor.g, current.fillColor.b, current.fillColor.a == null ? 255 : current.fillColor.a),
       current.borderWidth,
-      cc.color(current.borderColor.r, current.borderColor.g, current.borderColor.b, 255),
+      cc.color(current.borderColor.r, current.borderColor.g, current.borderColor.b, current.borderColor.a == null ? 255 : current.borderColor.a),
     );
   };
   node.setColor = (color) => {

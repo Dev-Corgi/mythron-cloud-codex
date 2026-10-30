@@ -26,6 +26,9 @@ var DeckSlidingPanelItemView = SlidingPanelItemView.extend({
       var purpose = this.model.getPurpose ? this.model.getPurpose() : 'legacy';
       return i18next.t(purpose === 'legacy' ? 'collection.deck_eligibility_legacy' : 'collection.deck_eligibility_new_rules');
     },
+    isPracticeStarter: function () {
+      return !!this.model.get('isStarter') && this.model.getPurpose && this.model.getPurpose() === 'practice';
+    },
     generalId: function () {
       return this.model.getGeneralId();
     },

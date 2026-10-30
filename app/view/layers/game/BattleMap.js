@@ -264,8 +264,14 @@ var BattleMap = cc.Class.extend({
     if (floorTileMap != null && floorTileMap.length > 0) {
       for (var i = 0, il = floorTileMap.length; i < il; i++) {
         const tileSprite = floorTileMap[i];
+        // Hex layouts have missing array indices because odd rows contain
+        // fewer cells. The map uses rendered cell indices, not a dense list.
+        if (tileSprite == null) continue;
         const { boardPosition } = tileSprite;
-        tileSprite.setPosition(UtilsEngine.transformBoardToScreen(boardPosition));
+        const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
+        tileSprite.setPosition(isHex
+          ? UtilsEngine.transformBoardToTileMap(boardPosition)
+          : UtilsEngine.transformBoardToScreen(boardPosition));
       }
     }
 
@@ -811,10 +817,13 @@ var BattleMap = cc.Class.extend({
         const tileSprite = UtilsHexView.createHexNode(
           position,
           UtilsEngine.getScreenBoardOrigin(),
-          CONFIG.FLOOR_TILE_COLOR,
-          { r: 56, g: 65, b: 76 },
+          { r: 0, g: 0, b: 0, a: 14 },
+          { r: 95, g: 175, b: 202, a: 245 },
           2,
         );
+        // Hex floor nodes live in the projected tile layer. Convert their
+        // screen-space center back to tile-map space, just like entities.
+        tileSprite.setPosition(UtilsEngine.transformBoardToTileMap(position));
         tileSprite.boardPosition = { q: position.q, r: position.r };
         const mapIndex = UtilsHexView.getCellIndex(position);
         tileSprite.mapIndex = mapIndex;
@@ -1587,7 +1596,10 @@ var BattleMap = cc.Class.extend({
               tileSprite.setOpacity(0.0);
               tileSprite.runAction(cc.sequence(
                 cc.delayTime(showDelay),
-                cc.EaseExponentialIn.create(cc.fadeTo(duration * 0.3, CONFIG.FLOOR_TILE_OPACITY)),
+                // Hex cells need a crisp, connected outline over the detailed
+                // arena art. Keep the fill translucent so the map remains visible.
+                cc.EaseExponentialIn.create(cc.fadeTo(duration * 0.3,
+                  SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex' ? 255 : CONFIG.FLOOR_TILE_OPACITY)),
               ));
               const scale = tileSprite.getScale();
               tileSprite.setScale(0.0);

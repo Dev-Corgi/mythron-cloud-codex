@@ -87,16 +87,16 @@ describe('board', () => {
     expect(unit.getValidTargetPositions()).to.deep.include({ x: 7, y: 2 });
   });
 
-  it('enumerates and bounds the 45 axial cells for the hex ruleset', () => {
+  it('enumerates and bounds the 43 axial cells for the hex ruleset', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
     const board = session.getBoard();
     const positions = board.getPositions();
-    expect(positions).to.have.length(45);
-    expect(new Set(positions.map((position) => `${position.q},${position.r}`)).size).to.equal(45);
+    expect(positions).to.have.length(43);
+    expect(new Set(positions.map((position) => `${position.q},${position.r}`)).size).to.equal(43);
     expect(positions.every((position) => board.isOnBoard(position))).to.equal(true);
     expect(board.isOnBoard({ q: 0, r: 0 })).to.equal(true);
-    expect(board.isOnBoard({ q: 5, r: 4 })).to.equal(false);
+    expect(board.isOnBoard({ q: 7, r: 4 })).to.equal(false);
     expect(board.isOnBoard({ q: 0.5, r: 0 })).to.equal(false);
     expect(board.isOnBoard({ x: 0, y: 0 })).to.equal(false);
   });
@@ -112,17 +112,17 @@ describe('board', () => {
     const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
     unit.setOwnerId(playerId);
     const alliedOnlyPosition = { q: 1, r: 2 };
-    const alliedUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const alliedUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     alliedUnit.setOwnerId(playerId);
     session.applyCardToBoard(alliedUnit, 0, 2, null, null);
     const blockedPosition = { q: -1, r: 4 };
-    const enemyUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const enemyUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     enemyUnit.setOwnerId(session.getPlayer2Id());
     session.applyCardToBoard(enemyUnit, blockedPosition.q, blockedPosition.r, null, null);
 
     const validPositions = unit.getValidTargetPositions();
     expect(validPositions).to.deep.equal([
-      { q: -1, r: 4 }, { q: -2, r: 5 }, { q: -1, r: 3 },
+      { q: -1, r: 4 }, { q: -1, r: 3 },
     ].filter((position) => position.q !== blockedPosition.q || position.r !== blockedPosition.r));
     expect(validPositions).to.not.deep.include(alliedOnlyPosition);
     expect(board.isValidGeneralAdjacentSpawnPosition(unit, alliedOnlyPosition)).to.equal(false);
@@ -152,7 +152,7 @@ describe('board', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
     const playerId = session.getPlayer1Id();
-    const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const unit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     unit.setOwnerId(playerId);
 
     const isApplied = session.applyCardToBoard(unit, 0, 2, unit.createCardData(), null);
@@ -166,26 +166,26 @@ describe('board', () => {
     session.setRuleset('practice-sandbox-hex', 1);
     const playerId = session.getPlayer1Id();
     session.getGeneralForPlayerId(playerId).setPosition({ q: -2, r: 4 });
-    const ally = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const ally = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     ally.setOwnerId(playerId);
     session.applyCardToBoard(ally, 0, 2, null, null);
 
     expect(session.getBoard().isValidGeneralAdjacentSpawnPosition(ally, { q: -1, r: 4 })).to.equal(true);
-    const legalUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const legalUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     legalUnit.setOwnerId(playerId);
     const legalAction = new SDK.PlayCardAction(session, playerId, { q: -1, r: 4 }, { id: SDK.Cards.Faction4.Wraithling });
     const legalApplication = session.applyCardToBoard(legalUnit, -1, 4, legalUnit.createCardData(), legalAction);
     expect(legalApplication).to.equal(true);
     expect(session.getBoard().getUnitAtPosition({ q: -1, r: 4 })).not.to.equal(undefined);
 
-    const invalidUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const invalidUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     invalidUnit.setOwnerId(playerId);
     const action = new SDK.PlayCardAction(session, playerId, { q: 1, r: 2 }, { id: SDK.Cards.Faction4.Wraithling });
     const invalidApplication = session.applyCardToBoard(invalidUnit, 1, 2, invalidUnit.createCardData(), action);
     expect(invalidApplication).to.equal(false);
     expect(session.getBoard().getUnitAtPosition({ q: 1, r: 2 })).to.equal(undefined);
 
-    const occupiedUnit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    const occupiedUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     occupiedUnit.setOwnerId(playerId);
     const occupiedAction = new SDK.PlayCardAction(session, playerId, { q: -1, r: 4 }, { id: SDK.Cards.Faction4.Wraithling });
     const occupiedApplication = session.applyCardToBoard(occupiedUnit, -1, 4, occupiedUnit.createCardData(), occupiedAction);
@@ -198,8 +198,8 @@ describe('board', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
     const board = session.getBoard();
-    for (let c = 0; c <= 8; c++) {
-      for (let k = 0; k <= 4; k++) {
+    for (let k = 0; k <= 4; k++) {
+      for (let c = 0; c <= (k % 2 === 0 ? 8 : 7); c++) {
         const axial = Topology.renderedToAxial(c, k);
         expect(Topology.axialToRendered(axial)).to.deep.equal({ c, k });
       }
@@ -208,13 +208,13 @@ describe('board', () => {
       { q: 1, r: 2 }, { q: -1, r: 2 }, { q: 0, r: 3 },
       { q: 0, r: 1 }, { q: 1, r: 1 }, { q: -1, r: 3 },
     ]);
-    expect(board.getHexNeighbors({ q: -2, r: 4 })).to.have.length(3);
+    expect(board.getHexNeighbors({ q: -2, r: 4 })).to.have.length(2);
     expect(board.getHexNeighbors({ q: 50, r: 50 })).to.deep.equal([]);
     expect(board.getHexDistance({ q: -2, r: 4 }, { q: 2, r: 4 })).to.equal(4);
-    expect(board.getHexPositionsInRange({ q: -2, r: 4 }, 1)).to.have.length(4);
+    expect(board.getHexPositionsInRange({ q: -2, r: 4 }, 1)).to.have.length(3);
     expect(board.getHexPath({ q: -2, r: 4 }, { q: 2, r: 4 })).to.have.length(4);
-    expect(board.getHexPositionAtRenderedOffset({ q: 4, r: 0 }, 1, 0)).to.equal(null);
-    expect(board.getHexPositionAtRenderedOffset({ q: 4, r: 0 }, -1, 0)).to.deep.equal({ q: 3, r: 1 });
+    expect(board.getHexPositionAtRenderedOffset({ q: 8, r: 0 }, 1, 0)).to.equal(null);
+    expect(board.getHexPositionAtRenderedOffset({ q: 8, r: 0 }, -1, 0)).to.deep.equal({ q: 7, r: 0 });
   });
 
   it('queues Wrath of God Hallowed at the axial target position', () => {

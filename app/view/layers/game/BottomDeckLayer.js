@@ -255,9 +255,16 @@ var BottomDeckLayer = BaseLayer.extend({
     const numCards = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.STARTING_HAND_SIZE);
     for (let i = 0; i < numCards; i++) {
       const cardNode = cardNodes[i];
-      if (!cardNode.isRunning()) {
+      if (!cardNode) continue;
+
+      // A running node can still belong to a previous game-layer parent.
+      // Reparent it explicitly so hand cards always render in this hand layer.
+      if (cardNode.getParent() !== this._handLayer) {
+        const parent = cardNode.getParent();
+        if (parent) parent.removeChild(cardNode, false);
         this._handLayer.addChild(cardNode, 1);
       }
+      cardNode.setVisible(true);
     }
 
     this._updateCardsLayoutForStartingHand();
@@ -272,32 +279,53 @@ var BottomDeckLayer = BaseLayer.extend({
 
       // show cards
       const cardNodes = this.getCardNodes();
+      const isFixedPracticeHand = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
       const numCards = HandSlotUtils.getHandSlotCount(SDK.GameSession.getInstance().getRulesetId(), CONFIG.STARTING_HAND_SIZE);
       let showDelay = 0.0;
       for (let i = 0; i < numCards; i++) {
         const cardNode = cardNodes[i];
+        if (!cardNode) continue;
+
         cardNode.setSdkCardFromHandIndex(i);
         cardNode.stopAnimations();
 
         showDelay += CONFIG.STAGGER_MEDIUM_DELAY;
 
-        // fade in after delay
-        cardNode.setOpacity(0.0);
-        const fadeAction = cc.sequence(
-          cc.delayTime(showDelay),
-          cc.fadeTo(CONFIG.FADE_MEDIUM_DURATION, 255).easing(cc.easeExponentialIn()),
-        );
-        cardNode.addAnimationAction(fadeAction);
-        cardNode.runAction(fadeAction);
+        if (isFixedPracticeHand) {
+          // Keep the fixed-roster cards visible during scene transitions. A
+          // parent fade can be skipped when the game layer is being attached,
+          // leaving the chooser text over an empty board. Reveal each card with
+          // a staggered upward motion instead, while starting from full opacity.
+          const targetPosition = cc.p(cardNode.getPosition().x, cardNode.getPosition().y);
+          cardNode.setOpacity(255.0);
+          cardNode.setPosition(targetPosition.x, targetPosition.y - 36.0);
+          const revealAction = cc.sequence(
+            cc.delayTime(showDelay),
+            cc.moveTo(CONFIG.FADE_MEDIUM_DURATION, targetPosition).easing(cc.easeExponentialOut()),
+          );
+          cardNode.addAnimationAction(revealAction);
+          cardNode.runAction(revealAction);
+        } else {
+          // fade in after delay
+          cardNode.setOpacity(0.0);
+          const fadeAction = cc.sequence(
+            cc.delayTime(showDelay),
+            cc.fadeTo(CONFIG.FADE_MEDIUM_DURATION, 255).easing(cc.easeExponentialIn()),
+          );
+          cardNode.addAnimationAction(fadeAction);
+          cardNode.runAction(fadeAction);
+        }
       }
 
       // delay and then resolve
+      const resolveHandReveal = () => resolve();
       this.runAction(cc.sequence(
         cc.delayTime(showDelay + 0.5),
-        cc.callFunc(() => {
-          resolve();
-        }),
+        cc.callFunc(resolveHandReveal),
       ));
+      // Keep game-state transitions from depending on a Cocos action callback
+      // when the game layer is entering the scene.
+      window.setTimeout(resolveHandReveal, (showDelay + 0.55) * 1000);
     });
   },
 
@@ -332,12 +360,12 @@ var BottomDeckLayer = BaseLayer.extend({
       }
 
       // delay and then resolve
+      const resolveDrawReveal = () => resolve();
       this.runAction(cc.sequence(
         cc.delayTime(showDelay),
-        cc.callFunc(() => {
-          resolve();
-        }),
+        cc.callFunc(resolveDrawReveal),
       ));
+      window.setTimeout(resolveDrawReveal, (showDelay + 0.05) * 1000);
     });
   },
 

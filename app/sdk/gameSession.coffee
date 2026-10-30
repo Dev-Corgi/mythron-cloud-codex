@@ -1981,8 +1981,26 @@ class _GameSession extends SDKObject
     if CardEligibility.isNewRules(@) and action instanceof ApplyCardToBoardAction
       candidate = action.getCard()
       submittedCardData = action.getCardDataOrIndex()
-      submittedCardId = if _.isObject(submittedCardData) and submittedCardData.id? then submittedCardData.id else candidate?.getId()
-      unless candidate? and submittedCardId is candidate.getId() and CardEligibility.isAllowedRuntimeCard(@, candidate, action)
+      submittedCardMatchesCandidate = false
+      if candidate? and _.isObject(submittedCardData)
+        submittedCardMatchesCandidate = (!submittedCardData.id? or submittedCardData.id is candidate.getId()) and (!submittedCardData.index? or submittedCardData.index is candidate.getIndex())
+      else if candidate? and submittedCardData?
+        # Numeric card references in ApplyCardToBoardAction are game-session
+        # indices, not catalog card IDs. Comparing this value to getId() made
+        # every otherwise-audited hand card fail Practice validation.
+        submittedCardMatchesCandidate = submittedCardData is candidate.getIndex()
+      else if candidate? and action instanceof PlayCardFromHandAction
+        # Local hand-play actions intentionally keep cardDataOrIndex empty;
+        # their card is resolved from the selected hand slot. Validate against
+        # the captured authoritative card index for that slot.
+        submittedCardMatchesCandidate = action.expectedHandCardIndex? and action.expectedHandCardIndex is candidate.getIndex()
+      else if candidate? and CardEligibility.isGeneratedDependencyId(candidate.getId()) and !submittedCardData?
+        # Followup cards are created from the audited source card's followup
+        # definition on the authoritative side; their catalog id is not sent
+        # by the client. CardEligibility below verifies their source card.
+        submittedCardMatchesCandidate = true
+      isAllowedPracticeCard = candidate? and CardEligibility.isAllowedRuntimeCard(@, candidate, action)
+      unless candidate? and submittedCardMatchesCandidate and isAllowedPracticeCard
         action.setIsValid(false)
         action.setValidatorType("ValidatorCardEligibility")
         action.setValidationMessage("This card is not audited for Practice and Sandbox.")
@@ -3028,7 +3046,8 @@ class _GameSession extends SDKObject
   applyCardToBoard: (card, x, y, cardDataOrIndex, sourceAction) ->
     isValidApplication = false
 
-    return false if CardEligibility.isNewRules(@) and card? and !CardEligibility.isAllowedRuntimeCard(@, card, sourceAction)
+    if CardEligibility.isNewRules(@) and card? and !CardEligibility.isAllowedRuntimeCard(@, card, sourceAction)
+      return false
 
     if card? and !card.getIsActive()
       # apply card data received

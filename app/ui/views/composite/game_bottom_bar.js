@@ -99,6 +99,7 @@ var GameBottomBarCompositeView = Backbone.Marionette.CompositeView.extend({
   onShow: function () {
     // game events
     this.listenTo(SDK.GameSession.getInstance().getEventBus(), EVENTS.end_turn, this._setSubmitTurnButtonToEnemyState);
+    this.listenTo(SDK.GameSession.getInstance().getEventBus(), EVENTS.start_turn, this._updateSubmitTurnState);
     var scene = Scene.getInstance();
     var gameLayer = scene && scene.getGameLayer();
     if (gameLayer != null) {

@@ -14,12 +14,12 @@ global.cc = global.cc || { p: (x, y) => ({ x, y }) };
 describe('hex display mapping', () => {
   const origin = { x: 120, y: 80 };
 
-  it('round trips the centers of all 45 bounded cells', () => {
+  it('round trips the centers of the 9-8-9-8-9 horizontal rows', () => {
     const positions = [];
-    for (let c = 0; c <= 8; c++) {
-      for (let k = 0; k <= 4; k++) positions.push(HexTopology.renderedToAxial(c, k));
+    for (let k = 0; k <= 4; k++) {
+      for (let c = 0; c <= (k % 2 === 0 ? 8 : 7); c++) positions.push(HexTopology.renderedToAxial(c, k));
     }
-    expect(positions).to.have.length(45);
+    expect(positions).to.have.length(43);
     positions.forEach((position) => {
       const screen = UtilsHexView.positionToScreen(position, origin);
       const actual = UtilsHexView.screenToPosition(screen, origin);
@@ -44,15 +44,12 @@ describe('hex display mapping', () => {
     }
   });
 
-  it('staggered odd columns sit visibly below even columns', () => {
-    for (let c = 0; c < 8; c += 2) {
-      for (let k = 0; k <= 4; k++) {
-        const evenPosition = HexTopology.renderedToAxial(c, k);
-        const oddPosition = HexTopology.renderedToAxial(c + 1, k);
-        const evenCenter = UtilsHexView.positionToScreen(evenPosition, origin);
-        const oddCenter = UtilsHexView.positionToScreen(oddPosition, origin);
-        expect(oddCenter.y).to.be.below(evenCenter.y);
-      }
+  it('staggered odd rows sit half a cell to the right and below even rows', () => {
+    for (let k = 0; k < 4; k += 2) {
+      const evenCenter = UtilsHexView.positionToScreen(HexTopology.renderedToAxial(0, k), origin);
+      const oddCenter = UtilsHexView.positionToScreen(HexTopology.renderedToAxial(0, k + 1), origin);
+      expect(oddCenter.x - evenCenter.x).to.be.closeTo(Math.sqrt(3) * UtilsHexView.getHexRadius() * 0.5, 1e-8);
+      expect(evenCenter.y - oddCenter.y).to.be.closeTo(1.5 * UtilsHexView.getHexRadius(), 1e-8);
     }
   });
 
@@ -78,8 +75,8 @@ describe('hex display mapping', () => {
   it('reports the full rendered hex board bounds', () => {
     const radius = UtilsHexView.getHexRadius();
     const size = UtilsHexView.getBoardPixelSize();
-    expect(size.width).to.be.closeTo(5 * Math.sqrt(3) * radius, 1e-8);
-    expect(size.height).to.be.closeTo(15.5 * radius, 1e-8);
+    expect(size.width).to.be.closeTo(9 * Math.sqrt(3) * radius, 1e-8);
+    expect(size.height).to.be.closeTo(8 * radius, 1e-8);
   });
 
   it('keeps square transforms available when no hex session is active', () => {

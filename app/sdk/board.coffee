@@ -43,9 +43,10 @@ class Board extends SDKObject
   getPositions: () ->
     positions = []
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
-      for c in [0..8]
-        for k in [0..4]
-          positions.push(HexTopology.renderedToAxial(c, k))
+      for k in [0..4]
+        for c in [0..8]
+          position = HexTopology.renderedToAxial(c, k)
+          positions.push(position) if position?
       return positions
     for x in [0...@columnCount]
       for y in [0...@rowCount]

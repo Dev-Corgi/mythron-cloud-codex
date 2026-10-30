@@ -370,6 +370,10 @@ var GameLayer = FXCompositeLayer.extend({
       gameSession.getEventBus().on(EVENTS.invalid_action, this.onInvalidAction, this);
       gameSession.getEventBus().on(EVENTS.step, this.onStep, this);
       gameSession.getEventBus().on(EVENTS.rollback_to_snapshot, this.onRollBack, this);
+      // The visual step replay can lag behind the authoritative SDK turn. Keep
+      // the local player wrappers in sync as soon as the SDK changes turns so
+      // hand cards and board entities do not remain locked to the prior turn.
+      gameSession.getEventBus().on(EVENTS.start_turn, this.onGameSessionStartTurn, this);
     }
 
     // pointer events
@@ -415,6 +419,7 @@ var GameLayer = FXCompositeLayer.extend({
       gameSession.getEventBus().off(EVENTS.invalid_action, this.onInvalidAction, this);
       gameSession.getEventBus().off(EVENTS.step, this.onStep, this);
       gameSession.getEventBus().off(EVENTS.rollback_to_snapshot, this.onRollBack, this);
+      gameSession.getEventBus().off(EVENTS.start_turn, this.onGameSessionStartTurn, this);
     }
 
     // pointer events
@@ -1456,6 +1461,21 @@ var GameLayer = FXCompositeLayer.extend({
     this.bindSdkPlayers();
     this._player.setIsCurrentPlayer(this._player.getSdkPlayer().getIsCurrentPlayer());
     this._opponent.setIsCurrentPlayer(this._opponent.getSdkPlayer().getIsCurrentPlayer());
+  },
+
+  onGameSessionStartTurn() {
+    if (!this.getIsActive()) return;
+
+    this.updateCurrentPlayer();
+    this.bottomDeckLayer.bindHandUsability();
+    this.player1Layer.getSignatureCardNode().updateUsability();
+    this.player2Layer.getSignatureCardNode().updateUsability();
+
+    // EndTurnAction locks selection while its visual transition is playing.
+    // Release that specific lock when the authoritative next turn arrives, in
+    // case the visual replay is delayed or has already completed out of order.
+    this.requestPlayerSelectionUnlocked('turn_change');
+    this.updateReadinessTagForAllEntities();
   },
 
   bindSdkPlayers() {

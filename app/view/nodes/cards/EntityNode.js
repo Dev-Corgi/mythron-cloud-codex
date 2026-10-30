@@ -1213,12 +1213,17 @@ const EntityNode = SdkNode.extend({
    */
   showMove(action, sourceBoardPosition, targetBoardPosition) {
     let showDuration = 0.0;
+    const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
 
     const scene = this.getScene();
     const gameLayer = scene && scene.getGameLayer();
 
     // show movement if positions are different
-    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && this.canChangeState() && !UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition)) {
+    const positionsEqual = sourceBoardPosition != null && targetBoardPosition != null
+      && (isHex
+        ? SDK.GameSession.getInstance().getBoard().positionsEqual(sourceBoardPosition, targetBoardPosition)
+        : UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition));
+    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && this.canChangeState() && !positionsEqual) {
       this.stopShowingMove();
       this.stopShowingTeleport();
 
@@ -1265,12 +1270,10 @@ const EntityNode = SdkNode.extend({
           this.setAutoZOrderOffset(0.1);
 
           // flip, position, and set as moving
-          const sourceRendered = isHex ? UtilsHexView.getRenderedPosition(sourceBoardPosition) : sourceBoardPosition;
-          const targetRendered = isHex ? UtilsHexView.getRenderedPosition(targetBoardPosition) : targetBoardPosition;
-          const sourceColumn = sourceRendered.c == null ? sourceRendered.x : sourceRendered.c;
-          const targetColumn = targetRendered.c == null ? targetRendered.x : targetRendered.c;
-          if (sourceColumn !== targetColumn) {
-            this.entitySprite.setFlippedX(sourceColumn > targetColumn);
+          const sourceHorizontalPosition = isHex ? sourceTileMapPosition.x : sourceBoardPosition.x;
+          const targetHorizontalPosition = isHex ? targetTileMapPosition.x : targetBoardPosition.x;
+          if (sourceHorizontalPosition !== targetHorizontalPosition) {
+            this.entitySprite.setFlippedX(sourceHorizontalPosition > targetHorizontalPosition);
           }
 
           // don't show readiness while moving

@@ -196,7 +196,8 @@ StarterAI.prototype = {
         // mulligan non-summon spells and artifacts or cards with mana cost 1 above starting mana
         const mulliganIndices = [];
         const cardsInHand = myPlayer.getDeck().getCardsInHand();
-        for (let i = 0, il = cardsInHand.length; i < il; i++) {
+        // Practice hands are fixed by the selected roster and cannot be replaced.
+        if (this.getGameSession().getRulesetId() !== "practice-sandbox-hex") for (let i = 0, il = cardsInHand.length; i < il; i++) {
           const card = cardsInHand[i];
           if (mulliganIndices.length < CONFIG.STARTING_HAND_REPLACE_COUNT
             && card != null

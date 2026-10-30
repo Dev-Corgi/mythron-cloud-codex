@@ -135,7 +135,7 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
   /* region INITIALIZE */
 
   initialize: function () {
-    this.requiredDeckPurpose = this.model.get('deckPurpose') || 'legacy';
+    this.requiredDeckPurpose = this.requiredDeckPurpose || this.model.get('deckPurpose') || 'legacy';
     this._slidingOffsetXByDeckGroup = {};
 
     // generate unique id for requests
@@ -227,6 +227,30 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
         decks.push(starterDeckModel);
       }
     });
+
+    // Practice starts with audited, ready-to-play roster decks so a new
+    // account can enter the mode without first building and saving a deck.
+    if (this.requiredDeckPurpose === 'practice') {
+      var practiceRoster = SDK.CardEligibility.getPracticeBotRoster();
+      _.each(SDK.CardEligibility.getPracticeGeneralIds(), function (generalId) {
+        var faction = SDK.FactionFactory.factionForGeneralId(generalId);
+        var factionModel = faction && GameDataManager.getInstance().visibleFactionsCollection.get(faction.id);
+        var generalCard = GameDataManager.getInstance().getCardModelById(generalId);
+        if (factionModel && generalCard) {
+          var practiceDeckModel = new DeckModel({
+            id: 'Practice ' + generalId,
+            name: generalCard.get('name') + ' Practice',
+            faction_id: faction.id,
+            crestImg: factionModel.get('crestResource').img,
+            description: factionModel.get('description'),
+            purpose: 'practice',
+            isStarter: true,
+          });
+          practiceDeckModel.addCardsData([{ id: generalId }].concat(_.map(practiceRoster, function (cardId) { return { id: cardId }; })));
+          decks.push(practiceDeckModel);
+        }
+      });
+    }
 
     // add all custom user decks
     decks = decks.concat(InventoryManager.getInstance().getDecksCollection().slice(0));

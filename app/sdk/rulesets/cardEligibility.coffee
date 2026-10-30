@@ -23,6 +23,9 @@ CardEligibility =
   getPracticeBotRoster: () ->
     return NEUTRAL_CARD_IDS.slice()
 
+  getPracticeGeneralIds: () ->
+    return (parseInt(generalId, 10) for generalId of GENERAL_SIGNATURE_IDS)
+
   isGeneralId: (cardId) ->
     return Object::hasOwnProperty.call(GENERAL_SIGNATURE_IDS, cardId)
 
@@ -50,13 +53,26 @@ CardEligibility =
     rootCard = card.getRootCard?() ? card
     rootCardId = rootCard?.getId?()
     unless rootCardId? and rootCardId isnt cardId
-      rootAction = sourceAction?.getRootAction?()
-      rootCard = rootAction?.getCard?()
+      # A followup PlayCardAction carries its audited parent through `source`.
+      # At the first eligibility check the followup properties have not yet
+      # been injected into the submitted card, so getRootCard() still points
+      # at the followup itself. Resolve the source first; the followup
+      # validator checks its id and target against the parent's server data.
+      rootCard = sourceAction?.getSource?()
+      rootCard = rootCard.getRootCard?() ? rootCard if rootCard?
       rootCardId = rootCard?.getId?()
+      unless rootCardId? and rootCardId isnt cardId
+        rootAction = sourceAction?.getRootAction?()
+        rootCard = rootAction?.getCard?()
+        rootCardId = rootCard?.getId?()
     return false unless rootCard?.getOwnerId?() is card.getOwnerId()
 
     if cardId is 20142
-      return card.getIsFollowup?() and rootCardId in [10979, 19052]
+      # This policy check runs before ValidatorFollowup injects the parent
+      # card's followup properties into the generated card. Restrict the
+      # dependency to audited source cards here; ValidatorFollowup then checks
+      # the exact followup id, source position, and target.
+      return rootCardId in [10979, 19052]
     if cardId is 43
       return rootCardId is 20301
     if cardId is 40004

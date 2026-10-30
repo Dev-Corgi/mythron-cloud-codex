@@ -444,6 +444,10 @@ var TileLayer = BaseLayer.extend({
           const position = locs[i];
           if (!UtilsHexView.getRenderedPosition(position)) continue;
           const tileSprite = UtilsHexView.createHexNode(position, origin, tileColor, tileColor, 2);
+          // Selection/highlight hexes share the projected tile layer with the
+          // floor and entity sprites, so their centers need the same inverse
+          // projection as entities to keep the hexes edge-to-edge.
+          tileSprite.setPosition(UtilsEngine.transformBoardToTileMap(position));
           tiles.push(tileSprite);
           this.addTile(tileSprite, zOrder, opacity, fadeDuration);
         }

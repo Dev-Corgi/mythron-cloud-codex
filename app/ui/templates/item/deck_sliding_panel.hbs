@@ -21,7 +21,9 @@
 			{{name}}
 		</h4>
 		{{#if _isUnlocked}}
-			{{#if isStarter}}
+			{{#if isPracticeStarter}}
+				<p class="deck-data">{{deckPurposeLabel}}</p>
+			{{else if isStarter}}
 				<p class="deck-data">{{numCardsUnlocked}} / {{numCardsUnlockable}} {{localize 'new_player_experience.faction_cards_unlocked_progress_label'}}</p>
 			{{else}}
 				<p class="deck-data">{{deckPurposeLabel}} · {{deckEligibilityLabel}}</p>
