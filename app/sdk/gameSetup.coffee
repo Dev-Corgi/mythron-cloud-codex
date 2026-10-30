@@ -73,8 +73,9 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     # always add general before adding cards but after setting up deck
     # because general may attempt to access deck and cards may attempt to add modifiers to the general
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      general1X = -2
-      general1Y = 4
+      # Practice uses the outer cells of the middle (third) row.
+      general1X = -1
+      general1Y = 2
     else
       general1Position = player1Data.startingGeneralPosition
       if general1Position?
@@ -85,8 +86,8 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     GameSetup.addGeneral(gameSession, player1, general1, general1X, general1Y)
 
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      general2X = 6
-      general2Y = 4
+      general2X = 7
+      general2Y = 2
     else
       general2Position = player2Data.startingGeneralPosition
       if general2Position?

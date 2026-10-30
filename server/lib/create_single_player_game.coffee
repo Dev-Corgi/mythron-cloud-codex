@@ -34,6 +34,8 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
   if !gameType? then gameType = GameType.SinglePlayer
 
   playerIsPlayer1 = true
+  aiStartsFirst = false
+  isPracticeHex = gameType is GameType.SinglePlayer
 
   getSinglePlayerStatusPromise = Promise.resolve({ enabled:false })
 
@@ -130,7 +132,16 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
         startingOrderAI = if aiOptions.startingOrder? then aiOptions.startingOrder else 0
         player2DataForGame = _.extend(player2DataForGame, aiOptions)
 
-    if startingOrderAI? and startingOrderAI > 0
+    if isPracticeHex
+      # Keep the human in player 1's left-side slot. Decide initiative
+      # independently so going second never moves the human to the right.
+      if startingOrderAI? and startingOrderAI > 0
+        aiStartsFirst = startingOrderAI == 1
+      else if startingOrderPlayer? and startingOrderPlayer > 0
+        aiStartsFirst = startingOrderPlayer == 2
+      else
+        aiStartsFirst = Math.random() >= 0.5
+    else if startingOrderAI? and startingOrderAI > 0
       # ai has a fixed starting order
       if startingOrderAI == 1
         playerIsPlayer1 = false
@@ -162,6 +173,18 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
     @.newGameSession.version = version
     @.newGameSession.setIsRunningAsAuthoritative(true)
     GameSetup.setupNewSession(@.newGameSession, player1DataForGame, player2DataForGame, withoutManaTiles)
+
+    if isPracticeHex
+      player1 = @.newGameSession.getPlayer1()
+      player2 = @.newGameSession.getPlayer2()
+      firstPlayer = if aiStartsFirst then player2 else player1
+      secondPlayer = if aiStartsFirst then player1 else player2
+      firstPlayer.setIsCurrentPlayer(true)
+      secondPlayer.setIsCurrentPlayer(false)
+      firstPlayer.setStartingMana(3)
+      firstPlayer.setReserveMana(17)
+      secondPlayer.setStartingMana(4)
+      secondPlayer.setReserveMana(16)
 
     # set ai properties for later retrieval by ai
     @.newGameSession.setAiPlayerId(aiPlayerId)

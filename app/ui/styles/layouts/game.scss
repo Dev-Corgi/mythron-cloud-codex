@@ -880,12 +880,6 @@ $major-size: 100% - $minor-size * 2;
 					}
 				}
 			}
-			&.hex-practice-mana {
-				.mana .mana-icons .mana-icon {
-					display: inline-block;
-				}
-			}
-
 			&.show-player-details {
 				.deck {
 					opacity: 1.0;
@@ -893,27 +887,6 @@ $major-size: 100% - $minor-size * 2;
 			}
 		}
 
-	}
-
-	#app-game-player1.hex-practice-mana .mana .mana-icons .mana-icon {
-		width: 1.2rem;
-		height: 1.44rem;
-		margin-left: -0.2rem;
-		margin-right: 0.05rem;
-	}
-
-	#app-game-player2.hex-practice-mana .mana .mana-icons .mana-icon {
-		width: 1.2rem;
-		height: 1.44rem;
-		margin-left: 0.05rem;
-		margin-right: -0.2rem;
-	}
-
-	.hex-practice-mana .mana-count-reserve {
-		margin-left: 0.35rem;
-		color: #8cecff;
-		font-size: 1.25rem;
-		text-shadow: 0 0 0.5rem rgba(0, 226, 255, 0.8);
 	}
 
 	.app-game-player-profile-preview {

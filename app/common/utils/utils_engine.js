@@ -841,7 +841,7 @@ UtilsEngine.rebuild = function () {
     ? cc.size(UtilsHexView.getBoardPixelSize().width, UtilsHexView.getBoardPixelSize().height)
     : cc.size(CONFIG.BOARDCOL * CONFIG.TILESIZE, CONFIG.BOARDROW * CONFIG.TILESIZE);
   UtilsEngine._screenBoardOrigin = cc.p(
-    Math.round((cc.winSize.width - UtilsEngine._screenBoardSize.width) * 0.5 + (isHexBoard ? UtilsHexView.getHexRadius() * Math.sqrt(3) * 0.5 : CONFIG.TILESIZE * 0.5) + CONFIG.TILEOFFSET_X),
+    Math.round((cc.winSize.width - UtilsEngine._screenBoardSize.width) * 0.5 + (isHexBoard ? UtilsHexView.getColumnStep() * 0.5 : CONFIG.TILESIZE * 0.5) + CONFIG.TILEOFFSET_X),
     Math.round((cc.winSize.height - UtilsEngine._screenBoardSize.height) * 0.5 + (isHexBoard ? UtilsEngine._screenBoardSize.height - UtilsHexView.getHexRadius() : CONFIG.TILESIZE * 0.5) + CONFIG.TILEOFFSET_Y),
   );
 

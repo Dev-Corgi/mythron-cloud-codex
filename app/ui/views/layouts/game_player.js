@@ -40,7 +40,6 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
     $handCountMax: '.hand-count-max',
     $manaCountCurrent: '.mana-count-current',
     $manaCountMax: '.mana-count-max',
-    $manaCountReserve: '.mana-count-reserve',
     $manaIcons: '.mana-icons',
     $generalPortraitImage: '.general-portrait-image',
     $generalHP: '.general-hp',
@@ -471,14 +470,10 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
         currReserveMana = stateAtAction.reserveMana || 0;
       }
 
-      var maxMana = Math.max(CONFIG.MAX_MANA, currMaxMana);
-      this.$el.toggleClass('hex-practice-mana', isHexPractice);
+      var maxMana = CONFIG.MAX_MANA;
 
       this.ui.$manaCountCurrent.text(currMana);
-      this.ui.$manaCountMax.text(currMaxMana);
-      this.ui.$manaCountReserve
-        .toggle(isHexPractice && currReserveMana > 0)
-        .text(isHexPractice && currReserveMana > 0 ? '+' + currReserveMana : '');
+      this.ui.$manaCountMax.text(isHexPractice ? currReserveMana : currMaxMana);
 
       // show mana icons
       var $icons = this.ui.$manaIcons;
@@ -519,8 +514,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
   _showManaCost: function (card) {
     var sdkPlayer = this.getSdkPlayer();
     if (sdkPlayer && sdkPlayer === SDK.GameSession.getInstance().getMyPlayer()) {
-      var currMaxMana = sdkPlayer.getMaximumMana();
-      var maxMana = Math.max(CONFIG.MAX_MANA, currMaxMana);
+      var maxMana = CONFIG.MAX_MANA;
       var manaCost = card.getManaCost();
       var manaIcons = this.ui.$manaIcons.children().toArray().reverse();
       var i;

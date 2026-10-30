@@ -22,22 +22,29 @@ UtilsHexView.getHexRadius = function () {
   return CONFIG.TILESIZE * 0.5;
 };
 
+UtilsHexView.getColumnStep = function () {
+  return Math.sqrt(3) * UtilsHexView.getHexRadius();
+};
+
 UtilsHexView.getBoardPixelSize = function () {
+  const columnStep = UtilsHexView.getColumnStep();
   const radius = UtilsHexView.getHexRadius();
   return {
-    // Five horizontal pointy-top rows: 9, 8, 9, 8, 9 cells. Include the
-    // outer half-hex bounds around the centers.
-    width: Math.sqrt(3) * radius * 9,
+    // The 9-cell rows define the width. Odd rows shift right by half a cell,
+    // and the 5 pointy-top rows overlap vertically by one quarter-height.
+    width: columnStep * 9,
     height: radius * 8,
   };
 };
 
 UtilsHexView.positionToScreen = function (position, origin) {
-  if (!HexTopology.isOnBoard(position)) return null;
+  const rendered = UtilsHexView.getRenderedPosition(position);
+  if (!rendered) return null;
   const radius = UtilsHexView.getHexRadius();
+  const rowOffset = (rendered.k % 2) * UtilsHexView.getColumnStep() * 0.5;
   return cc.p(
-    origin.x + Math.sqrt(3) * radius * (position.q + position.r * 0.5),
-    origin.y - 1.5 * radius * position.r,
+    origin.x + UtilsHexView.getColumnStep() * rendered.c + rowOffset,
+    origin.y - 1.5 * radius * rendered.k,
   );
 };
 
@@ -71,7 +78,7 @@ UtilsHexView.screenToPosition = function (point, origin) {
 
 UtilsHexView.getHexVertices = function () {
   const radius = UtilsHexView.getHexRadius();
-  const halfWidth = Math.sqrt(3) * radius * 0.5;
+  const halfWidth = UtilsHexView.getColumnStep() * 0.5;
   return [
     cc.p(0, radius),
     cc.p(halfWidth, radius * 0.5),
