@@ -161,7 +161,16 @@ const EntityNode = SdkNode.extend({
            blendDst: "ONE_MINUS_SRC_ALPHA"
           });
           */
-          this._ownerIndicatorSprite = TileMapGridSprite.create();
+          if (sdkCard.getGameSession().getRulesetId() === 'practice-sandbox-hex') {
+            this._ownerIndicatorSprite = UtilsHexView.createHexNode(
+              sdkCard.getPosition(),
+              UtilsEngine.getScreenBoardOrigin(),
+              CONFIG.OPPONENT_OWNER_COLOR,
+              { radiusScale: 0.94 },
+            );
+          } else {
+            this._ownerIndicatorSprite = TileMapGridSprite.create();
+          }
           this._ownerIndicatorSprite.setOpacity(0.0);
           this._ownerIndicatorSprite.setVisible(false);
         }
@@ -519,7 +528,11 @@ const EntityNode = SdkNode.extend({
     if (!this._showingOwnerSprites && this._ownerIndicatorSprite != null) {
       // update position only on show as owner tile sprite should always be hidden while moving
       this._showingOwnerSprites = true;
-      this._ownerIndicatorSprite.setPosition(UtilsEngine.transformTileMapToScreen(this.getPosition()));
+      if (this._ownerIndicatorSprite.setHexBoardPosition) {
+        this._ownerIndicatorSprite.setHexBoardPosition(this.getSdkCard().getPosition());
+      } else {
+        this._ownerIndicatorSprite.setPosition(UtilsEngine.transformTileMapToScreen(this.getPosition()));
+      }
 
       let opacity;
       let color;

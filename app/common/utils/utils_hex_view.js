@@ -76,9 +76,9 @@ UtilsHexView.screenToPosition = function (point, origin) {
   return hitCount > 0 ? hit : null;
 };
 
-UtilsHexView.getHexVertices = function () {
-  const radius = UtilsHexView.getHexRadius();
-  const halfWidth = UtilsHexView.getColumnStep() * 0.5;
+UtilsHexView.getHexVertices = function (radius) {
+  radius = radius || UtilsHexView.getHexRadius();
+  const halfWidth = Math.sqrt(3) * radius * 0.5;
   return [
     cc.p(0, radius),
     cc.p(halfWidth, radius * 0.5),
@@ -89,29 +89,46 @@ UtilsHexView.getHexVertices = function () {
   ];
 };
 
-UtilsHexView.createHexNode = function (position, origin, fillColor, borderColor, borderWidth) {
+UtilsHexView.createHexNode = function (position, origin, fillColor, options) {
   const node = cc.DrawNode.create();
+  const settings = options || {};
   const current = {
     fillColor,
-    borderColor,
-    borderWidth: borderWidth || 0,
+    position,
+    radiusScale: Number.isFinite(settings.radiusScale) ? settings.radiusScale : 0.94,
   };
   const draw = () => {
+    // Hexes are rendered inside Duelyst's perspective-projected tile layer.
+    // Inverse-project every screen-space vertex as well as the center so
+    // adjacent cells keep identical shared edges after perspective is applied.
+    const UtilsEngine = require('./utils_engine');
+    const center = UtilsHexView.positionToScreen(current.position, origin);
+    if (!center) return;
+    const tileMapCenter = UtilsEngine.transformScreenToTileMap(center);
+    const radius = UtilsHexView.getHexRadius() * current.radiusScale;
+    const vertices = UtilsHexView.getHexVertices(radius).map((vertex) => {
+      const projected = UtilsEngine.transformScreenToTileMap(cc.p(center.x + vertex.x, center.y + vertex.y));
+      return cc.p(projected.x - tileMapCenter.x, projected.y - tileMapCenter.y);
+    });
     node.clear();
     node.drawPoly(
-      UtilsHexView.getHexVertices(),
+      vertices,
       cc.color(current.fillColor.r, current.fillColor.g, current.fillColor.b, current.fillColor.a == null ? 255 : current.fillColor.a),
-      current.borderWidth,
-      cc.color(current.borderColor.r, current.borderColor.g, current.borderColor.b, current.borderColor.a == null ? 255 : current.borderColor.a),
+      0,
+      cc.color(current.fillColor.r, current.fillColor.g, current.fillColor.b, 0),
     );
+    node.setPosition(tileMapCenter);
   };
   node.setColor = (color) => {
     current.fillColor = color;
-    current.borderColor = color;
     draw();
   };
+  node.setHexBoardPosition = (nextPosition) => {
+    current.position = nextPosition;
+    draw();
+  };
+  node.getHexBoardPosition = () => current.position;
   draw();
-  node.setPosition(UtilsHexView.positionToScreen(position, origin));
   return node;
 };
 

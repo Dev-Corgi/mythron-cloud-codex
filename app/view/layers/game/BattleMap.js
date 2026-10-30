@@ -817,18 +817,14 @@ var BattleMap = cc.Class.extend({
         const tileSprite = UtilsHexView.createHexNode(
           position,
           UtilsEngine.getScreenBoardOrigin(),
-          { r: 0, g: 0, b: 0, a: 14 },
-          { r: 95, g: 175, b: 202, a: 245 },
-          2,
+          { r: 0, g: 0, b: 0, a: 125 },
+          { radiusScale: 0.97 },
         );
-        // Hex floor nodes live in the projected tile layer. Convert their
-        // screen-space center back to tile-map space, just like entities.
-        tileSprite.setPosition(UtilsEngine.transformBoardToTileMap(position));
         tileSprite.boardPosition = { q: position.q, r: position.r };
         const mapIndex = UtilsHexView.getCellIndex(position);
         tileSprite.mapIndex = mapIndex;
         this._floorTileMap[mapIndex] = tileSprite;
-        this._targetLayer.getTileLayer().addTile(tileSprite, 0, 0);
+        this._targetLayer.getTileLayer().addTile(tileSprite, 0, 255);
       } else {
         const tileSprite = TileMapGridSprite.create();
         tileSprite.setColor(CONFIG.FLOOR_TILE_COLOR);

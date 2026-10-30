@@ -1743,8 +1743,13 @@ var GameLayer = FXCompositeLayer.extend({
       this._setupStartTurnPromises();
       this._showingEndTurn = true;
 
-      // lock down ui until turn change is completed
-      this.requestPlayerSelectionLocked('turn_change');
+      // Only lock input while my own turn is ending. The opponent's
+      // EndTurnAction is followed by the authoritative start_turn event for
+      // the local player; locking here can race that handoff and leave the
+      // incoming player's first turn disabled.
+      if (this._player.getIsCurrentPlayer()) {
+        this.requestPlayerSelectionLocked('turn_change');
+      }
 
       // reset last card with automatic action for end turn
       this._lastCardWithAutomaticAction = null;
@@ -4952,7 +4957,8 @@ var GameLayer = FXCompositeLayer.extend({
       }
       const ownerIndicatorSprite = entityNode.getOwnerIndicatorSprite();
       if (ownerIndicatorSprite != null) {
-        this.tileLayer.addBoardBatchedTile(ownerIndicatorSprite, 1);
+        if (ownerIndicatorSprite.setHexBoardPosition) this.tileLayer.addTile(ownerIndicatorSprite, 1);
+        else this.tileLayer.addBoardBatchedTile(ownerIndicatorSprite, 1);
       }
       entityNode.updateSupportNodePositions();
 

@@ -1435,7 +1435,7 @@ const Player = cc.Class.extend({
                   const attackableTargetPosition = attackableTarget.getPosition();
                   const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
                   const attackableTargetTile = isHex
-                    ? UtilsHexView.createHexNode(attackableTargetPosition, UtilsEngine.getScreenBoardOrigin(), CONFIG.AGGRO_COLOR, CONFIG.AGGRO_COLOR, 2)
+                    ? UtilsHexView.createHexNode(attackableTargetPosition, UtilsEngine.getScreenBoardOrigin(), CONFIG.AGGRO_COLOR, { radiusScale: 0.94 })
                     : TileMapLargeSprite.create();
 
                   // set as valid target
@@ -1454,7 +1454,7 @@ const Player = cc.Class.extend({
                   }
 
                   // show tile for target
-                  attackableTargetTile.setPosition(UtilsEngine.transformBoardToScreen(attackableTargetPosition));
+                  if (!isHex) attackableTargetTile.setPosition(UtilsEngine.transformBoardToScreen(attackableTargetPosition));
                   if (!isHex) attackableTargetTile.setColor(CONFIG.AGGRO_COLOR);
                   allTiles.push(attackableTargetTile);
                   if (isHex) this.getTileLayer().addTile(attackableTargetTile, this.attackableTargetTileZOrder, opacity, fadeDuration);
@@ -2000,7 +2000,7 @@ const Player = cc.Class.extend({
     if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
       const origin = UtilsEngine.getScreenBoardOrigin();
       for (let i = 0; i < boardPath.length; i++) {
-        const tile = UtilsHexView.createHexNode(boardPath[i], origin, color, color, 2);
+        const tile = UtilsHexView.createHexNode(boardPath[i], origin, color, { radiusScale: 0.94 });
         this.pathTiles.push(tile);
         this.getTileLayer().addTile(tile, this.pathTileZOrder, opacity, fadeDuration);
       }
@@ -2179,7 +2179,7 @@ const Player = cc.Class.extend({
         : UtilsHexView.screenToPosition(position, UtilsEngine.getScreenBoardOrigin());
       if (!axialPosition) return null;
       const tileColor = color || { r: 255, g: 255, b: 255 };
-      return UtilsHexView.createHexNode(axialPosition, UtilsEngine.getScreenBoardOrigin(), tileColor, tileColor, 2);
+      return UtilsHexView.createHexNode(axialPosition, UtilsEngine.getScreenBoardOrigin(), tileColor, { radiusScale: 0.94 });
     }
     const tile = createLegacyTile();
     tile.setPosition(position);
@@ -2246,7 +2246,12 @@ const Player = cc.Class.extend({
         this._showSpecialTile(this.targetTile, position, this.selectTileZOrder, opacity, fadeDuration, color);
       }
     } else {
-      this.targetTile.setPosition(position);
+      if (this.targetTile.setHexBoardPosition) {
+        const hexPosition = UtilsHexView.screenToPosition(position, UtilsEngine.getScreenBoardOrigin());
+        if (hexPosition) this.targetTile.setHexBoardPosition(hexPosition);
+      } else {
+        this.targetTile.setPosition(position);
+      }
       this.targetTile.setColor(color);
     }
 
@@ -2340,7 +2345,15 @@ const Player = cc.Class.extend({
     if (opacity == null) { opacity = CONFIG.TILE_SELECT_OPACITY; }
     if (fadeDuration == null) { fadeDuration = CONFIG.FADE_FAST_DURATION; }
 
-    tile.setPosition(position);
+    if (tile.setHexBoardPosition) {
+      const hexPosition = position && Number.isInteger(position.q) && Number.isInteger(position.r)
+        ? position
+        : UtilsHexView.screenToPosition(position, UtilsEngine.getScreenBoardOrigin());
+      if (!hexPosition) return;
+      tile.setHexBoardPosition(hexPosition);
+    } else {
+      tile.setPosition(position);
+    }
     if (color) {
       tile.setColor(color);
     }

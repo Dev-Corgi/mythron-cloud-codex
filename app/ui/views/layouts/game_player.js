@@ -452,6 +452,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
       var currReserveMana;
       var isHexPractice = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
       var isMyPlayer = sdkPlayer === SDK.GameSession.getInstance().getMyPlayer();
+      this.ui.$manaIcons.toggle(!(isHexPractice && isMyPlayer));
 
       if (isMyPlayer || isHexPractice) {
         // for my player get mana direct from sdk
@@ -514,6 +515,7 @@ var GamePlayerLayout = Backbone.Marionette.LayoutView.extend({
   _showManaCost: function (card) {
     var sdkPlayer = this.getSdkPlayer();
     if (sdkPlayer && sdkPlayer === SDK.GameSession.getInstance().getMyPlayer()) {
+      var currMaxMana = sdkPlayer.getMaximumMana();
       var maxMana = CONFIG.MAX_MANA;
       var manaCost = card.getManaCost();
       var manaIcons = this.ui.$manaIcons.children().toArray().reverse();

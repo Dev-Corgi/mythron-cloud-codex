@@ -133,14 +133,19 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
         player2DataForGame = _.extend(player2DataForGame, aiOptions)
 
     if isPracticeHex
-      # Keep the human in player 1's left-side slot. Decide initiative
-      # independently so going second never moves the human to the right.
+      # Duelyst assigns the first player to player 1 (the left-side slot).
+      # Keep that behavior in Practice so the human changes sides with initiative.
       if startingOrderAI? and startingOrderAI > 0
         aiStartsFirst = startingOrderAI == 1
       else if startingOrderPlayer? and startingOrderPlayer > 0
         aiStartsFirst = startingOrderPlayer == 2
       else
         aiStartsFirst = Math.random() >= 0.5
+      if aiStartsFirst
+        playerIsPlayer1 = false
+        tmp = player1DataForGame
+        player1DataForGame = player2DataForGame
+        player2DataForGame = tmp
     else if startingOrderAI? and startingOrderAI > 0
       # ai has a fixed starting order
       if startingOrderAI == 1
@@ -177,14 +182,14 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
     if isPracticeHex
       player1 = @.newGameSession.getPlayer1()
       player2 = @.newGameSession.getPlayer2()
-      firstPlayer = if aiStartsFirst then player2 else player1
-      secondPlayer = if aiStartsFirst then player1 else player2
-      firstPlayer.setIsCurrentPlayer(true)
-      secondPlayer.setIsCurrentPlayer(false)
-      firstPlayer.setStartingMana(3)
-      firstPlayer.setReserveMana(17)
-      secondPlayer.setStartingMana(4)
-      secondPlayer.setReserveMana(16)
+      # The initiative swap above always puts the first player in Player1.
+      # Keep turn state and starting mana tied to those left/right slots.
+      player1.setIsCurrentPlayer(true)
+      player2.setIsCurrentPlayer(false)
+      player1.setStartingMana(3)
+      player1.setReserveMana(17)
+      player2.setStartingMana(4)
+      player2.setReserveMana(16)
 
     # set ai properties for later retrieval by ai
     @.newGameSession.setAiPlayerId(aiPlayerId)
