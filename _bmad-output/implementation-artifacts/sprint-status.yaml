@@ -1,0 +1,57 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 10-30-2026 00:31
+last_updated: 2026-10-30
+project: duelyst
+project_key: NOKEY
+tracking_system: file-system
+story_location: C:\Working\duelyst\_bmad-output\implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-keep-each-match-s-rules-consistent-fr1: review
+  1-2-play-on-a-correctly-bounded-hex-battlefield-fr2-fr5: review
+  1-3-move-and-target-consistently-on-hexes-fr5: review
+  1-4-see-and-interact-with-the-hex-battlefield-fr2-fr4-fr5: done
+  1-5-summon-beside-the-general-fr6: review
+  1-6-attack-without-an-automatic-counterattack-fr7: review
+  1-7-manage-persistent-reserve-funded-mana-fr8-fr11: review
+  1-8-keep-conflicting-cards-out-of-new-rules-matches-fr17-fr18-fr: review
+  1-9-create-separate-nine-card-decks-fr12-fr18: review
+  1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr: backlog
+  1-11-start-with-eight-fixed-hand-slots-fr14-fr15-fr19: review
+  1-12-finish-matches-without-hand-refills-or-fatigue-fr16: review
+  epic-1-retrospective: optional
+
+
+
+
+
+
