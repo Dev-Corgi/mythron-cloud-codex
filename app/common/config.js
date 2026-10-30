@@ -391,6 +391,7 @@ CONFIG.MAX_BOOSTER_PACKS_SHOWN = 3;
 CONFIG.DEFAULT_DECK_NAME = 'collection.default_deck_name';
 // max size of deck
 CONFIG.MAX_DECK_SIZE = 40;
+CONFIG.MAX_NEW_RULES_DECK_SIZE = 9;
 // min size of deck when using all basics
 CONFIG.MIN_BASICS_DECK_SIZE = 27;
 // max size of deck in gauntlet

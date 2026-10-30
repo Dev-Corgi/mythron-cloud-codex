@@ -1,5 +1,10 @@
 <div class="deck-metadata-header">
 	<input class="deck-name" value="{{name}}" />
+	<select class="deck-purpose" aria-label="{{localize 'collection.deck_purpose_aria_label'}}">
+		<option value="legacy" {{#if isLegacyPurpose}}selected{{/if}}>{{localize 'collection.deck_purpose_legacy'}}</option>
+		<option value="practice" {{#if isPracticePurpose}}selected{{/if}}>{{localize 'collection.deck_purpose_practice'}}</option>
+		<option value="sandbox" {{#if isSandboxPurpose}}selected{{/if}}>{{localize 'collection.deck_purpose_sandbox'}}</option>
+	</select>
 	<button class="btn deck-card-back"><img /></button>
 	<div class="btn-group">
 		<button class="btn deck-color-code-select deck-color-code {{classForColorCode color_code}} dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -17,6 +22,7 @@
 </div>
 
 <div class="deck-histogram"></div>
+<p class="deck-purpose-eligibility">{{getEligibilityLabel}}</p>
 
 <div class="deck-counters">
 	<div class="counter">

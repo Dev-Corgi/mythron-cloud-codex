@@ -17,6 +17,9 @@ const UtilsSDK = require('../../../utils/utils_sdk');
 // disable the logger for cleaner test output
 Logger.enabled = false;
 
+const hexRosterIds = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+const createHexDeck = (generalId) => [{ id: generalId }, ...hexRosterIds.map((id) => ({ id }))];
+
 describe('game setup', () => {
   beforeEach(() => {
     // define test decks
@@ -88,7 +91,7 @@ describe('game setup', () => {
       };
       GamesModule.newUserGame = () => Promise.resolve();
 
-      const practiceDeck = [{ id: SDK.Cards.Faction1.General }, ...Array(8).fill({ id: SDK.Cards.Neutral.Maw })];
+      const practiceDeck = createHexDeck(SDK.Cards.Faction1.General);
       const aiGeneralId = SDK.Cards.Faction3.AltGeneral;
       return createSinglePlayerGame(
         'ruleset-test-player',
@@ -129,10 +132,12 @@ describe('game setup', () => {
     it('places hex generals at the opposite center-edge axial cells while legacy starts stay square', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);
+      const deck1 = createHexDeck(SDK.Cards.Faction1.General);
+      const deck2 = [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck1.slice(1)];
       SDK.GameSetup.setupNewSession(session, {
-        userId: 'hex-player-1', name: 'Hex Player 1', deck: [{ id: SDK.Cards.Faction1.General }],
+        userId: 'hex-player-1', name: 'Hex Player 1', deck: deck1,
       }, {
-        userId: 'hex-player-2', name: 'Hex Player 2', deck: [{ id: SDK.Cards.Faction4.AltGeneral }],
+        userId: 'hex-player-2', name: 'Hex Player 2', deck: deck2,
       }, true);
       expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
       expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 2, r: 4 });
@@ -145,10 +150,9 @@ describe('game setup', () => {
     it('puts all eight hex deck cards into matching fixed hand slots in deck order', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-slots-1', name: 'Hex One', deck }, {
-        userId: 'hex-slots-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-slots-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const hand = session.getPlayer1().getDeck().getHand();
       expect(hand).to.have.length(8);
@@ -158,28 +162,21 @@ describe('game setup', () => {
       expect(session.getPlayer2().getDeck().getDrawPile()).to.deep.equal([]);
     });
 
-    it('keeps excess cards from unvalidated input instead of dropping them', () => {
+    it('rejects new-rules decks with more than eight non-general cards', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 9; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
-      SDK.GameSetup.setupNewSession(session, { userId: 'hex-extra-1', name: 'Hex One', deck }, {
-        userId: 'hex-extra-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
-      }, true);
-      const hand = session.getPlayer1().getDeck().getHand();
-      const drawPile = session.getPlayer1().getDeck().getDrawPile();
-      expect(hand).to.have.length(8);
-      expect(drawPile).to.have.length(1);
-      expect(session.getCardByIndex(drawPile[0]).getId()).to.equal(SDK.Cards.Neutral.Maw);
+      const deck = createHexDeck(SDK.Cards.Faction1.General).concat({ id: SDK.Cards.Neutral.Maw });
+      expect(() => SDK.GameSetup.setupNewSession(session, { userId: 'hex-extra-1', name: 'Hex One', deck }, {
+        userId: 'hex-extra-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true)).to.throw(/exactly one general and eight cards/);
     });
 
     it('preserves empty hex hand slots when rebuilding setup data', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-restore-1', name: 'Hex One', deck }, {
-        userId: 'hex-restore-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-restore-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const originalHand = session.getPlayer1().getDeck().getHand();
       const spentCardIndex = originalHand[3];
@@ -203,10 +200,9 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       session.setIsRunningAsAuthoritative(true);
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-start-1', name: 'Hex One', deck }, {
-        userId: 'hex-start-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-start-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const player = session.getPlayer1();
       const deckBefore = player.getDeck().getHand().slice();
@@ -237,10 +233,9 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       session.setIsRunningAsAuthoritative(true);
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-guard-1', name: 'Hex One', deck }, {
-        userId: 'hex-guard-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-guard-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const player = session.getPlayer1();
       const playerDeck = player.getDeck();
@@ -322,10 +317,9 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       session.setIsRunningAsAuthoritative(true);
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-turn-1', name: 'Hex One', deck }, {
-        userId: 'hex-turn-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-turn-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const player = session.getCurrentPlayer();
       player.setHasStartingHand(true);
@@ -369,10 +363,9 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       session.setIsRunningAsAuthoritative(false);
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-stale-1', name: 'Hex One', deck }, {
-        userId: 'hex-stale-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-stale-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const player = session.getPlayer1();
       player.setHasStartingHand(true);
@@ -398,10 +391,9 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       session.setIsRunningAsAuthoritative(true);
       session.setRuleset('practice-sandbox-hex', 1);
-      const deck = [{ id: SDK.Cards.Faction1.General }];
-      for (let i = 0; i < 8; i++) deck.push({ id: SDK.Cards.Neutral.Maw });
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'hex-play-1', name: 'Hex One', deck }, {
-        userId: 'hex-play-2', name: 'Hex Two', deck: [{ id: SDK.Cards.Faction4.AltGeneral }, ...deck.slice(1)],
+        userId: 'hex-play-2', name: 'Hex Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       const player = session.getPlayer1();
       player.setHasStartingHand(true);

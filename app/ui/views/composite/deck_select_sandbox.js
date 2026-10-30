@@ -28,6 +28,7 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
 
   initialize: function () {
     DeckSelectCompositeView.prototype.initialize.apply(this, arguments);
+    this.requiredDeckPurpose = this.model.get('developer') ? 'legacy' : 'sandbox';
 
     // update title
     this.model.set('title', 'Select Decks');

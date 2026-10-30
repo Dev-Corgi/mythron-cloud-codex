@@ -458,7 +458,7 @@ var CollectionLayout = Backbone.Marionette.LayoutView.extend({
   onNewDeck: function () {
     if (this._decks) {
       // create new deck model
-      var model = new DeckModel();
+      var model = new DeckModel({ purpose: 'legacy' });
       // it's ok to set updated_at / updated_at client side on RESTful models for sorting since server will ignore this and set it's own
       model.set('created_at', moment().utc().valueOf());
       model.set('updated_at', moment().utc().valueOf());

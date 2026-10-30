@@ -58,26 +58,28 @@ describe('decks module', () => {
   // });
 
   describe('addDeck()', () => {
-    it('adds a deck', () => DecksModule.addDeck(userId, SDK.Factions.Lyonar, 'lyonoobs', [SDK.Cards.Faction1.Lightchaser, SDK.Cards.Faction1.Lightchaser, SDK.Cards.Faction1.Lightchaser], 0, 3, 0, 0)
+    it('adds a deck and persists its purpose', () => DecksModule.addDeck(userId, SDK.Factions.Lyonar, 'lyonoobs', [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206], 0, 8, 0, 0, null, 'practice')
       .then(() => knex('user_decks').select().where('user_id', userId)).then((deckRows) => {
         expect(deckRows.length).to.equal(1);
         expect(deckRows[0].name).to.equal('lyonoobs');
-        expect(deckRows[0].cards.length).to.equal(3);
-        expect(deckRows[0].cards).to.contain(SDK.Cards.Faction1.Lightchaser);
-        expect(deckRows[0].minion_count).to.equal(3);
+        expect(deckRows[0].cards.length).to.equal(9);
+        expect(deckRows[0].cards).to.contain(10979);
+        expect(deckRows[0].purpose).to.equal('practice');
+        expect(deckRows[0].minion_count).to.equal(8);
       }));
   });
 
   describe('updateDeck()', () => {
     it('updates a deck', () => knex('user_decks').first().where('user_id', userId)
-      .then((deckRow) => DecksModule.updateDeck(userId, deckRow.id, SDK.Factions.Lyonar, 'lyonoobs 2', [SDK.Cards.Faction1.Sunriser], 0, 1, 0, 0))
+      .then((deckRow) => DecksModule.updateDeck(userId, deckRow.id, SDK.Factions.Lyonar, 'lyonoobs 2', [23, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206], 0, 8, 0, 0, null, 'sandbox'))
       .then(() => knex('user_decks').select().where('user_id', userId))
       .then((deckRows) => {
         expect(deckRows.length).to.equal(1);
         expect(deckRows[0].name).to.equal('lyonoobs 2');
-        expect(deckRows[0].cards.length).to.equal(1);
-        expect(deckRows[0].cards).to.contain(SDK.Cards.Faction1.Sunriser);
-        expect(deckRows[0].minion_count).to.equal(1);
+        expect(deckRows[0].cards.length).to.equal(9);
+        expect(deckRows[0].cards).to.contain(23);
+        expect(deckRows[0].purpose).to.equal('sandbox');
+        expect(deckRows[0].minion_count).to.equal(8);
       }));
   });
 

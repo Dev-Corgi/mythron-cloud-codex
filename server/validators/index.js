@@ -111,6 +111,7 @@ const deckInput = t.struct({
   artifact_count: t.Number,
   color_code: t.Number,
   card_back_id: t.maybe(t.Number),
+  purpose: t.maybe(types.DeckPurpose),
 });
 
 const purchaseInput = t.struct({

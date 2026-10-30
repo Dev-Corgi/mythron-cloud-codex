@@ -44,6 +44,11 @@ var DeckModel = Backbone.Model.extend({
     this.listenTo(this, 'sync', this.onSync);
     this._cardModels = new CardsCollection();
     this._histogram = [];
+    this.listenTo(this, 'change:purpose change:deck_purpose', this.onPurposeChange);
+  },
+
+  onPurposeChange: function () {
+    this.updatePropertiesFromCardModels();
   },
 
   onSync: function () {
@@ -146,7 +151,7 @@ var DeckModel = Backbone.Model.extend({
   changeCardModel: function (cardModel, deltaCount) {
     var cardId = cardModel.get('id');
     var factionId = cardModel.get('factionId');
-    var purpose = this.get('purpose') || this.get('deck_purpose');
+    var purpose = this.getPurpose();
     var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
     if (isNewRulesDeck && deltaCount > 0 && !CardEligibility.isDeckChoiceId(cardId)) {
       return false;
@@ -170,7 +175,8 @@ var DeckModel = Backbone.Model.extend({
       if (deltaCount > 0) {
         deltaCount = Math.min(deckCount + deltaCount, inventoryCount) - deckCount;
       }
-      if (isGeneral || deltaCount < 0 || (deltaCount > 0 && deckSize < CONFIG.MAX_DECK_SIZE && validCard)) {
+      var maxDeckSize = isNewRulesDeck ? CONFIG.MAX_NEW_RULES_DECK_SIZE : CONFIG.MAX_DECK_SIZE;
+      if (isGeneral || deltaCount < 0 || (deltaCount > 0 && deckSize < maxDeckSize && validCard)) {
         // validate card count in deck
         var totalCount = this.getCountForBaseCardId(cardId);
         var maxDeckDuplicates = isGeneral ? 1 : CONFIG.MAX_DECK_DUPLICATES;
@@ -296,6 +302,11 @@ var DeckModel = Backbone.Model.extend({
     return this._isValid;
   },
 
+  getPurpose: function () {
+    var purpose = this.get('purpose') || this.get('deck_purpose');
+    return purpose === 'practice' || purpose === 'sandbox' ? purpose : 'legacy';
+  },
+
   isLegacy: function () {
     return this._isLegacy;
   },
@@ -326,17 +337,21 @@ var DeckModel = Backbone.Model.extend({
     // filter collection
     var modelsToRemove = [];
     var hasLegacyCard = false;
+    var generalCount = 0;
     this._cardModels.forEach(function (cardModel) {
+      if (cardModel.get('isGeneral')) generalCount += cardModel.get('deckCount') || 0;
       // we must have a general and the card must either be neutral or of the same faction as the general
       // card must have a count above 0 and total below max
       // otherwise the card is removed from the collection
       var id = cardModel.get('id');
+      var isNewRulesDeck = this.getPurpose() === 'practice' || this.getPurpose() === 'sandbox';
       var inventoryCount = cardModel.get('inventoryCount');
       var deckCount = cardModel.get('deckCount');
       var count = Math.min(deckCount, inventoryCount);
       if (!needsGeneral
         && cardModel.get('isUnlocked')
         && (cardModel.get('isNeutral') || factionId === cardModel.get('factionId'))
+        && (!isNewRulesDeck || CardEligibility.isDeckChoiceId(id))
         && count > 0 && deckCount <= inventoryCount && this.getCountForBaseCardId(id) <= CONFIG.MAX_DECK_DUPLICATES) {
         // add one card data object for each count of the card
         _.times(count, function () {
@@ -403,7 +418,14 @@ var DeckModel = Backbone.Model.extend({
     // - any starter deck is valid
     // - each card is already validated as it is added/removed
     var valid = true;
-    if (!this.get('isStarter') && !process.env.DISABLE_DECK_VALIDATION) {
+    var purpose = this.getPurpose();
+    var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
+    if (isNewRulesDeck) {
+      valid = deckSize === 9 && !needsGeneral && generalCount === 1;
+      this._cardModels.each(function (cardModel) {
+        if (!CardEligibility.isDeckChoiceId(cardModel.get('id'))) valid = false;
+      });
+    } else if (!this.get('isStarter') && !process.env.DISABLE_DECK_VALIDATION) {
       // when deck is in production
       if (needsGeneral) {
         // deck must have a general

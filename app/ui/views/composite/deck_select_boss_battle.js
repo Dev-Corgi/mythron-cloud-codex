@@ -20,6 +20,11 @@ var DeckSelectBossBattleCompositeView = DeckSelectSinglePlayerCompositeView.exte
 
   template: DeckSelectBossBattleTmpl,
 
+  initialize: function () {
+    DeckSelectSinglePlayerCompositeView.prototype.initialize.apply(this, arguments);
+    this.requiredDeckPurpose = 'legacy';
+  },
+
   onRender: function () {
     DeckSelectSinglePlayerCompositeView.prototype.onRender.apply(this, arguments);
 

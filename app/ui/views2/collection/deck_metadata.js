@@ -31,10 +31,11 @@ var DeckMetadataItemView = Backbone.Marionette.ItemView.extend({
     'click .deck-card-back': 'onDeckCardBackClicked',
     'mouseleave .deck-card-back': 'onDeckCardBackEndHover',
     'input input.deck-name': 'onNameChange',
+    'change .deck-purpose': 'onPurposeChange',
   },
 
   modelEvents: {
-    'change:cards': 'render',
+    'change:cards change:purpose': 'render',
     'change:card_back_id': 'bindDeckCardBack',
   },
 
@@ -45,7 +46,17 @@ var DeckMetadataItemView = Backbone.Marionette.ItemView.extend({
     },
 
     getDeckSizeMax: function () {
-      return CONFIG.MAX_DECK_SIZE;
+      var purpose = this.model.getPurpose();
+      return purpose === 'practice' || purpose === 'sandbox' ? CONFIG.MAX_NEW_RULES_DECK_SIZE : CONFIG.MAX_DECK_SIZE;
+    },
+
+    getPurpose: function () { return this.model.getPurpose(); },
+    isLegacyPurpose: function () { return this.model.getPurpose() === 'legacy'; },
+    isPracticePurpose: function () { return this.model.getPurpose() === 'practice'; },
+    isSandboxPurpose: function () { return this.model.getPurpose() === 'sandbox'; },
+    isNewRulesPurpose: function () { return this.model.getPurpose() === 'practice' || this.model.getPurpose() === 'sandbox'; },
+    getEligibilityLabel: function () {
+      return i18next.t(this.model.getPurpose() === 'legacy' ? 'collection.deck_eligibility_legacy' : 'collection.deck_eligibility_new_rules');
     },
 
     getColorCodes: function () {
@@ -78,6 +89,10 @@ var DeckMetadataItemView = Backbone.Marionette.ItemView.extend({
 
   onNameChange: function (e) {
     this.model.set('name', $(e.currentTarget).val());
+  },
+
+  onPurposeChange: function (e) {
+    this.model.set('purpose', $(e.currentTarget).val());
   },
 
   onDeckColorCodeClicked: function (e) {

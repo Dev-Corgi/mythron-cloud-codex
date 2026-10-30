@@ -9,15 +9,16 @@ const UtilsSDK = require('../../../utils/utils_sdk');
 
 describe('new-rules card eligibility', () => {
   it('allows only audited exact neutral IDs and canonical general/signature pairs', () => {
-    expect(CardEligibility.validateDeck([
-      { id: 1 }, { id: 10979 }, { id: 19052 }, { id: 19038 }, { id: 10205 },
-      { id: 10001 }, { id: 19051 }, { id: 10954 }, { id: 10206 },
-    ]).valid).to.equal(true);
-    expect(CardEligibility.validateDeck([{ id: 1 }, { id: 10980 }]).valid).to.equal(false);
-    expect(CardEligibility.validateDeck([{ id: 2 }, { id: 10979 }]).valid).to.equal(false);
+    const validDeck = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id }));
+    expect(CardEligibility.validateDeck(validDeck).valid).to.equal(true);
+    expect(CardEligibility.validateDeck(validDeck.slice(0, 8)).valid).to.equal(false);
+    expect(CardEligibility.validateDeck(validDeck.concat({ id: 10979 })).valid).to.equal(false);
+    expect(CardEligibility.validateDeck([{ id: 1 }, ...new Array(CONFIG.MAX_DECK_DUPLICATES + 1).fill({ id: 10979 }), ...validDeck.slice(CONFIG.MAX_DECK_DUPLICATES + 2, 9)]).valid).to.equal(false);
+    expect(CardEligibility.validateDeck(validDeck.map((card, index) => ({ id: index === 1 ? 10980 : card.id }))).valid).to.equal(false);
+    expect(CardEligibility.validateDeck([{ id: 2 }, ...validDeck.slice(1)]).valid).to.equal(false);
     expect(CardEligibility.isDeckChoiceId(20174)).to.equal(false);
-    expect(CardEligibility.validateDeck([{ id: 1 }, { id: 20142 }]).valid).to.equal(false);
-    expect(CardEligibility.validateDeck([{ id: 1 }, { id: 10979, modifiersContextObjects: [] }]).valid).to.equal(false);
+    expect(CardEligibility.validateDeck([{ id: 1 }, { id: 20142 }, ...validDeck.slice(2)]).valid).to.equal(false);
+    expect(CardEligibility.validateDeck([{ id: 1 }, { id: 10979, modifiersContextObjects: [] }, ...validDeck.slice(2)]).valid).to.equal(false);
     expect(CardEligibility.isGeneratedDependencyId(20142)).to.equal(true);
     expect(CardEligibility.isGeneratedDependencyId(43)).to.equal(true);
     expect(CardEligibility.isGeneratedDependencyId(40004)).to.equal(true);
@@ -27,9 +28,9 @@ describe('new-rules card eligibility', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 1);
     expect(() => SDK.GameSetup.setupNewSession(session, {
-      userId: 'p1', name: 'Player', deck: [{ id: 1 }, { id: 10980 }],
+      userId: 'p1', name: 'Player', deck: [1, 10980, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id })),
     }, {
-      userId: 'p2', name: 'Opponent', deck: [{ id: 23 }, { id: 10979 }],
+      userId: 'p2', name: 'Opponent', deck: [23, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id })),
     })).to.throw(/not audited/);
     expect(session.getPlayer1().getPlayerId()).to.not.equal('p1');
   });

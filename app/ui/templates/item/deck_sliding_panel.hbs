@@ -24,6 +24,7 @@
 			{{#if isStarter}}
 				<p class="deck-data">{{numCardsUnlocked}} / {{numCardsUnlockable}} {{localize 'new_player_experience.faction_cards_unlocked_progress_label'}}</p>
 			{{else}}
+				<p class="deck-data">{{deckPurposeLabel}} · {{deckEligibilityLabel}}</p>
 				<p class="deck-data"><i class="fa fa-exclamation-triangle deck-invalid-icon"></i><strong>{{minion_count}}</strong> {{localize 'common.unit_label_plural'}} - <strong>{{spell_count}}</strong> {{localize 'common.spell_label_plural'}} - <strong>{{artifact_count}}</strong> {{localize 'common.artifact_label_plural'}}</p>
 			{{/if}}
 		{{else}}

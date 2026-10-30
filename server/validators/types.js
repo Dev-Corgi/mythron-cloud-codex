@@ -45,6 +45,8 @@ const CampaignData = t.struct({
 }, 'CampaignData');
 
 const Deck = t.list(Card, 'Deck');
+// Unknown purpose strings are accepted at the boundary and normalized to legacy.
+const DeckPurpose = t.Str;
 
 const CurrencyType = t.subtype(
   t.Str,
@@ -95,6 +97,7 @@ module.exports = {
   SeasonKey,
   Card,
   Deck,
+  DeckPurpose,
   CurrencyType,
   ProductSku,
   DivisionName,

@@ -33,6 +33,7 @@ var DeckSelectSinglePlayerCompositeView = DeckSelectCompositeView.extend({
 
   initialize: function () {
     DeckSelectCompositeView.prototype.initialize.call(this);
+    this.requiredDeckPurpose = 'practice';
 
     // get opponents
     this.model.set('opponents', this.getOpponents());

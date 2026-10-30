@@ -3,6 +3,7 @@
 'use strict';
 
 var SDK = require('app/sdk');
+var i18next = require('i18next');
 var RSX = require('app/data/resources');
 var Events = require('app/common/eventbus');
 var audio_engine = require('app/audio/audio_engine');
@@ -17,6 +18,14 @@ var DeckSlidingPanelItemView = SlidingPanelItemView.extend({
   template: DeckSlidingPanelTmpl,
 
   templateHelpers: {
+    deckPurposeLabel: function () {
+      var purpose = this.model.getPurpose ? this.model.getPurpose() : 'legacy';
+      return i18next.t('collection.deck_purpose_' + purpose);
+    },
+    deckEligibilityLabel: function () {
+      var purpose = this.model.getPurpose ? this.model.getPurpose() : 'legacy';
+      return i18next.t(purpose === 'legacy' ? 'collection.deck_eligibility_legacy' : 'collection.deck_eligibility_new_rules');
+    },
     generalId: function () {
       return this.model.getGeneralId();
     },

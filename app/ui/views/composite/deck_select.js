@@ -135,6 +135,7 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
   /* region INITIALIZE */
 
   initialize: function () {
+    this.requiredDeckPurpose = this.model.get('deckPurpose') || 'legacy';
     this._slidingOffsetXByDeckGroup = {};
 
     // generate unique id for requests
@@ -531,6 +532,8 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
 
   filterDecks: function (deckModel) {
     var isInSelectedGroup = true;
+
+    if (deckModel.getPurpose && deckModel.getPurpose() !== this.requiredDeckPurpose) return false;
 
     if (this.selectedDeckGroup === 'custom') {
       isInSelectedGroup = !deckModel.get('isStarter') && !deckModel.get('isRift') && !deckModel.get('isGauntlet');

@@ -1,4 +1,5 @@
 Rulesets = require './rulesetsLookup'
+CONFIG = require 'app/common/config'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
 
@@ -77,10 +78,11 @@ CardEligibility =
     return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
 
   validateDeck: (deck) ->
-    return {valid: false, reason: "A deck is required."} unless Array.isArray(deck) and deck.length > 0
+    return {valid: false, reason: "Practice and Sandbox decks must contain exactly one general and eight cards."} unless Array.isArray(deck) and deck.length is CONFIG.MAX_NEW_RULES_DECK_SIZE
     generalId = deck[0]?.id
     return {valid: false, reason: "The general is not audited for Practice and Sandbox."} unless @isGeneralId(generalId)
     signatureId = GENERAL_SIGNATURE_IDS[generalId]
+    cardCounts = {}
     for cardData, index in deck
       cardId = cardData?.id
       if cardData? and typeof cardData is "object" and Object.keys(cardData).some((key) -> key isnt "id")
@@ -89,6 +91,9 @@ CardEligibility =
         continue
       unless cardId in NEUTRAL_CARD_IDS
         return {valid: false, reason: "Card #{cardId} is not audited for Practice and Sandbox."}
+      cardCounts[cardId] = (cardCounts[cardId] ? 0) + 1
+      if cardCounts[cardId] > CONFIG.MAX_DECK_DUPLICATES
+        return {valid: false, reason: "Card #{cardId} exceeds the maximum copy limit of #{CONFIG.MAX_DECK_DUPLICATES}."}
     return {valid: true, signatureId: signatureId}
 
   validateSetupData: (gameSession, playerData) ->

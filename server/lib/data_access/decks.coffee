@@ -38,7 +38,7 @@ class DecksModule
   # @param  {Number}      cardBackId    card back id
   # @return  {Promise}
   ###
-  @addDeck: (userId,factionId,name,cards,spellCount,minionCount,artifactCount,colorCode,cardBackId)->
+  @addDeck: (userId,factionId,name,cards,spellCount,minionCount,artifactCount,colorCode,cardBackId,purpose)->
 
     MOMENT_NOW_UTC = moment().utc()
 
@@ -53,6 +53,7 @@ class DecksModule
       artifact_count:artifactCount
       color_code:colorCode
       card_back_id:cardBackId
+      purpose:if purpose in ['practice', 'sandbox'] then purpose else 'legacy'
       created_at:MOMENT_NOW_UTC.toDate()
     }
 
@@ -82,7 +83,7 @@ class DecksModule
   # @param  {Number}      cardBackId    card back id
   # @return  {Promise}
   ###
-  @updateDeck: (userId,deckId,factionId,name,cards,spellCount,minionCount,artifactCount,colorCode,cardBackId)->
+  @updateDeck: (userId,deckId,factionId,name,cards,spellCount,minionCount,artifactCount,colorCode,cardBackId,purpose)->
 
     MOMENT_NOW_UTC = moment().utc()
 
@@ -95,6 +96,7 @@ class DecksModule
       artifact_count:artifactCount
       color_code:colorCode
       card_back_id:cardBackId
+      purpose:if purpose in ['practice', 'sandbox'] then purpose else 'legacy'
       updated_at:MOMENT_NOW_UTC.toDate()
     }
 
