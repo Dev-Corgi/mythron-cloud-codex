@@ -1,0 +1,4 @@
+[submodule "duelyst"]
+	path = duelyst
+	url = https://github.com/Dev-Corgi/mythron-cloud-codex.git
+	branch = source
