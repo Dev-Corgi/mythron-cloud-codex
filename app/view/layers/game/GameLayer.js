@@ -712,6 +712,7 @@ var GameLayer = FXCompositeLayer.extend({
       id = this._playerSelectionLockedId;
     }
     if (!_.contains(this._playerSelectionLockedRequests, id)) {
+      if (id === 'turn_change') console.info('[practice-turn-trace] lock', { current: this._player && this._player.getIsCurrentPlayer(), requests: this._playerSelectionLockedRequests.slice() });
       const numRequests = this._playerSelectionLockedRequests.length;
       this._playerSelectionLockedRequests.push(id);
       if (numRequests === 0 && this._playerSelectionLockedRequests.length === 1) {
@@ -725,6 +726,7 @@ var GameLayer = FXCompositeLayer.extend({
       id = this._playerSelectionLockedId;
     }
     const indexOf = _.lastIndexOf(this._playerSelectionLockedRequests, id);
+    if (id === 'turn_change') console.info('[practice-turn-trace] unlock', { current: this._player && this._player.getIsCurrentPlayer(), found: indexOf !== -1, requests: this._playerSelectionLockedRequests.slice() });
     if (indexOf !== -1) {
       const numRequests = this._playerSelectionLockedRequests.length;
       this._playerSelectionLockedRequests.splice(indexOf, 1);
@@ -1467,14 +1469,13 @@ var GameLayer = FXCompositeLayer.extend({
     if (!this.getIsActive()) return;
 
     this.updateCurrentPlayer();
+    console.info('[practice-turn-trace] sdk start_turn', { current: this._player.getIsCurrentPlayer(), showingStart: this._showingStartTurn, showingEnd: this._showingEndTurn, queue: this._stepQueue.length });
     this.bottomDeckLayer.bindHandUsability();
     this.player1Layer.getSignatureCardNode().updateUsability();
     this.player2Layer.getSignatureCardNode().updateUsability();
 
-    // EndTurnAction locks selection while its visual transition is playing.
-    // Release that specific lock when the authoritative next turn arrives, in
-    // case the visual replay is delayed or has already completed out of order.
-    this.requestPlayerSelectionUnlocked('turn_change');
+    // Selection remains locked until the original start-turn presentation
+    // completes in afterShowStartTurn().
     this.updateReadinessTagForAllEntities();
   },
 
@@ -1742,14 +1743,11 @@ var GameLayer = FXCompositeLayer.extend({
       this._cleanupShowingEndTurn();
       this._setupStartTurnPromises();
       this._showingEndTurn = true;
+      console.info('[practice-turn-trace] showEndTurn', { owner: action.getOwnerId(), current: this._player.getIsCurrentPlayer(), queue: this._stepQueue.length });
 
-      // Only lock input while my own turn is ending. The opponent's
-      // EndTurnAction is followed by the authoritative start_turn event for
-      // the local player; locking here can race that handoff and leave the
-      // incoming player's first turn disabled.
-      if (this._player.getIsCurrentPlayer()) {
-        this.requestPlayerSelectionLocked('turn_change');
-      }
+      // Preserve the original turn-transition lock: block selection while the
+      // EndTurnAction and incoming StartTurn presentation are being replayed.
+      this.requestPlayerSelectionLocked('turn_change');
 
       // reset last card with automatic action for end turn
       this._lastCardWithAutomaticAction = null;
@@ -1789,6 +1787,7 @@ var GameLayer = FXCompositeLayer.extend({
 
       this._setupStartTurnPromises();
       this._showingStartTurn = true;
+      console.info('[practice-turn-trace] showStartTurn', { current: this._player.getIsCurrentPlayer(), queue: this._stepQueue.length, notificationVisible: this._notificationStartTurnSprite && this._notificationStartTurnSprite.isVisible() });
 
       // reset last card with automatic action for start turn
       this._lastCardWithAutomaticAction = null;
@@ -1841,10 +1840,13 @@ var GameLayer = FXCompositeLayer.extend({
       this._notificationStartTurnSprite.setPosition(UtilsEngine.getGSIWinCenterPosition());
       this._notificationStartTurnSprite.setScale(0.0);
       this._notificationStartTurnSprite.setOpacity(255.0);
-      this._startTurnNotificationAction = this._notificationStartTurnSprite.runAction(cc.sequence(
+      const notificationSprite = this._notificationStartTurnSprite;
+      let notificationAction;
+      notificationAction = notificationSprite.runAction(cc.sequence(
         cc.scaleTo(CONFIG.NOTIFICATION_TRANSITION_DURATION, 1.0).easing(cc.easeExponentialOut()),
         cc.delayTime(CONFIG.NOTIFICATION_DURATION * (this._showingStartTurnWithAutomaticActions ? 0.75 : 1.0)),
         cc.callFunc(() => {
+          console.info('[practice-turn-trace] notification callback', { current: this._player.getIsCurrentPlayer(), showingStart: this._showingStartTurn, queue: this._stepQueue.map((x) => { const a = x.getSdkStep().getAction(); return { type: a && a.constructor.name, automatic: a && a.getIsAutomatic(), owner: a && a.getOwnerId() }; }), currentAction: currentAction && currentAction.constructor.name });
           // show signature card cooldown
           this.player1Layer.getSignatureCardNode().showCooldown(signatureCardCooldownDuration);
           this.player2Layer.getSignatureCardNode().showCooldown(signatureCardCooldownDuration);
@@ -1867,9 +1869,16 @@ var GameLayer = FXCompositeLayer.extend({
           cc.fadeOut(CONFIG.ANIMATE_FAST_DURATION),
         ),
         cc.callFunc(() => {
-          this._cleanupShowingStartTurn();
+          // A new turn may start before the previous notification finishes.
+          // Only clean up the notification owned by this action.
+          if (this._startTurnNotificationAction === notificationAction) {
+            this._cleanupShowingStartTurn();
+          } else {
+            notificationSprite.setVisible(false);
+          }
         }),
       ));
+      this._startTurnNotificationAction = notificationAction;
 
       // trigger event
       this.getEventBus().trigger(EVENTS.show_start_turn, { type: EVENTS.show_start_turn, showDuration });
@@ -1897,6 +1906,7 @@ var GameLayer = FXCompositeLayer.extend({
   },
 
   afterShowStartTurn() {
+    console.info('[practice-turn-trace] afterShowStartTurn called', { showingStart: this._showingStartTurn, current: this._player.getIsCurrentPlayer(), requests: this._playerSelectionLockedRequests.slice() });
     if (this._showingStartTurn) {
       (this._beginShowStartTurnPromise || Promise.resolve())
         .then(() => {
@@ -2258,6 +2268,7 @@ var GameLayer = FXCompositeLayer.extend({
   _afterShowStep(sdkStepInterface) {
     const sdkStep = sdkStepInterface != null && sdkStepInterface.getSdkStep();
     const action = sdkStep != null && sdkStep.getAction();
+    if (this._showingStartTurn || this._showingEndTurn) console.info('[practice-turn-trace] afterShowStep', { action: action && action.constructor.name, owner: action && action.getOwnerId(), showingStart: this._showingStartTurn, showingEnd: this._showingEndTurn, queue: this._stepQueue.map((x) => { const a = x.getSdkStep().getAction(); return { type: a && a.constructor.name, automatic: a && a.getIsAutomatic(), owner: a && a.getOwnerId() }; }) });
     const myAction = action.getOwnerId() === SDK.GameSession.getInstance().getMyPlayerId();
 
     // finish showing end/start turn
