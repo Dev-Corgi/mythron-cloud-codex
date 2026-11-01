@@ -23,3 +23,6 @@
 - source_spec: 1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr.md
   summary: Evaluate topology diameter caching and add deterministic runtime AI turn coverage.
   evidence: User-owned AI work repeats pairwise distances; roster tests cover setup, not runtime AI scoring/actions.
+- source_spec: spec-restore-resource-package-completeness.md
+  summary: Normalize Windows separators in the resource generator's factory exclusion filter.
+  evidence: The scanner returns native backslash paths but the factory/ exclusion accepts forward slash only; this over-includes SDK resources and does not cause the missing shared packages fixed here.

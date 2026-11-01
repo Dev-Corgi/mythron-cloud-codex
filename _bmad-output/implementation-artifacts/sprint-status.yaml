@@ -50,17 +50,17 @@ development_status:
   1-12-finish-matches-without-hand-refills-or-fatigue-fr16: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
-  2-1-preserve-each-saved-match-s-battlefield-and-rules: review
-  2-2-resolve-positions-consistently-on-the-irregular-hex-battlefi: review
-  2-3-enter-and-interact-with-the-exact-replacement-battlefield: review
-  2-4-traverse-and-occupy-holes-according-to-unit-movement: review
-  2-5-attack-neutral-walls-and-open-their-tiles: review
-  2-6-share-a-wall-position-and-attack-the-correct-target: review
-  2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: review
-  2-8-capture-and-retain-methron-points: review
-  2-9-damage-the-disadvantaged-general-at-both-turn-ends: review
-  2-10-face-a-practice-bot-that-makes-legal-terrain-aware-actions: review
-  2-11-face-a-practice-bot-that-evaluates-walls-and-routes: review
-  2-12-face-a-balanced-practice-bot-that-competes-for-methron-contr: review
+  epic-2: done
+  2-1-preserve-each-saved-match-s-battlefield-and-rules: done
+  2-2-resolve-positions-consistently-on-the-irregular-hex-battlefi: done
+  2-3-enter-and-interact-with-the-exact-replacement-battlefield: done
+  2-4-traverse-and-occupy-holes-according-to-unit-movement: done
+  2-5-attack-neutral-walls-and-open-their-tiles: done
+  2-6-share-a-wall-position-and-attack-the-correct-target: done
+  2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: done
+  2-8-capture-and-retain-methron-points: done
+  2-9-damage-the-disadvantaged-general-at-both-turn-ends: done
+  2-10-face-a-practice-bot-that-makes-legal-terrain-aware-actions: done
+  2-11-face-a-practice-bot-that-evaluates-walls-and-routes: done
+  2-12-face-a-balanced-practice-bot-that-competes-for-methron-contr: done
   epic-2-retrospective: optional
