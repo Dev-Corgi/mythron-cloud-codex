@@ -6,10 +6,11 @@ Detail for CAP-4 and CAP-5 of `SPEC.md`.
 
 Each ability instance has `lockdown` and `cooldown` counters (integers ≥ 0) and a base cooldown. Both counters are 0 → ready.
 
-- At appearance in hand (unit placed on field): exactly one counter is nonzero.
+- Base values: each ability defines a base lockdown and base cooldown. At appearance (unit placed on field) lockdown = base lockdown and cooldown = 0, so at most one counter is nonzero; cooldown takes its base only after the first use.
 - On use: cooldown resets to its base value; the ability then waits out cooldown.
 - Decrement: at the end of the owning player's turn, each nonzero counter drops by 1 (floor 0). Defaults when an ability sets none: lockdown 0, cooldown 1. Using an ability costs no mana.
 - Structure: ability definitions (effect spell, lockdown, cooldown, use range) attach to a card through a generic field, so adding a card with a unique ability needs no engine change.
+- General: each general's Bloodbound Spell is an active ability, Lockdown 2, Cooldown 2, no mana. It uses the existing dedicated Bloodbound slot, not a hand slot, and counts from match start.
 - Dev placeholder: Planar Scout (`Cards.Neutral.PlanarScout`) gets Phoenix Fire, lockdown 1, cooldown 1.
 
 ## Hand-slot lifecycle

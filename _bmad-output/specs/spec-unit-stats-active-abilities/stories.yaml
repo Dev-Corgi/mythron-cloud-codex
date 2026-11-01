@@ -1,0 +1,55 @@
+- id: "1"
+  title: Add move, attack, and level stats with defaults
+  description: >-
+    Expose movement type and distance, attack type and range, and level as
+    card stats (CAP-1 stats, CAP-2 stats, CAP-3), mapped onto existing speed and reach.
+    New stat rules apply only in Practice and Sandbox.
+  invoke_dev_with: >-
+    Defaults are walk/2, melee/1, level 1. Reuse sdk/entities/entity.coffee speed and reach;
+    keep legacy modes unchanged.
+- id: "2"
+  title: Add the phase movement modifier
+  description: >-
+    Add a Modifier in the style of ModifierFlying that grants fly plus passing through
+    enemy units (CAP-1). Hole and Wall permissions equal fly.
+  invoke_dev_with: >-
+    Supersedes the Story 2.4 note against a separate Phasing modifier; follow
+    sdk/modifiers/modifierFlying.coffee.
+- id: "3"
+  title: Apply attack range to ranged and area attacks
+  description: >-
+    Ranged attacks follow the range stat along the six hex axes instead of the whole board;
+    area attacks explode centered on the attacker with the range stat as radius,
+    excluding allies (CAP-2).
+  invoke_dev_with: >-
+    Reuse the map spec geometry and Wall-blocking rules (map-layout.md); do not add a separate radius stat.
+- id: "4"
+  title: Replace move and attack allowance with action points
+  description: >-
+    Every unit has 2 action points; move, attack, and ability use cost 1 each, refresh at the
+    owner's turn start, and exhausted equals 0 points (CAP-6).
+  invoke_dev_with: >-
+    Summoned units start exhausted and get 2 at the owner's next turn start. Practice and
+    Sandbox only; legacy one-move-one-attack stays elsewhere. No action point UI.
+- id: "5"
+  title: Build the hand-slot active ability structure
+  description: >-
+    Generic per-card ability data with Lockdown and Cooldown, end-of-owner-turn decrement,
+    use rules, slot lifecycle, and death and silence handling (CAP-4).
+  invoke_dev_with: >-
+    Defaults Lockdown 0, Cooldown 1; Cooldown is always at least 1; use costs 1 action point and no mana.
+    Dev placeholder: Cards.Neutral.PlanarScout gets Phoenix Fire with Lockdown 1, Cooldown 1.
+    Each general's Bloodbound Spell is also an active ability: Lockdown 2, Cooldown 2, no mana.
+- id: "6"
+  title: Wire unit and ability card UI into the hand
+  description: >-
+    Render stat icons, level, and the lockdown or cooldown counter in the hand using the
+    card_ui phobies_unit and phobies_ability layouts (CAP-5).
+  invoke_dev_with: >-
+    Use layered assets and the layout JSON, never the preview PNGs; stat icons replace keyword text.
+    The assets are not yet connected to CardNode, so verify in the running game.
+- id: "7"
+  title: Show the ability card in card detail view
+  description: >-
+    In the existing card-plus-related-card inspect view, show the ability card where a spell
+    such as Phoenix Fire appears for Lantern Fox (CAP-5).

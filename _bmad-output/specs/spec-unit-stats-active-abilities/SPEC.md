@@ -31,7 +31,7 @@ A vision to realize: make unit cards carry explicit movement, attack, and level 
   - **success:** All cards have level 1 and display `LEVEL 1`; changing a card's level value changes only its display until level rules are specified.
 - **CAP-4**
   - **intent:** Some units grant an active ability with Lockdown and Cooldown counters, usable like a spell while the unit lives.
-  - **success:** While the granting unit is alive on the field, its hand slot shows the ability as a spell-style card. The ability is usable only when Lockdown and Cooldown are both 0, with the ability's own target range, at no mana cost; using it resets Cooldown to its base. Counters decrement by 1 (floor 0) at the end of the owning player's turn; defaults are Lockdown 0, Cooldown 1 unless an ability sets its own. When first shown, exactly one counter is nonzero. Death empties the slot; silence disables the ability and removal of silence re-enables it. Rules in `active-ability-rules.md`.
+  - **success:** While the granting unit is alive on the field, its hand slot shows the ability as a spell-style card. The ability is usable only when Lockdown and Cooldown are both 0, with the ability's own target range, at no mana cost; using it resets Cooldown to its base. Counters decrement by 1 (floor 0) at the end of the owning player's turn; defaults are Lockdown 0, Cooldown 1 unless an ability sets its own. Lockdown and Cooldown are base values per ability: a deployed ability starts with Lockdown at its base and Cooldown 0, and Cooldown takes its base value only after the first use (default 0/1 is ready immediately). Death empties the slot; silence disables the ability and removal of silence re-enables it. Rules in `active-ability-rules.md`.
 - **CAP-5**
   - **intent:** The hand slot and card detail view present the new stats and the ability's counters.
   - **success:** Unit cards render movement type/distance, attack type/range, level, and attack/health per the `phobies_unit` layout; an ability card renders a violet padlock ring for nonzero Lockdown (image 1) or a cyan hourglass ring for nonzero Cooldown (image 2) per `phobies_ability`. Detail view of an ability-bearing unit shows the unit and, in the related-card position (where a spell like Phoenix Fire appears for Lantern Fox), the ability card.
@@ -54,6 +54,7 @@ A vision to realize: make unit cards carry explicit movement, attack, and level 
 - Phase differs from fly only by passing through enemy units; hole and Wall permissions are identical.
 - A silenced unit's ability keeps its counters; removing silence re-enables it with the same values.
 - Every active ability has Cooldown ≥ 1, so no ability can be used more than once per turn by Cooldown alone.
+- Each general's Bloodbound Spell is an active ability with Lockdown 2 and Cooldown 2 and costs no mana, replacing its existing mana-costed use in Practice and Sandbox. It stays in its existing dedicated Bloodbound slot (not a hand slot) and starts counting from match start, since the general is on the field from the beginning.
 - Ability data (effect, Lockdown, Cooldown, use range) is attached per card through a general structure so later cards can add unique abilities without engine changes.
 - Development placeholder: Planar Scout carries Phoenix Fire with Lockdown 1, Cooldown 1.
 
