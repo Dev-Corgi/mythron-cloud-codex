@@ -10,3 +10,16 @@
 - source_spec: `1-8-keep-conflicting-cards-out-of-new-rules-matches-fr17-fr18-fr.md`
   summary: Add a UI-layer regression test for fixed hand slot rendering and index binding.
   evidence: Existing tests cover slot helpers but do not instantiate `BottomDeckLayer` or assert rendered nodes and bindings.
+
+- source_spec: 1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr.md
+  summary: Preserve cards or confirm conversion on deck-purpose switching and handle incomplete draft saves without losing editor work.
+  evidence: Review traced pre-existing model filtering and strict save rejection; not introduced by entry repair.
+- source_spec: 1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr.md
+  summary: Fix pre-existing null bestObjective guard ordering in AI positional scoring.
+  evidence: getPosition is dereferenced before null fallback; independent reviewers agree.
+- source_spec: 1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr.md
+  summary: Verify and refresh hex highlight geometry after resize.
+  evidence: Existing redraw closures capture origin/projection from construction.
+- source_spec: 1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr.md
+  summary: Evaluate topology diameter caching and add deterministic runtime AI turn coverage.
+  evidence: User-owned AI work repeats pairwise distances; roster tests cover setup, not runtime AI scoring/actions.

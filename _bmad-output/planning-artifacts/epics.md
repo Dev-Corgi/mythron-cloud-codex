@@ -5,448 +5,604 @@ stepsCompleted:
   - step-02-design-epics
   - step-03-create-stories
   - step-04-final-validation
+currentStep: complete
+requirementsStatus: approved
+epicDesignStatus: approved
+storyCreationStatus: approved
+storyApprovalMode: user-authorized-automatic
+validationStatus: passed
+openReadinessChecks: 0
+validationReport: C:/Working/duelyst/_bmad-output/planning-artifacts/epic-2-validation-2026-11-01.md
 inputDocuments:
+  - C:/Working/duelyst/_bmad-output/specs/spec-practice-sandbox-map/SPEC.md
+  - C:/Working/duelyst/_bmad-output/specs/spec-practice-sandbox-map/map-layout.md
   - C:/Working/duelyst/_bmad-output/specs/spec-duelyst-rules-overhaul/SPEC.md
   - C:/Working/duelyst/_bmad-output/specs/spec-duelyst-rules-overhaul/rules-detail.md
   - C:/Working/duelyst/_bmad-output/specs/spec-duelyst-rules-overhaul/practice-bot-deck.md
   - C:/Working/duelyst/_bmad-output/planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md
+previousEpicPlan: C:/Working/duelyst/_bmad-output/planning-artifacts/epics-duelyst-rules-overhaul.md
 ---
 
-# duelyst - Epic Breakdown
+# duelyst — Practice and Sandbox Battlefield Replacement - Epic Breakdown
 
 ## Overview
 
-This document breaks down the Practice and Sandbox rules overhaul into implementable epics and stories. The requirements source is the approved SPEC and its companions, with the architecture spine supplying implementation constraints.
+The battlefield replacement requirements, including the Practice AI clarification, and the single Epic 2 structure are approved. All twelve stories below are approved under the user-authorized automatic approval instruction; final validation passed after the authorized Epic 1 baseline repair, as recorded in the linked validation report. Inherited core rules are compatibility constraints, not a new implementation backlog.
 
 ## Requirements Inventory
 
 ### Functional Requirements
 
-FR1: Practice and Sandbox matches use the new ruleset; Developer Sandbox, Ranked, Casual, Friendly, Gauntlet, Challenges, Boss Battle, Rift, and other modes retain legacy rules.
+FR1: New Practice and Sandbox matches use the battlefield replacement. Developer Sandbox and all other modes retain their existing maps and rules. (SPEC constraints)
+FR2: Render pointy-top hex rows of lengths 9,8,9,8,9 with odd rows shifted half a tile right. Retain 43 logical positions and render 41 tiles, omitting tiles at (0,2) and (4,6). Preserve every literal placement in map-layout.md without symmetrizing the map. (CAP-1)
+FR3: Apply the documented zero-based (row,column) geometry consistently to rendering, movement, paths, range, adjacency, targeting, and summoning. Within-row neighbors are c-1/c+1; adjacent-row neighbors are c-1/c for even rows and c/c+1 for odd rows, filtered to each row's bounds. Holes remain addressable logical positions. (CAP-1)
+FR4: Place player1's General at (4,0) and player2's at (0,8). Treat (0,0) and (4,8) as ordinary tiles, with no keyhole mechanics, goal visuals, or additional orb entities. (CAP-2)
+FR5: Initialize neutral, independently attackable Walls with 10 health at (0,1),(0,6),(1,3),(2,2),(2,6),(2,8),(3,4),(4,2),(4,7). Both players can select and damage them through otherwise legal attacks. (CAP-4)
+FR6: Ordinary units cannot cross or stop on holes or living Walls. Flying and phasing units can cross and stop on both; occupying a hole does not create a rendered tile. Movement permissions do not independently permit summoning there. (CAP-1, CAP-4)
+FR7: Support a Wall and an eligible unit at one coordinate as distinct entities. Direct melee/ranged attacks against the tile prioritize an enemy occupant over the Wall; an allied occupant is skipped and the neutral Wall can be attacked when otherwise legal. Allied units cannot directly attack each other. Eligible damaging area effects exclude allies, damage enemies and neutral Walls, and damage both a Wall and its enemy occupant independently. (User-confirmed CAP-4 refinement)
+FR8: Ranged attacks are restricted to the six center-to-center hex axes perpendicular to tile edges. All area effects use effect-specific circular hex-distance explosion radii, with direct explosion-center-to-target-center delivery and no detours; only intersecting the interior of an intervening Wall blocks, not touching its boundary/vertex. Intervening Walls block ranged attacks along their axis and area delivery as specified. A Wall beneath the target unit does not block melee, ranged, or area effects against that unit; other blockers, range, and targeting conditions still apply. (CAP-4)
+FR9: Destroying a Wall removes its obstruction and leaves an ordinary existing tile available for movement and otherwise legal summoning. (CAP-4)
+FR10: Display Walls with Bonechill Barrier visuals without inheriting the original card's statistics, faction ownership, or modifiers. (CAP-4)
+FR11: Initialize five neutral Methron Points at (0,3),(0,5),(2,4),(4,3),(4,5), displaying tile_mana_idle. They grant no mana and are not consumed by capture or departure. (CAP-3)
+FR12: At every player's turn end, a player's unit that remains alive on a Methron Point through turn-end effects captures it. A unit that dies before capture does not capture it. (CAP-3)
+FR13: Track each point as neutral, player1-controlled, or player2-controlled. Capturing an opponent-controlled point transfers ownership; ownership persists when the point becomes empty until recaptured. (CAP-3)
+FR14: At both players' turn ends, update captures before counting all five points, including empty controlled points. Damage the disadvantaged player's General by 2 times the control-count difference; 3 versus 1 deals 4 damage and equal counts deal none. (CAP-3)
+FR15: Generals capture and recapture Methron Points under the same rules as other units. Standing on a point causes no additional damage or General-specific effect. Do not introduce a separate Heart or new victory condition. (CAP-3)
+FR16: Preserve general-adjacent-only summoning, no automatic counterattacks, reserve-funded persistent mana, separate nine-card mode decks, fixed eight-slot hands, shared audited card eligibility, and the exact Practice bot roster. Apply the map's geometry to these existing behaviors; do not reopen the original rules overhaul as new feature scope. (Inherited core contract)
 
-FR2: A new-rules match has a 9-column, 5-row battlefield of 45 pointy-top hex tiles with odd rendered columns staggered downward.
-
-FR3: New-rules board positions use axial `(q,r)` coordinates, with rendered column `c = 2q + r`, rendered row `k = floor(r/2)`, `0 <= c <= 8`, and `0 <= k <= 4`.
-
-FR4: The first and second players' generals start at axial `(-2,4)` and `(2,4)`, respectively.
-
-FR5: New-rules movement, pathing, attack range, targeting, adjacency, and bounds use the same six axial neighbors: `(1,0)`, `(-1,0)`, `(0,1)`, `(0,-1)`, `(1,-1)`, and `(-1,1)`.
-
-FR6: A unit may be summoned only to an otherwise valid, available tile adjacent to its owner's general; adjacency to another allied unit alone does not permit summoning.
-
-FR7: An attacked unit does not automatically counterattack its attacker in a new-rules match.
-
-FR8: Each player begins with a finite 20-point mana reserve before opening allocation; the first player opens with reserve 17 and spendable mana 3, and the second with reserve 16 and spendable mana 4.
-
-FR9: On each player's own turn end, that player alone transfers `min(3, reserve)` from reserve to spendable mana exactly once; an empty reserve transfers zero.
-
-FR10: Playing a card spends its mana cost from spendable mana; unspent mana persists between turns without a nine-point cap or turn-start refresh.
-
-FR11: New-rules matches do not grant bonus mana from board tiles or other effects outside the reserve-transfer rule.
-
-FR12: Players can create separate Practice and Sandbox decks, each containing exactly one general and eight other eligible cards; existing 40-card decks remain intact and usable in legacy modes without automatic conversion.
-
-FR13: Practice entry accepts only a valid Practice deck, and Sandbox entry accepts only a valid Sandbox deck; each rejects an invalid deck before match setup.
-
-FR14: All eight non-general cards begin in eight fixed hand slots in a new-rules match.
-
-FR15: Playing a card clears only its original hand slot; the other cards keep their slot indices, and no slot shifts or refills.
-
-FR16: New-rules matches have no draw, mulligan, replacement, deck-exhaustion fatigue, or later addition, return, or other change to hand cards or slots.
-
-FR17: Cards or effects conflicting with hex targeting, general-only summoning, no counterattack, reserve-only mana, or fixed hand slots are unavailable in Practice and Sandbox; they create no exception to those rules.
-
-FR18: Practice and Sandbox deck editing, deck entry, generated-card creation, and match setup apply one shared audited card eligibility policy.
-
-FR19: The Practice bot uses its general plus exactly one each of Maw (10979), Bloodtear Alchemist (19052), Golem Metallurgist (19038), Bloodshard Golem (10205), Dragonlark (10001), Flameblood Warlock (19051), Sworn Avenger (10954), and Drybone Golem (10206), with all eight cards in hand at every difficulty.
-
-FR20: Maw's nearby damage follow-up uses hex neighbors in the new modes.
+FR17: Practice AI must generate and execute legal actions using the replacement map's row-staggered six-neighbor topology, per-row bounds, addressable holes, living Walls, and movement-type permissions. Ordinary units avoid holes and living Walls; flying and phasing units may cross or occupy them. Summons still require otherwise legal General-adjacent tiles. (User clarification: Practice AI adaptation)
+FR18: Practice AI must evaluate Wall attacks and movement routes opened by Wall destruction, distinguish a Wall from a unit sharing its coordinate, and respect intervening-Wall blocking and the target-supporting-Wall exception when evaluating melee, ranged, and area effects. (User clarification: Practice AI adaptation)
+FR19: Practice AI uses a balanced policy: consider immediate wins and avoiding immediate defeat first, then compare expected control damage, combat gains, and survival rather than always preferring territory or attacks. Practice AI must include Methron Point capture, recapture, retained ownership of empty points, and control-count deficit damage in action evaluation. It must consider capturing or defending points and keeping capturing units alive through turn-end effects; General capture follows the same rules and incurs no standing penalty. AI evaluations must use capture-before-damage ordering at both players' turn ends. (User clarification: Practice AI adaptation)
 
 ### NonFunctional Requirements
 
-NFR1: Browser prediction, authoritative server play, local Sandbox play, and replay must agree on new-rules action legality and resulting state.
-
-NFR2: New-rules actions, coordinates, mana balances, hand slots, and resulting state must serialize and replay deterministically.
-
-NFR3: Historical match snapshots lacking a ruleset identifier and existing decks lacking a purpose must continue to resolve to legacy behavior.
-
-NFR4: Unknown ruleset IDs or versions must be rejected rather than silently mapped to another ruleset.
-
-NFR5: Legacy modes, existing 40-card decks, and their square-board rules must remain behaviorally compatible during the initial rollout.
-
-NFR6: The UI must accurately show legal hex interactions, opening and changing mana balances, eligible deck choices, and eight stable hand slots.
+NFR1: Browser prediction, authoritative Practice play, local Sandbox play, AI geometry, and replay must agree on map positions and action legality. (Inherited architecture AD-2, AD-3)
+NFR2: Terrain state, Wall identities and health, co-located units, Methron ownership, and turn-end control damage must serialize and replay deterministically. (Inherited deterministic-state contract applied to this feature)
+NFR3: Other modes, existing legacy decks and matches, and snapshots without ruleset IDs retain legacy behavior; unknown ruleset identities or versions are rejected. The replacement must not silently reinterpret an existing match's geometry. (Inherited AD-1, compatibility convention)
+NFR4: Rendered positions, interaction previews, target selection, and resolved actions must agree even for invisible hole tiles and co-located Wall/unit entities. (SPEC success signal and interaction constraints)
+NFR5: Reuse the existing shared SDK, services, persistence, and referenced assets; no new service, datastore, starter project, or infrastructure component is required. (Inherited architecture structural seed)
 
 ### Additional Requirements
 
-- Bind an immutable ruleset ID `practice-sandbox-hex` and version `1` to each new match. Derive it server-side from the validated Practice route or from the concrete local Sandbox class before setup. Developer Sandbox and all other entries use `legacy`; clients cannot select the ruleset.
-- Persist ruleset ID and version in session and setup snapshots; resolve them before board/deck construction and action replay. Only historical snapshots with no ID default to `legacy`.
-- Use shared `app/sdk` topology code for conversion, neighbors, distance, paths, range, and bounds. New-rules SDK/action/modifier/snapshot/replay positions use `{q,r}`; legacy positions use `{x,y}`. Limit conversion to explicit legacy input and display adapters; dispatch all position producers and consumers, including AI, by ruleset.
-- Enforce general-adjacent summoning and suppression of automatic counterattacks in SDK action validation and resolution, not only in UI previews.
-- Let SDK player and turn actions own reserve and spendable mana. Transfer at `p_endTurn` for its recorded ending player after ending the turn and before publishing `end_turn`. Disable start-turn refresh, nine-mana cap, and unspent-mana clearing only for the new ruleset.
-- Give saved decks explicit purposes `practice`, `sandbox`, or `legacy`; default old decks to `legacy`. Validate matching purpose, size, general count, and card eligibility before Practice API or local Sandbox setup, ahead of the current `allCardsAvailable` bypass.
-- Represent the new hand as a length-eight array with stable indices and `null` for spent slots. Play actions identify both slot and card instance, then clear the slot without splicing. Apply this to construction, deserialization, mutation, UI, snapshots, and replay.
-- Publish one shared SDK allowlist of explicit audited card IDs for both new modes. Audit modifiers, follow-ups, generated cards, and general/signature effects; variants require their own audited IDs. Enforce at deck editing, Practice API entry, Sandbox launch, Practice bot setup, generated-card creation, and authoritative boundaries.
-- Admit the exact fixed Practice bot roster only after Maw's nearby effect uses hex neighbors. Do not ship a substituted or partly unavailable roster.
-- Implement and integrate in the required order: board, summoning, counterattack, mana, deck and hand. The architecture specifies no new service, datastore, or starter template.
+### Confirmed attack target priority and shared-position damage
+
+- A Wall and its occupant remain distinct entities with separate health and persistence, but direct melee/ranged attack target resolution uses priority rather than a player override.
+- When a Wall tile is attacked and an enemy unit occupies it, resolve the attack against the enemy unit instead of the Wall. Do not allow manually selecting the Wall to bypass the enemy-occupant priority.
+- If only an allied unit occupies the Wall, skip that allied unit and attack the neutral Wall when otherwise legal. Allied units cannot directly attack one another. If no unit occupies the Wall, the Wall is the direct target.
+- Damaging area effects exclude allied units and can damage enemy units and neutral Walls when their range, obstruction, and target conditions are met. Both a Wall and its enemy occupant can receive damage independently. A Wall beneath an allied occupant can receive damage while the ally is excluded. The supporting Wall does not shield an enemy occupant.
+- This decision supersedes earlier wording allowing independent direct-attack target selection for a Wall and its enemy occupant. Entity identity remains separate; previews, resolved targets, AI evaluation, and replay must follow the priority rule.
+
+- Authority: practice-sandbox-map/SPEC.md and map-layout.md define this feature. The latter is authoritative for exact positions. Core-rule documents and the architecture remain binding except where this feature explicitly replaces board footprint, row staggering, map-specific neighbor/layout calculations, starting positions, and the subsequently confirmed attack rules.
+- User-confirmed coordinate scope: preserve the existing coordinate system and data formats. No coordinate-system replacement or coordinate migration is requested. Replace the old map footprint, column staggering, and center-edge starts with the new row-staggered placement, six-neighbor relationships, and specified starts. Adjust map-specific geometry calculations within the existing system and verify them against map-layout.md. Coordinate-system choice is removed from the open-decision list.
+- Separate logical positions (43), rendered tiles (41), terrain obstacles (nine initial Walls), and mobile unit occupancy. Hole addressability and Wall/unit co-location must survive setup, actions, serialization, and replay.
+- Extend SDK action validation and resolution as well as UI previews; cover board helpers, pathfinding, targeting, card effects, and Practice AI consumers. Adapt AI candidate generation, route evaluation, target identity, and tactical scoring to FR17-FR19. Use the shared SDK legality and effect-resolution contracts rather than a divergent AI geometry or combat model. Preserve the approved fixed bot deck; this clarification does not authorize roster changes or additional difficulty modes.
+- Preserve immutable match-scoped ruleset identity selected by the validated Practice route or concrete local Sandbox entry. GameType.Sandbox alone cannot identify scope; Developer Sandbox remains excluded.
+- User-confirmed versioning: retain ruleset ID practice-sandbox-hex and use version 2 for new Practice/Sandbox matches after rollout. Version 1 saved matches/replays retain their existing recorded geometry and rule execution; the current checkout already uses a row-staggered version-1 board, so compatibility must not assume every version-1 session came from the old 45-tile design. Do not migrate or reinterpret existing version 1 sessions. Keep the version 1 path, existing legacy fallback for absent IDs, and rejection of unsupported identities. No separate map-version field or player-facing version selector is introduced.
+- Persist neutral Wall entity identity, health, terrain/occupant distinction, and Methron ownership with deterministic action ordering. Resolve direct attacks using shared enemy-occupant-first priority and validate the resolved entity consistently; explicit entity targeting cannot bypass this priority.
+- Integrate capture after relevant turn-end effects, then deficit damage, at both players' turn ends without duplicating the existing once-per-ending-player reserve transfer. Use existing General damage and match-end resolution.
+- User-confirmed ranged geometry: only the six center-to-center axes perpendicular to tile edges are legal; intervening Wall cells block. User-confirmed area geometry: all effects are circular in hex distance with effect-specific explosion radii; test each target by a direct center-to-target segment without detours. A Wall blocks only if the segment enters its hex interior, not on boundary/vertex contact alone. Preserve the target-supporting-Wall exception. Use one deterministic shared implementation, including precise boundary handling.
+- Reference assets: app/data/resources.js tileManaIdle and f6BonechillBarrier animation definitions. Asset reuse must not instantiate original mana rewards or Bonechill Barrier gameplay modifiers.
+- Preserve opening mana (reserve,spendable) of (17,3)/(16,4), own-turn-end transfer min(3,reserve), no bonus mana, no nine-mana cap, and persistent unspent mana.
+- Preserve deck purposes practice/sandbox/legacy, one General plus eight eligible cards, eight stable slots with null spent entries, no draw/replacement/fatigue/hand mutation, and shared eligibility validation at editing, entry, setup, and generated-card boundaries.
+- Preserve the fixed bot roster: Maw 10979, Bloodtear Alchemist 19052, Golem Metallurgist 19038, Bloodshard Golem 10205, Dragonlark 10001, Flameblood Warlock 19051, Sworn Avenger 10954, Drybone Golem 10206. Maw's nearby effect and all audited card interactions must respect the replacement topology.
+- Existing implementation story IDs and sprint status are unchanged by this requirements extraction. The original epic plan is preserved as epics-duelyst-rules-overhaul.md; select new epic numbering during epic design to avoid collisions.
 
 ### UX Design Requirements
 
-No UX design contract was found. UI behavior explicitly required by the SPEC and architecture is captured in FR2, FR12–FR16, NFR6, and the additional requirements.
+No separate UX DESIGN.md/EXPERIENCE.md contract was found. The following actionable requirements are extracted from the approved feature SPEC and map companion.
+
+UX-DR1: Render the exact five pointy-top rows with half-tile right offsets for odd rows, 41 visible tiles, and visually empty holes at (0,2)/(4,6), including when an eligible unit occupies a hole.
+UX-DR2: Show player starts at (4,0)/(0,8); render (0,0)/(4,8) as ordinary hexes without keyhole or orb visuals.
+UX-DR3: Render all nine neutral 10-health Walls using Bonechill Barrier assets; reflect damage and destruction while retaining the underlying tile.
+UX-DR4: Keep Wall and occupant identities distinct while previewing the actual attack target: enemy occupant first for direct melee/ranged attacks, otherwise the Wall beneath an allied occupant. Disallow allied direct attacks; reflect independent damage to both Wall and enemy occupant from eligible area effects.
+UX-DR5: Display tile_mana_idle at all five Methron Points and make neutral/player1/player2 control distinguishable, including persistent ownership on empty points. No new mana-reward interaction is introduced.
+UX-DR6: Movement, summon, attack, and area-effect previews must match the replacement row geometry, movement-type permissions, intervening-Wall blocks, and target-Wall exception.
+UX-DR7: Reflect turn-end ownership changes and resulting General health changes consistently with resolved state, including 4 damage for 3-versus-1 control and no damage for equal counts or General standing alone.
 
 ### FR Coverage Map
 
-FR1: Epic 1 - New rules apply only to Practice and Sandbox.
-FR2: Epic 1 - Render the 45-tile pointy-top hex board.
-FR3: Epic 1 - Use axial coordinates for new-rules positions.
-FR4: Epic 1 - Place generals at the specified starting cells.
-FR5: Epic 1 - Use one six-neighbor topology for movement, range, targeting, adjacency, and bounds.
-FR6: Epic 1 - Restrict summoning to tiles adjacent to the owner's general.
-FR7: Epic 1 - Remove automatic counterattacks.
-FR8: Epic 1 - Set finite reserves and opening spendable mana.
-FR9: Epic 1 - Transfer reserve mana when the ending player ends a turn.
-FR10: Epic 1 - Spend card costs and carry forward uncapped mana.
-FR11: Epic 1 - Exclude mana grants outside reserve transfer.
-FR12: Epic 1 - Create separate valid nine-card Practice and Sandbox decks.
-FR13: Epic 1 - Validate a matching deck before each new-mode entry.
-FR14: Epic 1 - Start with eight fixed hand slots.
-FR15: Epic 1 - Clear only the played card's slot.
-FR16: Epic 1 - Remove draws, replacement, fatigue, and later hand changes.
-FR17: Epic 1 - Exclude conflicting cards and effects.
-FR18: Epic 1 - Apply one audited eligibility policy at every entry and creation boundary.
-FR19: Epic 1 - Use the exact fixed Practice bot roster at all difficulties.
-FR20: Epic 1 - Make Maw's nearby effect use hex neighbors.
+FR1: Epic 2 - Apply the new battlefield only to Practice and Sandbox.
+FR2: Epic 2 - Reproduce the exact 41-tile row-staggered battlefield.
+FR3: Epic 2 - Use consistent six-neighbor geometry across all consumers.
+FR4: Epic 2 - Start Generals at opposite specified corners with ordinary k/K tiles.
+FR5: Epic 2 - Provide nine neutral 10-health Walls attackable by both players.
+FR6: Epic 2 - Respect ordinary versus flying/phasing movement over holes and Walls.
+FR7: Epic 2 - Preserve distinct entities, enemy-first direct targeting, no allied direct attacks, and separate area damage.
+FR8: Epic 2 - Apply intervening-Wall blocking and the target-supporting-Wall exception.
+FR9: Epic 2 - Open an ordinary usable tile after Wall destruction.
+FR10: Epic 2 - Reuse Bonechill Barrier visuals without inheriting its gameplay.
+FR11: Epic 2 - Provide five non-mana Methron Points with the specified visuals.
+FR12: Epic 2 - Capture only with occupants surviving relevant turn-end effects.
+FR13: Epic 2 - Persist and transfer ownership, including on empty points.
+FR14: Epic 2 - Apply capture-before-counting and deficit damage at both turn ends.
+FR15: Epic 2 - Give Generals normal capture behavior without standing damage.
+FR16: Epic 2 - Preserve the inherited mana, deck, hand, combat, summon, and bot-roster contracts.
+FR17: Epic 2 - Generate legal Practice AI actions for the replacement terrain.
+FR18: Epic 2 - Evaluate Wall destruction, routing, blocking, and distinct targets in Practice AI.
+FR19: Epic 2 - Evaluate Methron capture, defense, recapture, and control damage in Practice AI.
 
 ## Epic List
 
-### Epic 1: Play complete Practice and Sandbox matches under the new rules
+### Epic 2: Play tactical Practice and Sandbox matches on the replacement battlefield
 
-Players can play on a 45-tile hex board, summon beside their general, attack without automatic counterattacks, manage reserve-funded mana, and use separate nine-card decks with fixed eight-slot hands. Practice uses the specified bot roster; other modes retain their existing rules.
+Players can complete matches on the exact irregular battlefield, use special movement and destructible Walls to create tactical routes, and capture Methron Points to damage the opposing General. Practice provides an opponent that acts legally and evaluates these terrain and control objectives.
 
-**FRs covered:** FR1–FR20.
+**FRs covered:** FR1-FR19 (all 19 approved functional requirements).
+**Quality constraints:** NFR1-NFR5 apply throughout.
+**UX requirements:** UX-DR1-UX-DR7 are included in their corresponding gameplay work.
 
-**Implementation notes:** Deliver the board, summoning, counterattack, mana, then deck and hand changes in that order. Keep the new ruleset match-scoped and gate its user-visible rollout until the complete experience is ready.
+**User outcomes:**
+- Enter either supported mode on the exact 41-tile map with the specified starts while other modes retain their behavior.
+- Move, summon, select targets, attack, and destroy Walls with consistent previews and resolved outcomes, including hole occupation, enemy-occupant-first direct targeting, and Wall/unit co-location for eligible movement types.
+- Capture, retain, and recapture five Methron Points and resolve control-deficit damage correctly at every turn end.
+- Face a Practice bot that accounts for legal routes, Wall attacks, target identity, and Methron control when choosing actions.
+- Save and replay the resulting terrain, ownership, targeting, and damage state consistently while retaining the existing core rules.
 
-## Epic 1: Play complete Practice and Sandbox matches under the new rules
+**Grouping rationale:** Geometry, terrain occupancy, Wall targeting, point control, and AI all affect shared board, action, turn-resolution, and view behavior. Splitting these into separate epics would repeatedly modify the same components and leave intermediate Practice matches with incomplete opponent behavior. Their defined gameplay contracts are already known, so one complete user outcome with ordered, bounded stories is preferred over separate technical or partially playable epics.
 
-Players can complete Practice and Sandbox matches on a hex battlefield with general-centered summoning, attacks without automatic counterattacks, persistent reserve-funded mana, and fixed eight-card hands. Legacy modes keep their existing rules.
+**Dependencies and ordering:** Epic 1 is the existing core-rules baseline, not a claim that its unfinished work is complete. The audited valid-entry/fixed-roster and fixed-hand gaps are repaired and 224 related tests pass. Story 1.10 is implemented with sprint status review; prior done story records are reconciled. Preserve that verified baseline during implementation. Epic 2 will not require any later epic to function. Within Epic 2, order future stories so earlier stories provide complete capabilities for later ones: compatible map identity and geometry first; terrain, targeting, and point resolution before AI evaluation of those mechanics. Integrate relevant UI, persistence, and verification with each capability rather than deferring them to a final technical-layer epic.
 
-### Story 1.1: Keep each match's rules consistent (FR1)
+**Decision status:** User-facing decisions are settled: version 2 for new matches, existing coordinate system retained, six-axis ranged attacks, circular direct-delivery area effects with interior-only Wall obstruction, enemy-occupant priority, no friendly damage, and balanced Practice AI. Implement and verify these contracts in the relevant stories. Map-specific geometry calculations and numerical AI weights are implementation details, not pending coordinate-system or gameplay choices.
+
+**Numbering:** Use Epic 2 and story IDs 2.x to avoid collisions with the preserved Epic 1 and existing implementation artifacts. Existing sprint status is unchanged at this design stage.
+
+## Epic 2: Play tactical Practice and Sandbox matches on the replacement battlefield
+
+Players complete matches on the supplied battlefield, exploit destructible terrain, compete for persistent Methron control, and face a Practice opponent that understands these mechanics.
+
+Delivery uses the existing shared SDK and persistence; no new service, datastore, or starter template is needed. Each story includes its own relevant UI, serialization, replay, and regression checks. Earlier capabilities must be executable without unfinished later stories; the complete replacement is released only after all required capabilities are integrated. The incremental map identity mechanism must not expose a partly implemented map as the completed replacement.
+
+### Story 2.1: Preserve each saved match's battlefield and rules
 
 As a player,
-I want a Practice or Sandbox match to retain its assigned rules when saved or replayed,
-So that the match behaves consistently.
+I want saved matches and replays to retain their original battlefield,
+So that introducing a new map does not change past match outcomes.
+
+**Requirements:** FR1, FR16; NFR2, NFR3, NFR5.
+**Dependencies:** Existing Epic 1 session/ruleset persistence baseline; no Epic 2 dependencies.
+**Scope:** Version 1 compatibility and registration of practice-sandbox-hex version 2; no replacement-map construction or rollout until its required capabilities are integrated.
 
 **Acceptance Criteria:**
 
-**Given** a validated Practice entry
-**When** the server creates its match
-**Then** it assigns `practice-sandbox-hex` version `1` before board or deck setup
-**And** a client-supplied ruleset cannot override the server's choice.
+**Given** an existing legacy match or a practice-sandbox-hex version 1 match,
+**When** it is loaded or replayed,
+**Then** its original map, coordinate interpretation, start positions, and core rules are retained,
+**And** the replacement map is never inferred from the current launch defaults.
 
-**Given** the concrete local Sandbox entry
-**When** it creates a match
-**Then** it assigns the same ruleset and version before setup
-**And** Developer Sandbox and other modes instead use `legacy`, regardless of `GameType.Sandbox` alone.
+**Given** a match with a supported map/ruleset identity,
+**When** its setup or session snapshot is saved and restored,
+**Then** the identity round-trips and is resolved before board construction and action replay,
+**And** version 1 keeps its original execution path, version 2 identifies the replacement map/rules package, and no separate map-version field is introduced.
 
-**Given** a match snapshot or replay with a known ruleset ID and version
-**When** it is restored or replayed
-**Then** the persisted ruleset is resolved before actions run
-**And** an unknown ID or version is rejected.
+**Given** a historical snapshot without ruleset metadata or a snapshot with an unknown identity/version,
+**When** reconstruction is requested,
+**Then** the former follows the existing legacy fallback and the latter is rejected with a clear error,
+**And** unsupported data is not silently interpreted as either supported map.
 
-**Given** a historical snapshot with no ruleset ID
-**When** it is restored
-**Then** it uses `legacy`
-**And** its existing square-board behavior remains available.
+**Given** Developer Sandbox or another unaffected entry,
+**When** a match is started, saved, and restored,
+**Then** its original map and rules are unchanged,
+**And** compatibility fixtures cover both existing match families without requiring later Epic 2 stories.
 
-### Story 1.2: Play on a correctly bounded hex battlefield (FR2–FR5)
+### Story 2.2: Resolve positions consistently on the irregular hex battlefield
 
 As a player,
-I want a staggered hex battlefield with generals at its opposite center edges,
-So that positions and distances match the new rules.
+I want movement, range, and adjacency to agree on the new battlefield,
+So that actions obey the same geometry everywhere.
+
+**Requirements:** FR2, FR3; NFR1-NFR3, NFR5.
+**Dependencies:** 2.1.
+**Scope:** Executable shared map/topology definition with round-trip coordinates; rendering and entry activation follow in 2.3.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules match
-**When** its board is constructed
-**Then** it contains exactly 45 pointy-top cells in nine rendered columns and five rows, with odd columns staggered down
-**And** the first and second generals start at `(-2,4)` and `(2,4)`.
+**Given** the replacement map definition,
+**When** its logical positions, tile-presence mask, or neighbors are queried,
+**Then** row lengths are exactly 9,8,9,8,9 with 43 logical positions and 41 actual tiles,
+**And** holes at (0,2)/(4,6) remain addressable while out-of-row coordinates are rejected.
 
-**Given** any rendered column `c` from 0 through 8 and row `k` from 0 through 4
-**When** the shared topology converts the cell to axial position
-**Then** `r = 2k + (c mod 2)` and `q = (c-r)/2`
-**And** conversion back yields `c = 2q + r` and `k = floor(r/2)`.
+**Given** an even or odd row,
+**When** neighbors are computed,
+**Then** within-row columns are c-1/c+1 and adjacent-row columns are c-1/c for even rows or c/c+1 for odd rows, filtered by row bounds,
+**And** (2,4) has exactly (2,3),(2,5),(1,3),(1,4),(3,3),(3,4).
 
-**Given** any new-rules position
-**When** neighbors, distance, paths, range, or bounds are computed
-**Then** only `(1,0)`, `(-1,0)`, `(0,1)`, `(0,-1)`, `(1,-1)`, and `(-1,1)` are neighbor deltas
-**And** no result treats an off-board cell as legal.
+**Given** any of the 43 logical positions,
+**When** mapped through the existing display/SDK coordinate adapters and back,
+**Then** it returns the same position without collisions,
+**And** coordinate-system/data formats remain unchanged while map-specific layout and six-neighbor distance calculations agree with the new row-staggered battlefield.
 
-**Given** a legacy match
-**When** its board is constructed
-**Then** it retains its existing square positions and geometry
-**And** new-rules axial positions do not replace its `{x,y}` state.
+**Given** board, range, path, targeting, and adjacency consumers using this map,
+**When** identical geometry queries run in browser/shared SDK/server and reconstruction fixtures,
+**Then** they agree on position and neighbor results,
+**And** legacy and prior-map topology fixtures remain unchanged.
 
-### Story 1.3: Move and target consistently on hexes (FR5)
+### Story 2.3: Enter and interact with the exact replacement battlefield
 
-As a player,
-I want movement and targeting to agree with the hexes I see,
-So that legal actions are predictable and replay correctly.
+As a Practice or Sandbox player,
+I want the supplied battlefield and corner starts displayed accurately,
+So that I can recognize and select the positions used by the rules.
 
-**Acceptance Criteria:**
-
-**Given** a new-rules match
-**When** SDK actions, modifiers, AI, or server validation produce or consume a position
-**Then** they use axial `{q,r}` positions and the shared six-neighbor topology
-**And** square-only offsets or diagonals cannot make an action legal.
-
-**Given** a legal or illegal movement, range, or target request at a board edge
-**When** the client predicts it and the authoritative action resolves it
-**Then** both reach the same legality result
-**And** the action payload and replay preserve the same axial target.
-
-**Given** a legacy match or an explicitly supported legacy input adapter
-**When** positions are processed
-**Then** legacy `{x,y}` positions remain valid only in that context
-**And** implicit conversion does not mix coordinate shapes within a new-rules action.
-
-### Story 1.4: See and interact with the hex battlefield (FR2, FR4, FR5)
-
-As a player,
-I want the board and action previews to show the actual hex layout,
-So that I can choose tiles confidently.
+**Requirements:** FR1-FR4, FR16; UX-DR1, UX-DR2, geometry portion of UX-DR6; NFR1-NFR5.
+**Dependencies:** 2.1, 2.2.
+**Scope:** Base map, input adapters, and scoped setup; later stories add Walls and Methron mechanics.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules Practice or Sandbox match
-**When** the battlefield renders
-**Then** it shows all 45 pointy-top cells in nine columns and five rows with odd columns staggered down
-**And** generals appear in the leftmost and rightmost center cells.
+**Given** version 2 replacement-map setup through validated Practice or concrete local Sandbox entry after rollout,
+**When** the base battlefield is constructed and displayed,
+**Then** pointy-top rows have lengths 9,8,9,8,9 with odd rows half a tile right and only 41 hex tiles rendered,
+**And** holes have no tile, player1 starts at (4,0), player2 at (0,8), and (0,0)/(4,8) are ordinary tiles without keyhole or orb entities.
 
-**Given** an axial cell or action target from the SDK
-**When** the view displays it or the player selects it
-**Then** the display adapter maps it to the matching rendered cell and back
-**And** highlighted move, attack, and range previews agree with SDK legality.
+**Given** a visible tile or logical hole position,
+**When** pointer selection and display/SDK conversion are exercised,
+**Then** the selected logical coordinate agrees with shared topology and range/adjacency previews,
+**And** hit testing does not manufacture an extra tile or an odd-row ninth column.
 
-**Given** a legacy match
-**When** its board renders
-**Then** the existing square layout and interactions remain available
-**And** the hex adapter is not applied to it.
+**Given** either supported mode's base setup,
+**When** state is saved, restored, or replayed,
+**Then** ruleset practice-sandbox-hex version 2, holes, starts, and selected action coordinates round-trip,
+**And** unaffected entry paths retain their original maps; new-map selection cannot be forced through a client-supplied identifier.
 
-### Story 1.5: Summon beside the general (FR6)
+**Given** the existing core-rules baseline,
+**When** map setup and otherwise legal ordinary-tile actions run,
+**Then** General-only adjacent summoning, no counterattack, opening mana (17,3)/(16,4), own-turn-end reserve transfer, persistent mana, and mode-specific decks/hands remain in force,
+**And** existing unfinished Epic 1 prerequisites are identified rather than marked complete by this story.
+
+### Story 2.4: Traverse and occupy holes according to unit movement
 
 As a player,
-I want to summon units beside my general,
-So that deployment follows the new positional rule.
+I want flying and phasing units to use holes while ordinary units avoid them,
+So that movement capabilities create valid tactical routes.
+
+**Requirements:** Hole portion of FR6, FR3, FR16; UX-DR1, movement portion of UX-DR6; NFR1-NFR4.
+**Dependencies:** 2.2, 2.3.
+**Scope:** Hole traversal/occupation and occupant interactions; living-Wall permissions follow in 2.5-2.6.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules match and an otherwise valid empty tile adjacent to the owning general
-**When** the player attempts to summon there
-**Then** SDK validation permits the action
-**And** the UI marks the tile as a legal summon destination.
+**Given** an ordinary unit and either hole,
+**When** a path crosses the hole or ends there,
+**Then** shared movement validation rejects that route or destination,
+**And** UI previews do not offer the invalid movement.
 
-**Given** a tile adjacent to an allied unit but not the owning general
-**When** a player or effect attempts to summon there
-**Then** authoritative validation rejects the destination
-**And** client prediction does not show it as legal.
+**Given** a flying or phasing unit with otherwise legal movement,
+**When** it crosses or ends at either hole,
+**Then** the move is accepted and the occupant remains rendered, selectable, and targetable under existing combat rules,
+**And** the underlying hole remains visually empty and normal range/occupancy constraints still apply.
 
-**Given** an occupied, off-board, or otherwise invalid tile beside the general
-**When** a summon is attempted
-**Then** the existing destination constraints still reject it
-**And** no unit is created.
+**Given** hole movement permission,
+**When** a summon is evaluated,
+**Then** movement permission does not independently create summon permission,
+**And** General adjacency, available destination, and the inherited summon rules still govern legality.
 
-**Given** a legacy match
-**When** summon destinations are calculated
-**Then** its existing allied-unit rule remains in effect
-**And** the new general-only restriction is not applied.
+**Given** a unit occupying a hole,
+**When** actions are predicted, resolved, serialized, and replayed,
+**Then** location, selection, and action results agree without null-tile failures,
+**And** ordinary-tile and legacy movement behavior is preserved.
 
-### Story 1.6: Attack without an automatic counterattack (FR7)
+### Story 2.5: Attack neutral Walls and open their tiles
 
 As a player,
-I want an attack to resolve without a forced return attack,
-So that combat follows the new rules.
+I want either side to damage and destroy neutral Walls,
+So that I can open blocked routes and usable tiles.
+
+**Requirements:** FR5, ordinary-unit Wall portion of FR6, FR9, FR10; UX-DR3, Wall portion of UX-DR6; NFR1-NFR5.
+**Dependencies:** 2.2-2.4.
+**Scope:** Separate terrain obstacle storage, neutral attackability, health, destruction, and ordinary movement blocking.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules match with a valid attack
-**When** the attacker deals damage to the defender
-**Then** no automatic strikeback action is generated by the defender
-**And** attack damage and other non-strikeback effects still resolve normally.
+**Given** a new replacement-map match,
+**When** terrain setup completes,
+**Then** exactly nine neutral Walls with 10 health exist at (0,1),(0,6),(1,3),(2,2),(2,6),(2,8),(3,4),(4,2),(4,7),
+**And** the literal asymmetry at (2,8) is retained without adding a Wall at (2,0).
 
-**Given** client prediction, authoritative play, or replay of the same new-rules attack
-**When** combat resolves
-**Then** each path yields the same health and action history
-**And** no card or modifier creates an exception to the no-counterattack rule.
+**Given** a living Wall and either player,
+**When** an otherwise legal attack selects that Wall,
+**Then** the Wall takes the resolved damage and its health/display update consistently,
+**And** Bonechill Barrier assets provide visuals only, without its original statistics, ownership, or modifiers.
 
-**Given** a legacy match
-**When** an attack meets the existing strikeback conditions
-**Then** its current counterattack behavior remains available
-**And** new-rules suppression is not applied.
+**Given** a living Wall,
+**When** an ordinary unit attempts to cross or stop on its position,
+**Then** SDK validation and movement previews reject the route or destination,
+**And** the Wall is a terrain entity rather than a replacement mobile occupant.
 
-### Story 1.7: Manage persistent reserve-funded mana (FR8–FR11)
+**Given** damage that destroys a Wall,
+**When** destruction resolves,
+**Then** only the Wall obstacle is removed and the existing tile becomes available for ordinary movement and otherwise legal summoning,
+**And** health and destruction round-trip through snapshots/replay without a second destruction or a missing underlying tile.
+
+### Story 2.6: Share a Wall position and attack the correct target
 
 As a player,
-I want mana to accumulate from my finite reserve and remain available until spent,
-So that I can plan across turns.
+I want eligible units to occupy Walls with clear attack-target priority,
+So that I can use special movement and attack the intended entity.
+
+**Requirements:** Wall portion of FR6, FR7, FR9; UX-DR4, movement/target portion of UX-DR6; NFR1-NFR4.
+**Dependencies:** 2.4, 2.5.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules match at setup
-**When** opening balances are assigned
-**Then** the first player has reserve 17 and spendable mana 3, and the second has reserve 16 and spendable mana 4
-**And** both allocations originate from a 20-point reserve.
+**Given** a flying or phasing unit and a living Wall,
+**When** otherwise legal movement crosses or ends on that position,
+**Then** the move succeeds and the Wall and unit remain distinct entities at the coordinate,
+**And** this movement permission does not change summon legality or ordinary-unit restrictions.
 
-**Given** a new-rules player ending their own turn with reserve `R` and spendable mana `M`
-**When** `p_endTurn` resolves
-**Then** only that recorded ending player transfers `T = min(3,R)` once, ending with reserve `R-T` and mana `M+T`
-**And** observers receive those balances before `end_turn` is published.
+**Given** a Wall tile occupied by an enemy unit,
+**When** a direct melee or ranged attack is requested against that tile or its Wall,
+**Then** the enemy occupant is the resolved target instead of the Wall, subject to normal attack legality,
+**And** UI preview, SDK validation, authoritative execution, AI, and replay agree; explicit Wall selection cannot bypass the priority.
 
-**Given** a new-rules player with zero reserve or unspent mana above nine
-**When** a turn begins or ends
-**Then** zero reserve grants no mana and unspent mana persists without a cap or refresh
-**And** neither bonus mana tiles nor another effect grants mana outside the reserve rule.
+**Given** a Wall tile occupied only by an allied unit, or a tile with an allied unit but no Wall,
+**When** a direct melee or ranged attack is requested,
+**Then** the former can target the neutral Wall when otherwise legal and the latter cannot attack the allied unit,
+**And** allied occupants never receive direct friendly attacks.
 
-**Given** a playable card with a mana cost
-**When** the new-rules player plays it
-**Then** that cost is deducted from spendable mana
-**And** insufficient spendable mana prevents the play.
+**Given** a Wall and its enemy occupant within an eligible damaging area effect,
+**When** area damage resolves,
+**Then** both entities receive their applicable damage independently,
+**And** the supporting Wall does not shield its occupant or absorb the occupant's damage.
 
-**Given** a new-rules player's opening allocation, card spending, or turn-end transfer
-**When** the match view updates
-**Then** it displays the current spendable mana and reserve for the correct player
-**And** the displayed balances agree with SDK state.
+**Given** allied units, enemy units, and neutral Walls within an eligible damaging area effect,
+**When** its damage resolves,
+**Then** allied units receive no damage from that effect while eligible enemies and Walls do,
+**And** a Wall beneath an allied occupant can take damage independently without damaging that ally.
 
-**Given** a legacy match
-**When** turns or card costs resolve
-**Then** its existing mana refresh and cap behavior remain available
-**And** reserve-transfer logic is not applied.
+**Given** the co-located pair,
+**When** either entity is removed through a legal action,
+**Then** the other entity remains with its own identity and state,
+**And** destroying the Wall retains the tile and surviving occupant.
 
-### Story 1.8: Keep conflicting cards out of new-rules matches (FR17, FR18, FR20)
+**Given** co-located state,
+**When** it is saved, restored, or replayed,
+**Then** both identities, health values, and occupancy relationships survive,
+**And** stale or inconsistent target information is rejected or revalidated through the documented attack-priority contract rather than silently damaging an unintended entity.
+
+### Story 2.7: Apply Wall obstruction consistently to attacks and area effects
 
 As a player,
-I want deck choices to contain cards that obey the new rules,
-So that card effects do not break a match.
+I want Walls to block intervening attacks without shielding their own occupant,
+So that previews and combat results follow the battlefield rules.
+
+**Requirements:** FR3, FR8, FR16; attack/area portion of UX-DR6; NFR1-NFR4.
+**Dependencies:** 2.2, 2.5, 2.6.
 
 **Acceptance Criteria:**
 
-**Given** candidate cards for Practice or Sandbox
-**When** the compatibility audit runs
-**Then** each admitted explicit card ID, variant, modifier, follow-up, generated card, and general/signature effect is checked against hex targeting, general-only summoning, no counterattack, reserve-only mana, and fixed hand slots
-**And** unaudited or conflicting IDs are excluded from the shared SDK allowlist.
+**Given** a Wall between a source and an otherwise reachable target,
+**When** a ranged attack or area effect is evaluated,
+**Then** the target beyond the obstruction is blocked according to one documented shared hex obstruction policy,
+**And** SDK resolution and UI previews use the same result.
 
-**Given** a card that draws, replaces, returns, adds, or changes hand contents or slots, grants extra mana, counters automatically, or summons outside general adjacency
-**When** the policy evaluates it or an action attempts to create it during play
-**Then** the shared policy rejects it
-**And** its old effect does not create a rule exception.
+**Given** a unit standing on a Wall with no other intervening blocker,
+**When** an otherwise legal melee attack, ranged attack, or area effect targets it,
+**Then** its supporting Wall does not block the effect against that unit,
+**And** adding a different intervening Wall blocks the ranged attack or area effect as required.
 
-**Given** an eligible card or an attempted generated-card creation
-**When** SDK setup or an authoritative action checks it
-**Then** each boundary consults the same allowlist of explicit IDs
-**And** an excluded card cannot enter new-rules state through a local blacklist or bypass.
+**Given** a ranged attacker and an in-range target,
+**When** attack legality is evaluated,
+**Then** only targets on one of the six hex axes perpendicular to the attacker's tile edges are eligible,
+**And** intermediate Wall cells block the attack while the target-supporting-Wall exception remains in force.
 
-**Given** Maw's nearby damage effect in a new-rules match
-**When** it selects nearby targets
-**Then** it uses the six-neighbor hex topology before Maw is admitted
-**And** legacy behavior remains scoped to legacy matches.
+**Given** an area effect with explosion radius R,
+**When** candidate targets and obstruction are computed,
+**Then** candidates are within hex distance R of the explosion center, including off-axis positions, and each is checked by the direct center-to-target-center segment without detours,
+**And** R describes explosion radius rather than caster-to-center distance.
 
-### Story 1.9: Create separate nine-card decks (FR12, FR18)
+**Given** such a segment and an intervening Wall,
+**When** the segment intersects the Wall hex interior or touches only its boundary/vertex,
+**Then** only the interior intersection blocks delivery,
+**And** boundary-only/vertex-only contacts do not block, the target-supporting Wall is excluded, and odd/even rows, holes, prediction, server, Sandbox, and replay use the same results.
+**Given** an eligible card effect, including Maw's nearby follow-up,
+**When** its range, adjacency, or area targets are resolved on the replacement map,
+**Then** it uses shared replacement geometry and applicable Wall obstruction,
+**And** audited eligibility, no automatic counterattacks, and other inherited combat constraints remain intact.
+
+### Story 2.8: Capture and retain Methron Points
 
 As a player,
-I want separate Practice and Sandbox decks sized for the new rules,
-So that I can prepare for each mode without changing my existing decks.
+I want to capture, retain, and recapture Methron Points,
+So that territory remains mine until the opponent takes it.
+
+**Requirements:** FR11-FR13, capture portion of FR15; UX-DR5, ownership portion of UX-DR7; NFR1-NFR5.
+**Dependencies:** 2.3-2.7.
+**Scope:** Point placement, capture timing, ownership, visuals, and persistence; deficit damage follows in 2.9.
 
 **Acceptance Criteria:**
 
-**Given** the deck editor
-**When** a player creates or edits a Practice or Sandbox deck
-**Then** it records the matching `practice` or `sandbox` purpose and requires exactly one general plus eight eligible other cards
-**And** excluded card IDs cannot be selected.
+**Given** a replacement-map match,
+**When** objective setup completes,
+**Then** five neutral Methron Points appear at (0,3),(0,5),(2,4),(4,3),(4,5) using tile_mana_idle,
+**And** they grant no mana and are not consumed by capture or departure.
 
-**Given** an existing deck without a saved purpose
-**When** it is loaded
-**Then** it resolves to `legacy` without changing its 40 cards
-**And** the player can still use it in its existing modes.
+**Given** either player's unit on a point at either player's turn end,
+**When** relevant turn-end effects resolve and the unit remains alive for capture,
+**Then** the point becomes controlled by that unit's player,
+**And** a unit killed before the capture phase does not capture.
 
-**Given** a Practice deck and a Sandbox deck
-**When** the player saves or reopens them
-**Then** their purposes and card lists remain separate
-**And** the editor displays the correct size and eligibility constraints for each purpose.
+**Given** a controlled point,
+**When** its occupant leaves or a surviving opposing unit captures it,
+**Then** empty ownership persists in the first case and ownership transfers in the second,
+**And** neutral, player1, and player2 states remain distinguishable even without occupants.
 
-### Story 1.10: Enter matches with valid decks and the fixed Practice bot (FR13, FR18, FR19)
+**Given** a General instead of another unit,
+**When** the same capture conditions apply,
+**Then** it captures and recaptures normally without General-specific standing damage or effects,
+**And** ownership round-trips and replays deterministically with no separate Heart entity.
+
+### Story 2.9: Damage the disadvantaged General at both turn ends
 
 As a player,
-I want match entry to accept the right deck and Practice opponent,
-So that a match starts in a valid state.
+I want Methron control advantage to damage the opposing General,
+So that retaining territory affects the match outcome.
+
+**Requirements:** FR14-FR16; UX-DR7; NFR1-NFR4.
+**Dependencies:** 2.8.
 
 **Acceptance Criteria:**
 
-**Given** a selected Practice deck
-**When** the Practice server route validates match entry
-**Then** it accepts only purpose `practice`, exactly one general, eight eligible cards, and the shared eligibility policy before setup
-**And** it rejects an invalid deck before the existing `allCardsAvailable` bypass.
+**Given** either player's turn ends,
+**When** the Methron phase runs,
+**Then** captures are updated after relevant turn-end effects and before all five ownership states are counted,
+**And** empty controlled points count toward their owner's total.
 
-**Given** a selected Sandbox deck
-**When** the concrete local Sandbox launch validates match entry
-**Then** it accepts only purpose `sandbox`, exactly one general, eight eligible cards, and the same policy before setup
-**And** an invalid deck cannot construct a new-rules match.
+**Given** player control counts of 3 and 1,
+**When** either player's turn ends,
+**Then** the disadvantaged General takes 4 control damage,
+**And** 2 versus 2 causes none and 5 versus 0 causes 10, irrespective of which player ended the turn.
 
-**Given** any Practice bot difficulty and general
-**When** its deck is built
-**Then** it uses that general plus exactly one each of Maw (10979), Bloodtear Alchemist (19052), Golem Metallurgist (19038), Bloodshard Golem (10205), Dragonlark (10001), Flameblood Warlock (19051), Sworn Avenger (10954), and Drybone Golem (10206)
-**And** setup fails if this exact roster is substituted, incomplete, or excluded by the allowlist.
+**Given** a capture changes the advantage at turn end,
+**When** damage is calculated,
+**Then** the updated ownership determines the disadvantaged player and damage,
+**And** a unit dying before capture cannot change ownership merely through its former presence.
 
-**Given** a legacy mode
-**When** its deck is validated for entry
-**Then** its existing deck rules remain applicable
-**And** the new purpose and allowlist checks do not reject a valid legacy deck.
+**Given** a General stands on a point, or control damage is lethal,
+**When** turn-end resolution runs,
+**Then** standing itself adds no damage and lethal control damage uses existing General damage and match-end resolution,
+**And** no Heart or additional victory condition is created.
 
-### Story 1.11: Start with eight fixed hand slots (FR14, FR15, FR19)
+**Given** the combined turn-end pipeline,
+**When** the same turn is predicted, authoritatively resolved, saved, and replayed,
+**Then** ownership, damage, and resulting match state agree,
+**And** reserve transfer min(3,reserve) occurs exactly once for the ending player, point effects grant no mana, and fixed hands do not draw, refill, shift, or incur fatigue.
 
-As a player,
-I want all eight deck cards in stable hand slots from the start,
-So that I can see and use my complete new-rules hand.
+### Story 2.10: Face a Practice bot that makes legal terrain-aware actions
 
-**Acceptance Criteria:**
+As a Practice player,
+I want the bot to move, summon, and target legally on the new battlefield,
+So that the opponent can complete turns without invalid map assumptions.
 
-**Given** a valid new-rules deck for either player or the Practice bot
-**When** match setup creates the hand
-**Then** all eight non-general cards occupy indices 0 through 7 in a length-eight array
-**And** no opening draw, mulligan, or replacement changes them.
-
-**Given** a new-rules card play identifying a slot and card instance
-**When** the authoritative action resolves
-**Then** that slot becomes `null` and the other seven indices retain their cards or prior `null` values
-**And** a mismatched, empty, or stale slot/card pair is rejected.
-
-**Given** a new-rules hand during rendering, save, restore, or replay
-**When** a slot is empty
-**Then** its empty position remains visible or represented at the same index
-**And** no serialization or UI mutation splices or shifts the array.
-
-**Given** a legacy match
-**When** its hand is created and cards are played
-**Then** its existing hand size and mutation behavior remain in effect
-**And** the fixed eight-slot representation is not imposed.
-
-### Story 1.12: Finish matches without hand refills or fatigue (FR16)
-
-As a player,
-I want my fixed hand to remain predictable through the match,
-So that ending turns or exhausting cards does not change its contents unexpectedly.
+**Requirements:** FR17, FR3, FR16; NFR1-NFR3.
+**Dependencies:** 2.2-2.9; existing Epic 1 valid entry/fixed bot roster prerequisite.
+**Scope:** Legal action generation and execution, without requiring later tactical scoring improvements.
 
 **Acceptance Criteria:**
 
-**Given** a new-rules match after setup
-**When** a turn ends or a deck/hand mutation path runs
-**Then** no draw, refill, replacement, return, card addition, or slot shift occurs
-**And** spent slots remain `null`.
+**Given** the Practice bot considers a move, summon, or attack,
+**When** candidates are generated,
+**Then** shared SDK geometry and legality govern row bounds, six-neighbor paths, holes, Walls, movement types, General-adjacent summons, target identities, and applicable obstruction,
+**And** square-grid offsets or coordinate-only target assumptions cannot admit an invalid candidate.
 
-**Given** all eight new-rules hand slots are spent
-**When** a turn ends or another action resolves
-**Then** no deck-exhaustion fatigue occurs
-**And** the player can continue using legal non-card actions.
+**Given** ordinary, flying, and phasing unit fixtures,
+**When** bot candidates are evaluated,
+**Then** ordinary movement avoids holes/living Walls and eligible special movement can cross or occupy them,
+**And** no extra summon permission is inferred from movement permission.
 
-**Given** a Practice and a Sandbox match using valid nine-card decks
-**When** each is played, saved, and replayed through board movement, summoning, attack, mana transfer, and card spending
-**Then** both produce deterministic new-rules state with eight stable hand slots
-**And** a representative unaffected mode still produces its legacy state and behavior.
+**Given** a bot turn with no legal non-ending action,
+**When** the bot selects its next action,
+**Then** it can end the turn through the existing legal action flow,
+**And** it does not repeatedly submit an invalid action or stall on unavailable coordinates.
+
+**Given** each existing Practice difficulty,
+**When** a replacement-map match starts and representative turns run,
+**Then** the bot uses the approved General plus the exact eight-card roster and starts with all eight cards in stable hand slots,
+**And** chosen actions validate authoritatively and replay with the same outcomes; roster substitution and new difficulty modes are not introduced.
+
+### Story 2.11: Face a Practice bot that evaluates Walls and routes
+
+As a Practice player,
+I want the bot to understand destructible obstacles and distinct targets,
+So that Walls create tactical decisions for both sides.
+
+**Requirements:** FR18, FR17; NFR1-NFR3.
+**Dependencies:** 2.10 and completed Wall behavior in 2.5-2.7.
+
+**Acceptance Criteria:**
+
+**Given** a candidate attack against a Wall,
+**When** the bot simulates its result,
+**Then** evaluation accounts for remaining Wall health and legal routes available after destruction,
+**And** it does not treat an undestroyed Wall as an open ordinary-unit route.
+
+**Given** otherwise equivalent choices where destroying a Wall opens a useful route and an alternative gains no combat or positional benefit,
+**When** deterministic evaluation fixtures compare candidates,
+**Then** the route-opening benefit is represented in the candidate score and can affect the chosen action,
+**And** the scoring weights and fixture conditions are documented without requiring Wall attacks to override a winning move.
+
+**Given** a Wall and an enemy unit at the same coordinate,
+**When** the bot evaluates attacks,
+**Then** it resolves direct attacks to the enemy occupant rather than offering a Wall-override candidate, and eligible area effects evaluate both entities independently,
+**And** it accounts for intervening blocking and the supporting-Wall exception for ranged/area effects.
+
+**Given** a hypothetical candidate state,
+**When** route/attack evaluation finishes,
+**Then** speculative Wall damage, destruction, and occupancy have not mutated the live match,
+**And** executing the chosen action produces the shared SDK result predicted for that target.
+
+### Story 2.12: Face a balanced Practice bot that competes for Methron control
+
+As a Practice player,
+I want the bot to contest and defend Methron Points,
+So that territorial control is a meaningful tactical challenge.
+
+**Requirements:** FR19, FR16, FR17; NFR1-NFR3.
+**Dependencies:** 2.10, 2.11 and completed point behavior in 2.8-2.9.
+
+**Acceptance Criteria:**
+
+**Given** a candidate move, attack, or turn end that changes point occupation,
+**When** the bot evaluates the resulting position,
+**Then** it accounts for capture, recapture, persistent ownership of empty points, and the survival of the prospective capturer through relevant turn-end effects,
+**And** leaving a point empty does not incorrectly lose its ownership.
+
+**Given** a simulated turn end for either player,
+**When** the bot estimates control damage,
+**Then** it applies capture before counting and damages the disadvantaged General by 2 times the point-count difference,
+**And** 3 versus 1 estimates 4 damage, equal counts estimate zero, and Generals have neither a capture penalty nor standing damage.
+
+**Given** a controlled fixture with equally safe alternatives and no immediate winning attack,
+**When** capturing or recapturing a point improves control damage compared with a neutral move,
+**Then** the territorial advantage affects evaluation and the bot selects the advantageous option under deterministic fixture settings,
+**And** a separate fixture verifies that defending a point and preserving its capturer's survival are valued when they prevent a worse control outcome.
+
+**Given** a candidate using its General to capture or exposing its General to lethal damage,
+**When** the bot compares choices,
+**Then** General capture is evaluated using ordinary capture rules and existing survival/win considerations still apply,
+**And** the evaluation does not blindly prefer territory over an immediate win or forced loss.
+
+**Given** representative fixed-roster Practice positions across existing difficulties,
+**When** the integrated bot completes turns,
+**Then** actions remain legal and the resulting control/damage state matches authoritative execution and replay,
+**And** map tactics do not change the fixed roster, reserve mana contract, stable hand slots, or card eligibility policy.
+
+**Given** no immediate winning move or immediate defeat to avert,
+**When** the Practice bot compares territorial and combat candidates,
+**Then** it uses a balanced evaluation of expected control damage, enemy removal/General damage, and unit survival rather than an unconditional capture-first or attack-first rule,
+**And** documented evaluation fixtures include a position favoring capture and a position favoring combat; numerical weights remain implementation tuning constrained by these behaviors.
+## Story Coverage and Delivery Notes
+
+| Requirement | Stories |
+| --- | --- |
+| FR1 | 2.1, 2.3 |
+| FR2 | 2.2, 2.3 |
+| FR3 | 2.2, 2.3, 2.7, 2.10 |
+| FR4 | 2.3 |
+| FR5 | 2.5 |
+| FR6 | 2.4, 2.5, 2.6 |
+| FR7 | 2.6 |
+| FR8 | 2.7 |
+| FR9 | 2.5, 2.6 |
+| FR10 | 2.5 |
+| FR11 | 2.8 |
+| FR12 | 2.8 |
+| FR13 | 2.8 |
+| FR14 | 2.9 |
+| FR15 | 2.8, 2.9 |
+| FR16 | 2.1, 2.3, 2.7, 2.9, 2.10, 2.12 |
+| FR17 | 2.10, 2.11, 2.12 |
+| FR18 | 2.11 |
+| FR19 | 2.12 |
+| NFR1 | 2.2-2.12 |
+| NFR2 | 2.1-2.12 |
+| NFR3 | 2.1-2.3, 2.10-2.12; compatibility checks throughout |
+| NFR4 | 2.3-2.9 |
+| NFR5 | 2.1-2.3, 2.5, 2.8; shared existing architecture throughout |
+| UX-DR1 | 2.3, 2.4 |
+| UX-DR2 | 2.3 |
+| UX-DR3 | 2.5 |
+| UX-DR4 | 2.6 |
+| UX-DR5 | 2.8 |
+| UX-DR6 | 2.2-2.7 |
+| UX-DR7 | 2.8, 2.9 |
+
+User approved Story 2.1 explicitly and authorized automatic approval of all subsequent stories. The numbered story order uses only earlier Epic 2 capabilities and the stated Epic 1 baseline. Epic 1 baseline repair is verified; its Story 1.10 sprint handoff remains review. The baseline repair updated sprint records separately. Before replacement-map rollout, retain those verified contracts and integrate all twelve stories. This artifact does not implement code or update sprint tracking. Baseline test results and environment limits are recorded in epic-2-validation-2026-11-01.md; they do not verify the unimplemented Epic 2 gameplay.

@@ -2,7 +2,7 @@
 title: 'Enter matches with valid decks and the fixed Practice bot'
 type: 'feature'
 created: '2026-10-30'
-status: 'draft'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '9c1f7c5751bd9da3c806ca9a604dd01621111f18'
 review_loop_iteration: 0
@@ -52,11 +52,11 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `server/routes/api/me/games.coffee` and shared deck validation -- Fetch selected saved Practice deck and validate purpose, count, general, and eligibility before any bypass or session setup.
-- [ ] `app/ui/views/composite/deck_select_single_player.js` and `app/application.coffee` -- Send saved deck identity; preserve AI difficulty controls.
-- [ ] `app/sdk/challenges/sandbox.coffee` and Sandbox selection -- Validate both saved Sandbox decks before new-rules setup; leave Developer Sandbox legacy.
-- [ ] `server/ai/decks/usable_decks.js` or a Practice roster provider -- Use exact fixed cards at all difficulties with one selected general; fail closed if any roster card is ineligible.
-- [ ] Focused route, SDK setup, Sandbox, and bot tests -- Cover valid/invalid purposes, bypass, exact roster at difficulties, and legacy paths.
+- [x] `server/routes/api/me/games.coffee` and shared deck validation -- Fetch selected saved Practice deck and validate purpose, count, general, and eligibility before any bypass or session setup.
+- [x] `app/ui/views/composite/deck_select_single_player.js` and `app/application.coffee` -- Send saved deck identity; preserve AI difficulty controls.
+- [x] `app/sdk/challenges/sandbox.coffee` and Sandbox selection -- Validate both saved Sandbox decks before new-rules setup; leave Developer Sandbox legacy.
+- [x] `server/ai/decks/usable_decks.js` or a Practice roster provider -- Use exact fixed cards at all difficulties with one selected general; fail closed if any roster card is ineligible.
+- [x] Focused route, SDK setup, Sandbox, and bot tests -- Cover valid/invalid purposes, bypass, exact roster at difficulties, and legacy paths.
 
 **Acceptance Criteria:**
 - Given a selected Practice deck, when the server validates entry, then only purpose `practice`, one general, eight eligible cards, and the shared policy are accepted before `allCardsAvailable` can bypass other checks.
@@ -66,6 +66,31 @@ context:
 
 ## Implementation Notes
 
+- User authorized completing the audited Epic 1 gaps and verification in this session. Preserve the frozen requirements; no new user-facing intent gaps remain.
+- Existing dirty UI/card art/AI work is user-owned and must be retained. Do not reset/stage/overwrite unrelated changes; inspect any shared file before editing.
+- Practice fixed roster construction already exists in create_single_player_game.coffee; retain it and add focused verification rather than replacing working behavior.
+- Stored deck access must use authenticated user identity plus selected deck ID; existing numeric saved-card arrays must be normalized without trusting submitted cards/purpose.
+- Extend server/validators/index.js, server/lib/data_access/decks.coffee (owned lookup), games.coffee, selection/application event flow, and Sandbox descriptor validation. Preserve existing legacy/Developer Sandbox paths.
+- No production credentials are needed for unit tests: stub Firebase/database access at the test boundary. Do not fabricate credentials or contact production Firebase.
+- Reuse test/unit/server/api/decks_routes.js patterns and add an HTTP Practice entry suite. Avoid importing a new framework.
+- Local temporary Redis for these tests is duelyst-codex-test-redis on localhost:6379; host network tests require the unrestricted runner.
+
+
+### Implementation evidence (2026-11-01)
+
+- Practice submits `deck_id`; the server looks up authenticated owner plus deck ID and validates saved purpose/cards before availability checks or session creation. Submitted cards/purpose cannot override the record.
+- Shared `CardEligibility.validateSavedDeck` validates saved descriptors; `UsersModule.isAllowedToUseDeck` enforces Practice format before `allCardsAvailable` and accepts valid nine-card decks when inventory checks run.
+- Concrete Sandbox validates both saved descriptors before setup. Developer Sandbox retains raw legacy arrays and ruleset.
+- Preserved the exact fixed Practice roster and difficulty behavior, bypassed legacy deck construction for Practice, and prevented setup options from replacing its roster.
+- Removed unsaved synthetic Practice starter choices; new-rules selectors default to saved custom decks. Practice opponents are audited generals.
+- Added `duelyst/test/unit/server/api/practice_entry.js`: 49 cases covering HTTP identity/invalid inputs, bypass ordering, inventory-enabled entry, Sandbox descriptors, Developer compatibility, all nine audited generals at difficulties 0/0.5/1, and incomplete/ineligible bot rosters.
+
+### Verification evidence (2026-11-01)
+
+- Focused Practice entry, deck routes, card eligibility, and game setup: 95 passing, one pre-existing failure. The stale general-start fixture expects (-2,4)/(2,4), while the current committed board uses (-1,2)/(7,2); root is repairing that baseline separately.
+- All seven changed CoffeeScript files compile. CoffeeLint has no errors with line endings ignored; two existing unnecessary-fat-arrow warnings remain in app/application.coffee at lines 670 and 3245.
+- `git diff --check` passes. Tests used the local temporary Redis with authorized unrestricted localhost access; no production Firebase credentials or Firebase access were used.
+- Status remains in-progress pending root integrated verification and independent review.
 
 ## Spec Change Log
 
@@ -82,3 +107,37 @@ Validate stored deck purpose by database lookup rather than trusting the request
 **Commands:**
 - Run focused server deck validation, game setup, Sandbox, and Practice bot tests -- expected: all pass.
 - Compile changed CoffeeScript files, run CoffeeLint with the repository line-ending rule ignored, and run `git diff --check` -- expected: clean.
+
+
+### Integrated review triage (2026-11-01)
+
+| Reviewer / finding | Verdict / route | Evidence |
+| --- | --- | --- |
+| Blind: purpose switching removes cards | medium / defer | Pre-existing DeckModel conversion filtering is unchanged; preserve/confirm conversion separately. |
+| Blind: cached Sandbox selections bypass filter | medium / patch | Restoration searches full collection; reuse purpose/validity filter and clear incompatible cached choices. |
+| Blind: only primary audited opponents visible | medium / patch | Secondary generals were AI-tools-only; derive choices from audited IDs. |
+| Blind: incomplete drafts rejected on save | medium / defer | Prior deck-management contract rejects incomplete decks; separate editor/save treatment is needed, without weakening entry validation. |
+| Blind: null bestObjective dereference | medium / defer | Committed positional scoring accesses getPosition before null fallback; untouched by this repair. |
+| Blind: resize retains old origin | medium / defer | Existing utils_hex_view redraw closure captures origin/projection; untouched here. |
+| Blind: repeated board diameter computation | low / defer | User-owned untracked AI geometry predates task; pairwise work exists but latency is unmeasured. |
+| Blind: generic empty-state instructions | medium / patch | Saved-only entry needs purpose-specific nine-card deck guidance, preserving legacy views. |
+| Blind: runtime AI sequence untested | medium (unverified) / defer | Existing user AI work is not tested by setup/roster assertions; deterministic runtime turns would settle legality/scoring. |
+| Blind: hand confirmation lifecycle untested | medium / patch | New caller tests execute production chooser/submission with successful reveal and destroyed/replaced/session-changed guards. |
+| Edges: null objective access before guard | medium / defer | Same pre-existing baseline issue; logged individually. |
+| Edges: resize captures origin | medium / defer | Same pre-existing display concern; logged individually. |
+| Verification: saved ID UI caller untested | medium / patch | New production-method test executes selection event through application request builder and asserts serialized deck_id. |
+| Verification: hand confirmation untested | medium / patch | Successful/stale scenarios now execute real source functions with controlled dependencies. |
+
+Review diff includes historical commits and user-owned dirty UI/AI/art. These are not attributed to this repair. Existing user work is preserved.
+
+### Final integrated verification (2026-11-01)
+
+- 224 tests passed in one server/UI/SDK run, including 49 saved-deck/roster cases, five fixed-hand mutation cases, and twelve UI caller/lifecycle cases.
+- Ten changed CoffeeScript files compile. CoffeeLint reports zero errors (CRLF rule ignored), with only two pre-existing application.coffee fat-arrow warnings. Changed JavaScript files pass ESLint.
+- Initial setup and reconstruction use a try/finally private insertion permission; post-setup session/raw Deck insertion rejects before card data, indexing, relocation, or events. Legacy insertion and null-slot snapshot/replay reconstruction pass.
+- Original 12 baseline failures plus the newly observable stale start-position assertion are resolved without relaxing eligibility, changing current geometry, or removing damage assertions.
+- Local Redis is an isolated temporary container on loopback; unit tests stub database/Firebase boundaries and need no production credentials. A full deployed browser/Firebase environment was not exercised.
+- Three independent review layers completed; introduced caller/selection gaps were fixed and tested. Pre-existing editor/AI/resize findings are recorded individually in the review log and deferred-work.md. No unrelated UI/AI/art work was overwritten.
+
+
+Local implementation commit: e942ea338b402b6c8349b01f1b8bcffae34b1d7c. No remote push.

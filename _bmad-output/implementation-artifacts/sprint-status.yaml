@@ -29,29 +29,38 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-30-2026 00:31
-last_updated: 2026-10-30
+last_updated: 11-01-2026 15:31
 project: duelyst
 project_key: NOKEY
 tracking_system: file-system
 story_location: C:\Working\duelyst\_bmad-output\implementation-artifacts
 development_status:
-  epic-1: in-progress
-  1-1-keep-each-match-s-rules-consistent-fr1: review
-  1-2-play-on-a-correctly-bounded-hex-battlefield-fr2-fr5: review
-  1-3-move-and-target-consistently-on-hexes-fr5: review
+  epic-1: done
+  1-1-keep-each-match-s-rules-consistent-fr1: done
+  1-2-play-on-a-correctly-bounded-hex-battlefield-fr2-fr5: done
+  1-3-move-and-target-consistently-on-hexes-fr5: done
   1-4-see-and-interact-with-the-hex-battlefield-fr2-fr4-fr5: done
-  1-5-summon-beside-the-general-fr6: review
-  1-6-attack-without-an-automatic-counterattack-fr7: review
-  1-7-manage-persistent-reserve-funded-mana-fr8-fr11: review
-  1-8-keep-conflicting-cards-out-of-new-rules-matches-fr17-fr18-fr: review
-  1-9-create-separate-nine-card-decks-fr12-fr18: review
-  1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr: backlog
-  1-11-start-with-eight-fixed-hand-slots-fr14-fr15-fr19: review
-  1-12-finish-matches-without-hand-refills-or-fatigue-fr16: review
+  1-5-summon-beside-the-general-fr6: done
+  1-6-attack-without-an-automatic-counterattack-fr7: done
+  1-7-manage-persistent-reserve-funded-mana-fr8-fr11: done
+  1-8-keep-conflicting-cards-out-of-new-rules-matches-fr17-fr18-fr: done
+  1-9-create-separate-nine-card-decks-fr12-fr18: done
+  1-10-enter-matches-with-valid-decks-and-the-fixed-practice-bot-fr: done
+  1-11-start-with-eight-fixed-hand-slots-fr14-fr15-fr19: done
+  1-12-finish-matches-without-hand-refills-or-fatigue-fr16: done
   epic-1-retrospective: optional
 
-
-
-
-
-
+  epic-2: backlog
+  2-1-preserve-each-saved-match-s-battlefield-and-rules: backlog
+  2-2-resolve-positions-consistently-on-the-irregular-hex-battlefi: backlog
+  2-3-enter-and-interact-with-the-exact-replacement-battlefield: backlog
+  2-4-traverse-and-occupy-holes-according-to-unit-movement: backlog
+  2-5-attack-neutral-walls-and-open-their-tiles: backlog
+  2-6-share-a-wall-position-and-attack-the-correct-target: backlog
+  2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: backlog
+  2-8-capture-and-retain-methron-points: backlog
+  2-9-damage-the-disadvantaged-general-at-both-turn-ends: backlog
+  2-10-face-a-practice-bot-that-makes-legal-terrain-aware-actions: backlog
+  2-11-face-a-practice-bot-that-evaluates-walls-and-routes: backlog
+  2-12-face-a-balanced-practice-bot-that-competes-for-methron-contr: backlog
+  epic-2-retrospective: optional
