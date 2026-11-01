@@ -23,6 +23,7 @@ const ScoreForModifiers = require('./scoring/base/modifiers');
 const ScoreForUnit = require('./scoring/base/unit');
 const ScoreForUnitDamage = require('./scoring/base/unit_damage');
 const scoreWallRouteBenefit = require('./scoring/utils/utils_scoreWallRouteBenefit');
+const scoreMethronControl = require('./scoring/utils/utils_scoreMethronControl');
 const ScoreForIntents = require('./scoring/intent/intents');
 const ScoreForIntentFollowup = require('./scoring/intent/intent_followup');
 const ScoreForCardAtTargetPosition = require('./scoring/position/position_ScoreForCardAtTargetPosition');
@@ -437,6 +438,11 @@ StarterAI.prototype = {
       // Logger.module("AI").debug("[G:" + this.getGameSession().gameId + "] attempting attack for " + unit.getLogName());
       this._findAttackActionsForUnit(unit, allowOnlyLethalAttacks);
     });
+    if (this._nextActions.length > 0) return;
+
+    // After immediate lethals, compare point captures with one-step combat and
+    // ordinary movement candidates using the resolved end-turn position.
+    this._findBestMethronTacticalAction(myUsableUnits);
     if (this._nextActions.length > 0) return;
 
     // after lethal has been handled, allow non-lethal
@@ -2402,6 +2408,60 @@ StarterAI.prototype = {
           this._nextActions.push(moveAction);
         }
       }
+    }
+  },
+
+  _findBestMethronTacticalAction(units) {
+    const gameSession = this.getGameSession();
+    if (!scoreMethronControl.isMethronSession(gameSession) || this._hasLethalOnEnemyGeneral) return false;
+
+    const board = gameSession.getBoard();
+    const methronPoints = board.getTiles(true, false).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint);
+    if (methronPoints.length === 0) return false;
+
+    const baseline = scoreMethronControl.createProjection(gameSession);
+    const candidates = [];
+    const addCandidate = (action) => {
+      if (action && !candidates.some((candidate) => candidate.getType() === action.getType()
+        && candidate.getSourceIndex() === action.getSourceIndex()
+        && candidate.getTargetIndex() === action.getTargetIndex()
+        && this._positionsEqual(candidate.getTargetPosition(), action.getTargetPosition()))) {
+        candidates.push(action);
+      }
+    };
+
+    try {
+      for (const unit of units) {
+        if (unit.getCanMove() && !this._isUnitPreventedFromMoving(unit)) {
+          const potentialMoves = this._findPotentialMovePositionsForUnit(unit);
+          for (const position of potentialMoves) {
+            addCandidate(unit.actionMove(position));
+          }
+        }
+
+        if (unit.getCanAttack() && !this._isUnitPreventedFromAttacking(unit)) {
+          const objectives = this._findSortedFilteredAttackObjectivesAndScoresForUnit(unit, unit.getPosition(), false, true);
+          for (const combatObjective of objectives) {
+            if (combatObjective.objective.getType() === SDK.CardType.Unit) {
+              addCandidate(unit.actionAttack(combatObjective.objective));
+            }
+          }
+        }
+      }
+
+      let bestAction = null;
+      let bestScore = 0;
+      for (const action of candidates) {
+        const score = scoreMethronControl(gameSession, action, this.getMyPlayerId(), baseline);
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = action;
+        }
+      }
+      if (bestAction) this._nextActions.push(bestAction);
+      return bestAction != null;
+    } finally {
+      baseline.terminate();
     }
   },
 
