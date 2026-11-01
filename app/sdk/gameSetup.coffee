@@ -10,6 +10,7 @@ CosmeticsFactory = require './cosmetics/cosmeticsFactory'
 ModifierStartsInHand = require 'app/sdk/modifiers/modifierStartsInHand'
 _ = require("underscore")
 CardEligibility = require './rulesets/cardEligibility'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
 
 GameSetup = {}
 
@@ -73,9 +74,13 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     # always add general before adding cards but after setting up deck
     # because general may attempt to access deck and cards may attempt to add modifiers to the general
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      # Practice uses the outer cells of the middle (third) row.
-      general1X = -1
-      general1Y = 2
+      if gameSession.getRulesetVersion() is 2
+        general1X = -2
+        general1Y = 4
+      else
+        # Version 1 Practice uses the outer cells of the middle (third) row.
+        general1X = -1
+        general1Y = 2
     else
       general1Position = player1Data.startingGeneralPosition
       if general1Position?
@@ -86,8 +91,12 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     GameSetup.addGeneral(gameSession, player1, general1, general1X, general1Y)
 
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      general2X = 7
-      general2Y = 2
+      if gameSession.getRulesetVersion() is 2
+        general2X = 8
+        general2Y = 0
+      else
+        general2X = 7
+        general2Y = 2
     else
       general2Position = player2Data.startingGeneralPosition
       if general2Position?
@@ -109,6 +118,11 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
 
     GameSetup.addCardsToBoard(gameSession, player1Data.startingBoardCardsData, player1)
     GameSetup.addCardsToBoard(gameSession, player2Data.startingBoardCardsData, player2)
+
+    if gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+      for position in HexTopology.version2WallPositions
+        wall = gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.Wall})
+        gameSession.applyCardToBoard(wall, position.q, position.r)
 
     # store game setup data for things like replays
     # this way game can be re-setup exactly as it was after new setup

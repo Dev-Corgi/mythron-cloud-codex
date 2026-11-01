@@ -44,6 +44,22 @@ describe('new-rules card eligibility', () => {
     expect(excludedCard.getPosition()).to.deep.equal(positionBefore);
   });
 
+  it('allows only neutral actionless Wall setup in replacement rules version 2', () => {
+    const wallSession = SDK.GameSession.create();
+    wallSession.setRuleset('practice-sandbox-hex', 2);
+    const wall = wallSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, wall, null)).to.equal(true);
+    wall.ownerId = 'player1_id';
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, wall, null)).to.equal(false);
+    wall.ownerId = null;
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, wall, {})).to.equal(false);
+
+    const legacyHexSession = SDK.GameSession.create();
+    legacyHexSession.setRuleset('practice-sandbox-hex', 1);
+    const legacyWall = legacyHexSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    expect(CardEligibility.isAllowedRuntimeCard(legacyHexSession, legacyWall, null)).to.equal(false);
+  });
+
   it('invalidates an excluded authoritative board action before application', () => {
     UtilsSDK.setupSession([{ id: 1 }, { id: 10979 }], [{ id: 23 }, { id: 10979 }]);
     const session = SDK.GameSession.getInstance();

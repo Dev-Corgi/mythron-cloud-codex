@@ -1,5 +1,6 @@
 Rulesets = require './rulesetsLookup'
 CONFIG = require 'app/common/config'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
 
@@ -47,6 +48,8 @@ CardEligibility =
   isAllowedRuntimeCard: (gameSession, card, sourceAction) ->
     return false unless card?
     cardId = card.getId()
+    if cardId is Cards.Tile.Wall
+      return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId)
     return false unless @isGeneratedDependencyId(cardId)
 

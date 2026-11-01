@@ -75,7 +75,40 @@ describe('UtilsGameSession', () => {
 
     it('round trips replacement ruleset version 2 in sessions and replays', () => {
       const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const wallPositions = SDK.HexTopology.version2WallPositions;
+      const initialWalls = session.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall);
+      expect(initialWalls).to.have.length(9);
+      expect(initialWalls.every((wall) => wall.getHP() === 10 && wall.isOwnedByGameSession())).to.equal(true);
+      const initialSnapshot = JSON.parse(session.serializeToJSON(session));
+      const executeWithoutValidation = (targetSession, action) => {
+        const validators = targetSession.getValidators();
+        targetSession.setValidators([]);
+        try {
+          targetSession.executeAction(action);
+        } finally {
+          targetSession.setValidators(validators);
+        }
+      };
+      const damageAction = new SDK.DamageAction(session);
+      damageAction.setTarget(initialWalls[0]);
+      damageAction.setDamageAmount(3);
+      session.setIsRunningAsAuthoritative(true);
+      executeWithoutValidation(session, damageAction);
+      expect(initialWalls[0].getHP()).to.equal(7);
+      const serializedDamageAction = JSON.parse(session.serializeToJSON(damageAction));
+      const destroyedPosition = initialWalls[1].getPosition();
+      session.removeCardFromBoard(initialWalls[1], destroyedPosition.q, destroyedPosition.r);
       const serialized = JSON.parse(session.serializeToJSON(session));
+
+      const damageReplay = SDK.GameSession.create();
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(damageReplay, initialSnapshot);
+      damageReplay.setIsRunningAsAuthoritative(true);
+      const replayedDamageAction = damageReplay.deserializeActionFromFirebase(serializedDamageAction);
+      expect(replayedDamageAction.getTarget()).not.to.equal(null);
+      expect(replayedDamageAction.getTarget().getId()).to.equal(SDK.Cards.Tile.Wall);
+      executeWithoutValidation(damageReplay, replayedDamageAction);
+      const replayedWall = damageReplay.getBoard().getTileAtPosition(wallPositions[0]);
+      expect(replayedWall.getHP()).to.equal(7);
 
       const restored = SDK.GameSession.create();
       restored.deserializeSessionFromFirebase(serialized);
@@ -83,8 +116,13 @@ describe('UtilsGameSession', () => {
       expect(restored.getRulesetVersion()).to.equal(2);
       expect(restored.getBoard().getTilePositions()).to.have.length(41);
       expect(restored.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(2, 0))).to.equal(false);
-      expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
-      expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
+      expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
+      expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
+      const restoredWalls = restored.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall);
+      expect(restoredWalls).to.have.length(8);
+      expect(restoredWalls.find((wall) => wall.getPosition().q === wallPositions[0].q && wall.getPosition().r === wallPositions[0].r).getHP()).to.equal(7);
+      expect(restored.getBoard().getTileAtPosition(destroyedPosition) == null).to.equal(true);
+      expect(restored.getBoard().hasTileAtPosition(destroyedPosition)).to.equal(true);
 
       const replay = SDK.GameSession.create();
       SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, serialized);
@@ -92,8 +130,9 @@ describe('UtilsGameSession', () => {
       expect(replay.getRulesetVersion()).to.equal(2);
       expect(replay.getBoard().getTilePositions()).to.have.length(41);
       expect(replay.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(6, 4))).to.equal(false);
-      expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
-      expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
+      expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
+      expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
+      expect(replay.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(9);
     });
 
     it('rejects unknown rulesets before snapshot reconstruction', () => {

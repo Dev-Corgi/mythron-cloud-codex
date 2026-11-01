@@ -72,6 +72,32 @@ class CardFactory_Tiles
         depleted: RSX.sfx_unit_run_magical_3.audio
       )
 
+    if (identifier == Cards.Tile.Wall)
+      card = new Tile(gameSession)
+      card.factionId = Factions.Neutral
+      card.id = Cards.Tile.Wall
+      card.name = "Wall"
+      card.setDescription("")
+      card.setIsHiddenInCollection(true)
+      card.manaCost = 0
+      card.maxHP = 10
+      card.isTargetable = true
+      card.isObstructing = true
+      card.setSpriteOptions({
+        occludes: true
+        castsShadows: false
+      })
+      card.setBaseSoundResource(
+        receiveDamage: RSX.sfx_neutral_golembloodshard_hit.audio
+        death: RSX.sfx_neutral_golembloodshard_death.audio
+      )
+      card.setBaseAnimResource(
+        breathing: RSX.f6BonechillBarrierBreathing.name
+        idle: RSX.f6BonechillBarrierIdle.name
+        damage: RSX.f6BonechillBarrierDamage.name
+        death: RSX.f6BonechillBarrierDeath.name
+      )
+
     if (identifier == Cards.Tile.Shadow)
       card = new Tile(gameSession)
       card.factionId = Factions.Neutral

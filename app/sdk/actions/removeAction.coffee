@@ -14,7 +14,9 @@ class RemoveAction extends Action
 
     target = @getTarget()
     targetPosition = @getTargetPosition()
-
-    @getGameSession().removeCardFromBoard(target, targetPosition.x, targetPosition.y, @)
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      @getGameSession().removeCardFromBoard(target, targetPosition.q, targetPosition.r, @)
+    else
+      @getGameSession().removeCardFromBoard(target, targetPosition.x, targetPosition.y, @)
 
 module.exports = RemoveAction

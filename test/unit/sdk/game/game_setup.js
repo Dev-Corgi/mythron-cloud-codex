@@ -149,6 +149,41 @@ describe('game setup', () => {
       expect(SDK.GameSession.getInstance().getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
     });
 
+    it('places exactly nine neutral targetable 10-HP Walls only in version 2 setup', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 2);
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
+      SDK.GameSetup.setupNewSession(session, { userId: 'wall-v2-1', name: 'Wall One', deck }, {
+        userId: 'wall-v2-2', name: 'Wall Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true);
+      expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
+      expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
+
+      const walls = session.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall);
+      const expected = [[0, 1], [0, 6], [1, 3], [2, 2], [2, 6], [2, 8], [3, 4], [4, 2], [4, 7]];
+      const rendered = walls.map((wall) => SDK.HexTopology.axialToRendered(wall.getPosition()))
+        .map(({ k, c }) => [k, c]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      expect(rendered).to.deep.equal(expected);
+      expect(walls).to.have.length(9);
+      for (const wall of walls) {
+        expect(wall.getHP()).to.equal(10);
+        expect(wall.getIsTargetable()).to.equal(true);
+        expect(wall.getIsObstructing()).to.equal(true);
+        expect(wall.isOwnedByGameSession()).to.equal(true);
+        expect(wall.getInherentModifiers()).to.have.length(0);
+      }
+      expect(session.getBoard().getTileAtPosition(SDK.HexTopology.renderedToAxial(0, 2)) == null).to.equal(true);
+      expect(session.getBoard().getTileAtPosition({ q: -2, r: 4 }) == null).to.equal(true);
+      expect(session.getBoard().getTileAtPosition({ q: 8, r: 0 }) == null).to.equal(true);
+
+      const legacy = SDK.GameSession.create();
+      legacy.setRuleset('practice-sandbox-hex', 1);
+      SDK.GameSetup.setupNewSession(legacy, { userId: 'wall-v1-1', name: 'Old One', deck }, {
+        userId: 'wall-v1-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true);
+      expect(legacy.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(0);
+    });
+
     it('puts all eight hex deck cards into matching fixed hand slots in deck order', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);

@@ -150,6 +150,7 @@ describe('board', () => {
     const hole = { q: 2, r: 0 };
     const beyondHole = { q: 3, r: 0 };
     const ordinary = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    ordinary.setOwnerId(session.getPlayer1Id());
     ordinary.setPosition({ q: 1, r: 0 });
     ordinary.setSpeed(2);
     const ordinaryRange = ordinary.getMovementRange();
@@ -160,6 +161,7 @@ describe('board', () => {
     expect(ordinaryRange.getPathTo(board, ordinary, beyondHole)).to.deep.equal([]);
 
     const flying = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    flying.setOwnerId(session.getPlayer1Id());
     flying.setPosition({ q: 1, r: 0 });
     flying.setSpeed(2);
     flying.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
@@ -187,6 +189,77 @@ describe('board', () => {
     expect(flyingNearSecondHoleRange.getPathTo(board, flyingNearSecondHole, secondBeyondHole)).to.deep.equal([
       { q: 3, r: 4 }, secondHole, secondBeyondHole,
     ]);
+  });
+
+  it('blocks ordinary movement on living Walls and reopens the retained tile after death', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const wallPosition = { q: 6, r: 0 };
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, wallPosition.q, wallPosition.r);
+    const ordinary = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id());
+    ordinary.setPosition({ q: 5, r: 0 });
+    ordinary.setSpeed(2);
+    expect(ordinary.getMovementRange().getIsPositionValid(board, ordinary, wallPosition)).to.equal(false);
+    expect(ordinary.getMovementRange().getPathTo(board, ordinary, { q: 7, r: 0 }).some((position) => board.positionsEqual(position, wallPosition))).to.equal(false);
+    const blockedMove = ordinary.actionMove(wallPosition);
+    session.validateAction(blockedMove, false);
+    expect(blockedMove.getIsValid()).to.equal(false);
+
+    const flying = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id() && unit !== ordinary);
+    flying.setPosition({ q: 5, r: 0 });
+    flying.setSpeed(2);
+    flying.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    expect(flying.getMovementRange().getPathTo(board, flying, { q: 7, r: 0 })).to.deep.equal([
+      { q: 5, r: 0 }, wallPosition, { q: 7, r: 0 },
+    ]);
+
+    const summon = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    summon.setOwnerId(session.getPlayer1Id());
+    session.getGeneralForPlayer1().setPosition({ q: 5, r: 1 });
+    expect(board.isValidGeneralAdjacentSpawnPosition(summon, wallPosition)).to.equal(false);
+    const damageWall = new SDK.DamageAction(session);
+    damageWall.setTarget(wall);
+    damageWall.setDamageAmount(10);
+    UtilsSDK.executeActionWithoutValidation(damageWall);
+    expect(board.getTileAtPosition(wallPosition) == null).to.equal(true);
+    expect(board.hasTileAtPosition(wallPosition)).to.equal(true);
+    expect(board.isValidGeneralAdjacentSpawnPosition(summon, wallPosition)).to.equal(true);
+    expect(ordinary.getAttackRange().getIsValidTarget(board, ordinary, wall)).to.equal(false);
+    ordinary.getMovementRange().flushCachedState();
+    expect(ordinary.getMovementRange().getPathTo(board, ordinary, wallPosition)).not.to.deep.equal([]);
+  });
+
+  it('lets both players legally attack a neutral Wall without Barrier effects', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const wallPosition = { q: 6, r: 0 };
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, wallPosition.q, wallPosition.r);
+    expect(wall.getInherentModifiers()).to.have.length(0);
+
+    const attackers = [
+      { ownerId: session.getPlayer1Id(), position: { q: 5, r: 0 } },
+      { ownerId: session.getPlayer2Id(), position: { q: 7, r: 0 } },
+    ];
+    for (const { ownerId, position } of attackers) {
+      session.getPlayer1().setIsCurrentPlayer(ownerId === session.getPlayer1Id());
+      session.getPlayer2().setIsCurrentPlayer(ownerId === session.getPlayer2Id());
+      const attacker = board.getUnits().find((unit) => unit.getOwnerId() === ownerId);
+      attacker.atk = 2;
+      attacker.setReach(2);
+      attacker.setPosition(position);
+      attacker.refreshExhaustion();
+      expect(attacker.getAttackRange().getIsValidTarget(board, attacker, wall)).to.equal(true);
+
+      const hpBefore = wall.getHP();
+      const attack = attacker.actionAttack(wall);
+      session.executeAction(attack);
+      expect(attack.getIsValid()).to.equal(true);
+      expect(wall.getHP()).to.equal(hpBefore - 2);
+    }
   });
 
   it('applies hole movement permissions in validation and move action resolution', () => {

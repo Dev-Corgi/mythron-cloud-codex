@@ -17,6 +17,17 @@ HEX_TOPOLOGY.version2Holes = [
   {q: 2, r: 0} # (row, column) (0, 2)
   {q: 4, r: 4} # (row, column) (4, 6)
 ]
+HEX_TOPOLOGY.version2WallPositions = [
+  {q: 1, r: 0} # (row, column) (0, 1)
+  {q: 6, r: 0} # (row, column) (0, 6)
+  {q: 3, r: 1} # (row, column) (1, 3)
+  {q: 1, r: 2} # (row, column) (2, 2)
+  {q: 5, r: 2} # (row, column) (2, 6)
+  {q: 7, r: 2} # (row, column) (2, 8)
+  {q: 3, r: 3} # (row, column) (3, 4)
+  {q: 0, r: 4} # (row, column) (4, 2)
+  {q: 5, r: 4} # (row, column) (4, 7)
+]
 
 HEX_TOPOLOGY.isAxialPosition = (position) ->
   return position? and Number.isInteger(position.q) and Number.isInteger(position.r)
