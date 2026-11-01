@@ -564,7 +564,8 @@ const EntityNode = SdkNode.extend({
   },
 
   updateSpritesForOwner() {
-    if (this.sdkCard != null && !this.sdkCard.isOwnedByGameSession()) {
+    const isMethronPoint = this.sdkCard != null && this.sdkCard.getId() === SDK.Cards.Tile.MethronPoint;
+    if (this.sdkCard != null && (!this.sdkCard.isOwnedByGameSession() || isMethronPoint)) {
       if (this.sdkCard.isOwnedByPlayer2()) {
         this._updateSpritesOwnedByPlayer2();
       } else {

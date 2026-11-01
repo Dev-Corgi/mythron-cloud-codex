@@ -98,6 +98,24 @@ class CardFactory_Tiles
         death: RSX.f6BonechillBarrierDeath.name
       )
 
+    if (identifier == Cards.Tile.MethronPoint)
+      card = new Tile(gameSession)
+      card.factionId = Factions.Neutral
+      card.id = Cards.Tile.MethronPoint
+      card.name = "Methron Point"
+      card.setDescription("")
+      card.setIsHiddenInCollection(true)
+      card.manaCost = 0
+      card.uses = 0
+      card.isTargetable = false
+      card.dieOnDepleted = false
+      card.setSpriteOptions({
+        occludes: true
+        castsShadows: false
+        depthRotation: {x: -Math.PI * 0.5, y: 0.0, z: 0.0}
+      })
+      card.setBaseAnimResource(idle: RSX.tileManaIdle.name)
+
     if (identifier == Cards.Tile.Shadow)
       card = new Tile(gameSession)
       card.factionId = Factions.Neutral

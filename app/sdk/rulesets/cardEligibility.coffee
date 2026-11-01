@@ -50,6 +50,8 @@ CardEligibility =
     cardId = card.getId()
     if cardId is Cards.Tile.Wall
       return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
+    if cardId is Cards.Tile.MethronPoint
+      return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId)
     return false unless @isGeneratedDependencyId(cardId)
 

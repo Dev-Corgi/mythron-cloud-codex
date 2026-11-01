@@ -62,6 +62,7 @@ RemoveManaCoreAction = require './removeManaCoreAction'
 ForcedAttackAction = require './forcedAttackAction'
 RestoreChargeToAllArtifactsAction = require './restoreChargeToAllArtifactsAction'
 BurnCardAction = require './burnCardAction'
+CaptureMethronPointAction = require './captureMethronPointAction'
 
 Colors = require 'colors' # used for console message coloring
 
@@ -122,6 +123,8 @@ class ActionFactory
       return new StartTurnAction(gameSession)
     if (actionType == EndTurnAction.type)
       return new EndTurnAction(gameSession)
+    if (actionType == CaptureMethronPointAction.type)
+      return new CaptureMethronPointAction(gameSession)
     if (actionType == BonusManaAction.type)
       return new BonusManaAction(gameSession)
     if (actionType == StopBufferingEventsAction.type)

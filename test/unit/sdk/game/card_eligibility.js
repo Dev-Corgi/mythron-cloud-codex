@@ -44,7 +44,7 @@ describe('new-rules card eligibility', () => {
     expect(excludedCard.getPosition()).to.deep.equal(positionBefore);
   });
 
-  it('allows only neutral actionless Wall setup in replacement rules version 2', () => {
+  it('allows only neutral actionless Wall and Methron Point setup in replacement rules version 2', () => {
     const wallSession = SDK.GameSession.create();
     wallSession.setRuleset('practice-sandbox-hex', 2);
     const wall = wallSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
@@ -54,10 +54,19 @@ describe('new-rules card eligibility', () => {
     wall.ownerId = null;
     expect(CardEligibility.isAllowedRuntimeCard(wallSession, wall, {})).to.equal(false);
 
+    const methronPoint = wallSession.createCardForIdentifier(SDK.Cards.Tile.MethronPoint);
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, methronPoint, null)).to.equal(true);
+    methronPoint.ownerId = 'player1_id';
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, methronPoint, null)).to.equal(false);
+    methronPoint.ownerId = null;
+    expect(CardEligibility.isAllowedRuntimeCard(wallSession, methronPoint, {})).to.equal(false);
+
     const legacyHexSession = SDK.GameSession.create();
     legacyHexSession.setRuleset('practice-sandbox-hex', 1);
     const legacyWall = legacyHexSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
     expect(CardEligibility.isAllowedRuntimeCard(legacyHexSession, legacyWall, null)).to.equal(false);
+    const legacyMethronPoint = legacyHexSession.createCardForIdentifier(SDK.Cards.Tile.MethronPoint);
+    expect(CardEligibility.isAllowedRuntimeCard(legacyHexSession, legacyMethronPoint, null)).to.equal(false);
   });
 
   it('invalidates an excluded authoritative board action before application', () => {
@@ -84,6 +93,7 @@ describe('new-rules card eligibility', () => {
     const legacyMaw = legacySession.createCardForIdentifier(10979);
     expect(legacyMaw.getFollowups()[0]._private.followupSourcePattern).to.deep.equal(CONFIG.PATTERN_3x3);
   });
+
   it('rejects unaudited replay hand cards and incompatible starting-board signatures', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 1);

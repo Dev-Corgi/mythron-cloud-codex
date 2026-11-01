@@ -184,6 +184,47 @@ describe('game setup', () => {
       expect(legacy.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(0);
     });
 
+    it('places five neutral non-consuming Methron Points only in version 2 setup', () => {
+      const session = SDK.GameSession.create();
+      session.setRuleset('practice-sandbox-hex', 2);
+      const deck = createHexDeck(SDK.Cards.Faction1.General);
+      SDK.GameSetup.setupNewSession(session, { userId: 'point-v2-1', name: 'Point One', deck }, {
+        userId: 'point-v2-2', name: 'Point Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      });
+
+      const points = session.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint);
+      const expected = [[0, 3], [0, 5], [2, 4], [4, 3], [4, 5]];
+      const rendered = points.map((point) => SDK.HexTopology.axialToRendered(point.getPosition()))
+        .map(({ k, c }) => [k, c]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      expect(rendered).to.deep.equal(expected);
+      expect(points).to.have.length(5);
+      expect(session.getPlayer1().getRemainingMana()).to.equal(3);
+      expect(session.getPlayer2().getRemainingMana()).to.equal(4);
+      for (const point of points) {
+        expect(point.isOwnedByGameSession()).to.equal(true);
+        expect(point.getIsTargetable()).to.equal(false);
+        expect(point.getDepleted()).to.equal(false);
+        expect(point.getDieOnDepleted()).to.equal(false);
+        expect(point.uses).to.equal(0);
+        expect(point.getInherentModifiers()).to.have.length(0);
+        expect(point.getAnimResource().idle).to.equal(require('../../../../app/data/resources').tileManaIdle.name);
+      }
+
+      const legacy = SDK.GameSession.create();
+      legacy.setRuleset('legacy', 1);
+      SDK.GameSetup.setupNewSession(legacy, { userId: 'point-legacy-1', name: 'Old One', deck }, {
+        userId: 'point-legacy-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true);
+      expect(legacy.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint)).to.have.length(0);
+
+      const hexV1 = SDK.GameSession.create();
+      hexV1.setRuleset('practice-sandbox-hex', 1);
+      SDK.GameSetup.setupNewSession(hexV1, { userId: 'point-v1-1b', name: 'Old One', deck }, {
+        userId: 'point-v1-2b', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true);
+      expect(hexV1.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint)).to.have.length(0);
+    });
+
     it('puts all eight hex deck cards into matching fixed hand slots in deck order', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 1);

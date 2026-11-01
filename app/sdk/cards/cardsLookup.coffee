@@ -1038,6 +1038,7 @@ class Cards
   @Tile: {
     BonusMana:    40001
     Wall:         40003
+    MethronPoint: 40009
     Shadow:       40004
     Hallowed:     40005
     SandPortal:   40006

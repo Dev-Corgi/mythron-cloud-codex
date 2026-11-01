@@ -123,6 +123,9 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
       for position in HexTopology.version2WallPositions
         wall = gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.Wall})
         gameSession.applyCardToBoard(wall, position.q, position.r)
+      for position in HexTopology.version2MethronPointPositions
+        point = gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.MethronPoint})
+        gameSession.applyCardToBoard(point, position.q, position.r)
 
     # store game setup data for things like replays
     # this way game can be re-setup exactly as it was after new setup

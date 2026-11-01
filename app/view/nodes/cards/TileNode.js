@@ -56,10 +56,20 @@ const TileNode = EntityNode.extend({
   },
 
   _getColorForOwnerTint() {
+    if (this.sdkCard != null && this.sdkCard.getId() === SDK.Cards.Tile.MethronPoint && this.sdkCard.isOwnedByGameSession()) {
+      return cc.color(170, 170, 170);
+    }
     if (this.sdkCard == null || this.sdkCard.isOwnedByMyPlayer()) {
       return CONFIG.PLAYER_TILE_COLOR;
     }
     return CONFIG.OPPONENT_TILE_COLOR;
+  },
+
+  getCanShowOwnerSprites() {
+    if (this.sdkCard != null && this.sdkCard.getId() === SDK.Cards.Tile.MethronPoint) {
+      return false;
+    }
+    return EntityNode.prototype.getCanShowOwnerSprites.call(this);
   },
 
   showCurrentState(showFX) {
@@ -256,6 +266,9 @@ const TileNode = EntityNode.extend({
     const action = event && event.action;
     if (action && action === this.getSdkCard().getOccupantChangingAction() && this.getSdkCard().getOccupant() != null) {
       this.showCurrentState();
+    }
+    if (action instanceof SDK.CaptureMethronPointAction && action.getTarget() === this.getSdkCard()) {
+      this.updateSpritesForOwner();
     }
   },
 

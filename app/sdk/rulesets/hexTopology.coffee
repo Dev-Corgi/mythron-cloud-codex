@@ -37,6 +37,15 @@ HEX_TOPOLOGY.renderedToAxial = (c, k) ->
   return null unless k >= 0 and k < HEX_TOPOLOGY.rowLengths.length and c >= 0 and c < HEX_TOPOLOGY.rowLengths[k]
   return {q: c - Math.floor(k / 2), r: k}
 
+# Methron Point placements are specified in rendered (row, column) order.
+HEX_TOPOLOGY.version2MethronPointPositions = [
+  HEX_TOPOLOGY.renderedToAxial(3, 0) # (row, column) (0, 3)
+  HEX_TOPOLOGY.renderedToAxial(5, 0) # (row, column) (0, 5)
+  HEX_TOPOLOGY.renderedToAxial(4, 2) # (row, column) (2, 4)
+  HEX_TOPOLOGY.renderedToAxial(3, 4) # (row, column) (4, 3)
+  HEX_TOPOLOGY.renderedToAxial(5, 4) # (row, column) (4, 5)
+]
+
 HEX_TOPOLOGY.axialToRendered = (position) ->
   return null unless HEX_TOPOLOGY.isAxialPosition(position)
   c = position.q + Math.floor(position.r / 2)

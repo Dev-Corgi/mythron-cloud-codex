@@ -319,6 +319,7 @@ Action = require './actions/action'
 ResignAction = require './actions/resignAction'
 StartTurnAction = require './actions/startTurnAction'
 EndTurnAction = require './actions/endTurnAction'
+CaptureMethronPointAction = require './actions/captureMethronPointAction'
 RevealHiddenCardAction = require './actions/revealHiddenCardAction'
 StopBufferingEventsAction = require './actions/stopBufferingEventsAction'
 RemoveAction = require './actions/removeAction'
@@ -428,6 +429,7 @@ class _GameSession extends SDKObject
     p.resolveAction = null # current resolve action
     p.updatedElapsedEndTurn = false # whether end turn duration elapsed has updated
     p.updatedElapsedStartTurn = false # whether start turn duration elapsed has updated
+    p.authorizedMethronPointCaptureActions = []
     p.startTurnAction = null # current start turn action if turns are changing
     p.step = null # currently executing step
     p.stepsByIndex = {} # map of steps by index
@@ -1401,6 +1403,12 @@ class _GameSession extends SDKObject
   getNumberOfTurns: () ->
     return @turns.length
 
+  consumeMethronPointCaptureAuthorization: (action) ->
+    actionIndex = @_private.authorizedMethronPointCaptureActions.indexOf(action)
+    return false if actionIndex < 0
+    @_private.authorizedMethronPointCaptureActions.splice(actionIndex, 1)
+    return true
+
   _getNumberOfTurnsUntilPlayerActivatesSignatureCard: (player, fromTurnNumber) ->
     if @getIsSignatureCardAlwaysReady()
       return 0
@@ -2180,6 +2188,17 @@ class _GameSession extends SDKObject
       if !@isOver()
         # start new turn as needed
         if action instanceof EndTurnAction
+          if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+            # Run captures after all end-turn effects and duration changes have
+            # resolved, while the ending player's turn is still current.
+            for point in @getBoard().getTiles(true, false)
+              if point.getId() is require('app/sdk/cards/cardsLookupComplete').Tile.MethronPoint
+                captureAction = @createActionForType(CaptureMethronPointAction.type)
+                captureAction.setTarget(point)
+                captureAction.setIsAutomatic(true)
+                @_private.authorizedMethronPointCaptureActions.push(captureAction)
+                @executeAction(captureAction)
+
           if !@_private.startTurnAction?
             # start new turn
             @currentTurn = new GameTurn(@)
