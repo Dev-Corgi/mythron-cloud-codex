@@ -11,6 +11,8 @@ const PlayCardAction = require('../../../../app/sdk/actions/playCardAction.coffe
 const Spell = require('../../../../app/sdk/spells/spell.coffee');
 const SpellWrathOfGod = require('../../../../app/sdk/spells/spellWrathOfGod.coffee');
 const UtilsGameSession = require('../../../../app/common/utils/utils_game_session.coffee');
+const ModifierOpeningGambitDamageNearby = require('../../../../app/sdk/modifiers/modifierOpeningGambitDamageNearby.coffee');
+const ModifierDyingWishDamageNearbyEnemies = require('../../../../app/sdk/modifiers/modifierDyingWishDamageNearbyEnemies.coffee');
 
 // disable the logger for cleaner test output
 Logger.enabled = false;
@@ -262,6 +264,130 @@ describe('board', () => {
     }
   });
 
+  it('allows Flying to stop on a Wall and resolves direct attacks by co-located target priority', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const attacker = session.getGeneralForPlayer1();
+    const enemy = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer2Id());
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, 6, 0);
+
+    attacker.setPosition({ q: 5, r: 0 });
+    attacker.setSpeed(1);
+    attacker.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    attacker.getMovementRange().flushCachedState();
+    expect(attacker.getMovementRange().getIsPositionValid(board, attacker, { q: 6, r: 0 })).to.equal(true);
+
+    enemy.setPosition({ q: 6, r: 0 });
+    attacker.setReach(2);
+    attacker.refreshExhaustion();
+    expect(attacker.getAttackRange().getValidTargets(board, attacker)).to.include(enemy);
+    expect(attacker.getAttackRange().getValidTargets(board, attacker)).not.to.include(wall);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, wall)).to.equal(false);
+    const explicitWallAttack = attacker.actionAttack(wall);
+    session.validateAction(explicitWallAttack, false);
+    expect(explicitWallAttack.getIsValid()).to.equal(false);
+    expect(attacker.actionAttackEntityAtPosition({ q: 6, r: 0 }).getTarget()).to.equal(enemy);
+
+    enemy.setOwnerId(session.getPlayer1Id());
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(false);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, wall)).to.equal(true);
+    expect(attacker.actionAttackEntityAtPosition({ q: 6, r: 0 }).getTarget()).to.equal(wall);
+
+    enemy.setPosition({ q: 7, r: 0 });
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(false);
+    expect(attacker.getAttackRange().getTargetAtPosition(board, attacker, { q: 7, r: 0 })).to.equal(null);
+  });
+
+  it('damages co-located enemy Units and Walls independently while excluding allied Units from v2 area damage', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const source = session.getGeneralForPlayer1();
+    const enemy = session.getGeneralForPlayer2();
+    const ally = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id() && !unit.getIsGeneral());
+    const wallPosition = { q: 6, r: 0 };
+    const allyPosition = { q: 5, r: 0 };
+    source.setPosition({ q: 5, r: 1 });
+    enemy.setPosition(wallPosition);
+    ally.setPosition(allyPosition);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition(wallPosition);
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    const adjacentWallPosition = { q: 6, r: 1 };
+    const adjacentWall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    adjacentWall.setPosition(adjacentWallPosition);
+    adjacentWall.setIsPlayed(true);
+    adjacentWall.setIsRemoved(false);
+    board.addCard(adjacentWall);
+
+    const enemyHp = enemy.getHP();
+    const allyHp = ally.getHP();
+    const wallHp = wall.getHP();
+    const modifier = new ModifierOpeningGambitDamageNearby();
+    modifier.setGameSession(session);
+    modifier.setCard(source);
+    modifier.damageAmount = 2;
+    const queuedActions = [];
+    const executeAction = session.executeAction;
+    session.executeAction = (action) => queuedActions.push(action);
+    try {
+      modifier.onOpeningGambit();
+    } finally {
+      session.executeAction = executeAction;
+    }
+    expect(queuedActions.map((action) => action.getTarget())).to.include.members([enemy, wall, adjacentWall]);
+    for (const action of queuedActions) {
+      UtilsSDK.executeActionWithoutValidation(action);
+    }
+
+    expect(enemy.getHP()).to.equal(enemyHp - 2);
+    expect(wall.getHP()).to.equal(wallHp - 2);
+    expect(ally.getHP()).to.equal(allyHp);
+  });
+
+  it('damages neighboring enemy Units and Walls with Dying Wish while excluding allied Units in v2', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const source = session.getGeneralForPlayer1();
+    const enemy = session.getGeneralForPlayer2();
+    const ally = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id() && !unit.getIsGeneral());
+    source.setPosition({ q: 5, r: 1 });
+    enemy.setPosition({ q: 6, r: 0 });
+    ally.setPosition({ q: 5, r: 0 });
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition({ q: 6, r: 1 });
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+
+    const hpBefore = [enemy.getHP(), ally.getHP(), wall.getHP()];
+    const modifier = new ModifierDyingWishDamageNearbyEnemies();
+    modifier.setGameSession(session);
+    modifier.setCard(source);
+    modifier.damageAmount = 2;
+    const queuedActions = [];
+    const executeAction = session.executeAction;
+    session.executeAction = (action) => queuedActions.push(action);
+    try {
+      modifier.onDyingWish();
+    } finally {
+      session.executeAction = executeAction;
+    }
+    expect(queuedActions.map((action) => action.getTarget())).to.include.members([enemy, wall]);
+    expect(queuedActions.map((action) => action.getTarget())).not.to.include(ally);
+    for (const action of queuedActions) UtilsSDK.executeActionWithoutValidation(action);
+    expect(enemy.getHP()).to.equal(hpBefore[0] - 2);
+    expect(wall.getHP()).to.equal(hpBefore[2] - 2);
+    expect(ally.getHP()).to.equal(hpBefore[1]);
+  });
+
   it('applies hole movement permissions in validation and move action resolution', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 2);
@@ -346,6 +472,15 @@ describe('board', () => {
     expect(unit.getMovementRange().getPathTo(board, unit, { q: 2, r: 0 })).to.deep.equal([
       { q: 1, r: 0 }, { q: 2, r: 0 },
     ]);
+
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, 3, 0);
+    unit.setPosition({ q: 2, r: 0 });
+    expect(unit.getMovementRange().getIsPositionValid(board, unit, { q: 3, r: 0 })).to.equal(false);
+    expect(unit.getAttackRange().getIsValidTarget(board, unit, wall)).to.equal(false);
+    const enemy = session.getGeneralForPlayer2();
+    enemy.setPosition({ q: 3, r: 0 });
+    expect(unit.getAttackRange().getIsValidTarget(board, unit, enemy)).to.equal(true);
   });
 
   it('limits hex unit spawn prediction to unobstructed neighbors of its own general', () => {

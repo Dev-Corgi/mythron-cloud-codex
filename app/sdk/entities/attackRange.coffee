@@ -78,6 +78,19 @@ class AttackRange extends Range
     return null
 
   getValidTargets: (board, entity, fromPositions) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+      targets = []
+      seenPositions = {}
+      for candidate in board.getEntities()
+        continue unless candidate.getIsActive() and candidate.getIsTargetable()
+        key = "#{candidate.getPosition().q},#{candidate.getPosition().r}"
+        continue if seenPositions[key]
+        target = @getTargetAtPosition(board, entity, candidate.getPosition())
+        continue unless target? and target.getIsTargetable()
+        seenPositions[key] = true
+        if @getValidPosition(board, entity, target.getPosition(), {positions: fromPositions ? [entity.getPosition()]})
+          targets.push(target)
+      return targets
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
       targets = []
       for target in board.getEntities()
@@ -89,6 +102,8 @@ class AttackRange extends Range
     return attackAtlas.getValidTargets()
 
   getIsValidTarget: (board, entity, targetEntity) ->
+    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+      return !!targetEntity and targetEntity is @getTargetAtPosition(board, entity, targetEntity.getPosition()) and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
       return !!targetEntity and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
     index = targetEntity.getIndex()
@@ -98,6 +113,19 @@ class AttackRange extends Range
       return isValid
     else
       return @_targetsTestedForValidByIndex[index] = targetEntity in @getValidTargets(board, entity)
+
+  # Direct attacks resolve one canonical entity per position. An enemy Unit has
+  # priority; otherwise a neutral Wall can be attacked beneath an allied Unit.
+  getTargetAtPosition: (board, entity, position) ->
+    return null unless board and position?
+    return null unless entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+    unit = board.getUnitAtPosition(position, true)
+    tile = board.getTileAtPosition(position)
+    if unit? and unit.getIsActive() and !entity.getIsSameTeamAs(unit)
+      return unit
+    if tile? and tile.getIsActive() and tile.getIsTargetable() and !entity.getIsSameTeamAs(tile)
+      return tile
+    return null
 
   _hasHexLineOfSight: (board, entity, fromPosition, targetPosition) ->
     for cell in HexTopology.getLine(fromPosition, targetPosition)

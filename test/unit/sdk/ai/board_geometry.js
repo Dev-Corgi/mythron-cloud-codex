@@ -6,6 +6,7 @@ const { expect } = require('chai');
 const SDK = require('../../../../app/sdk.coffee');
 const UtilsSDK = require('../../../utils/utils_sdk');
 const BoardGeometry = require('../../../../server/ai/scoring/utils/utils_boardGeometry');
+const StarterAI = require('../../../../server/ai/starter_ai');
 
 describe('Practice AI board geometry', () => {
   beforeEach(() => {
@@ -34,5 +35,26 @@ describe('Practice AI board geometry', () => {
     expect(BoardGeometry.distanceFromColumn(session, center, farColumn)).to.equal(4);
     expect(BoardGeometry.maxDistance(session, 0)).to.equal(10);
     expect(board.getHexNeighbors(center)).to.have.length(6);
+  });
+
+  it('scores only the enemy Unit when it shares a position with a Wall', () => {
+    const session = SDK.GameSession.getInstance();
+    const board = session.getBoard();
+    const source = session.getGeneralForPlayer1();
+    const enemy = session.getGeneralForPlayer2();
+    const position = { q: 6, r: 0 };
+    source.setPosition({ q: 5, r: 0 });
+    source.setReach(2);
+    source.refreshExhaustion();
+    enemy.setPosition(position);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition(position);
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+
+    const ai = new StarterAI(session, session.getPlayer1Id(), 1);
+    const objectives = ai._findSortedFilteredAttackObjectivesAndScoresForUnit(source, source.getPosition(), false, false);
+    expect(objectives.map((entry) => entry.objective)).to.deep.equal([enemy]);
   });
 });

@@ -11,9 +11,12 @@ function productionFunction(file, name, globals, compile = false) {
   const js = compile ? coffee.compile(source, { bare: true }) : source;
   const tree = espree.parse(js, { ecmaVersion: 2020, range: true });
   let found;
+  let method;
   function visit(node) {
     if (!node || typeof node !== 'object' || found) return;
-    if (node.type === 'Property' && node.key.name === name) found = node.value;
+    if (node.type === 'MethodDefinition' && node.key.name === name) method = node.value;
+    if (node.type === 'Property' && node.key.name === name && node.method) method = node.value;
+    else if (node.type === 'Property' && node.key.name === name) found = node.value;
     if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression' && node.left.property.name === name) found = node.right;
     Object.keys(node).forEach((key) => {
       if (key === 'range') return;
@@ -23,6 +26,10 @@ function productionFunction(file, name, globals, compile = false) {
     });
   }
   visit(tree);
+  if (method) {
+    const parameters = method.params.map((parameter) => js.slice(parameter.range[0], parameter.range[1])).join(', ');
+    return vm.runInNewContext(`(function(${parameters}) ${js.slice(method.body.range[0], method.body.range[1])})`, globals);
+  }
   if (!found) throw new Error(`Missing production function: ${name}`);
   return vm.runInNewContext(`(${js.slice(found.range[0], found.range[1])})`, globals);
 }
@@ -37,6 +44,67 @@ class ViewStub {
 }
 
 describe('New-rules UI entry and confirmation', () => {
+  it('uses canonical v2 targets for board hover and click, including enemy-over-Wall and Wall-under-ally priority', () => {
+    const click = productionFunction('app/view/layers/game/GameLayer.js', '_actionSelectedCardOnBoard', {
+      SDK: { GameSession: { getInstance: () => session } },
+      getActionPositionArgs: (position) => position,
+    });
+    const hover = productionFunction('app/view/layers/game/GameLayer.js', 'updateMouseCursor', {
+      SDK: { GameSession: { current: () => session, getInstance: () => session } },
+      EVENTS: { canvas_mouse_state: 'cursor' },
+    });
+    const board = {};
+    const position = { q: 4, r: 3 };
+    const session = { getBoard: () => board, getRulesetId: () => 'practice-sandbox-hex', getRulesetVersion: () => 2, getIsSpectateMode: () => false };
+
+    for (const scenario of [
+      { name: 'enemy Unit priority', resolvedKind: 'enemy', mouseKind: 'wall' },
+      { name: 'Wall under an allied occupant', resolvedKind: 'wall', mouseKind: 'ally' },
+    ]) {
+      const targets = {
+        enemy: { kind: 'enemy', getIsActive: () => true, getIsSameTeamAs: () => false },
+        wall: { kind: 'wall', getIsActive: () => true, getIsSameTeamAs: () => false },
+        ally: { kind: 'ally', getIsActive: () => true, getIsSameTeamAs: () => false },
+      };
+      let validatedTarget;
+      let clickedPosition;
+      const selected = {
+        getAttackRange: () => ({
+          getTargetAtPosition: (actualBoard, entity, actualPosition) => {
+            expect(actualBoard).to.equal(board);
+            expect(actualPosition).to.equal(position);
+            return targets[scenario.resolvedKind];
+          },
+          getIsValidTarget: (actualBoard, entity, target) => { validatedTarget = target; return true; },
+        }),
+        getIsSameTeamAs: () => false,
+        actionAttackEntityAtPosition: (actualPosition) => { clickedPosition = actualPosition; return { target: targets[scenario.resolvedKind] }; },
+        getCanMove: () => false,
+      };
+      const mouseTarget = targets[scenario.mouseKind];
+      const action = click.call({ _player: { getMouseBoardPosition: () => position } }, { getSdkCard: () => selected }, { getSdkCard: () => mouseTarget });
+      expect(validatedTarget, scenario.name).to.equal(targets[scenario.resolvedKind]);
+      expect(clickedPosition, scenario.name).to.equal(position);
+      expect(action.target, scenario.name).to.equal(targets[scenario.resolvedKind]);
+
+      const player = {
+        getIsMouseOnBoard: () => true, getHoverChanged: () => true, getMouseBoardPosition: () => position,
+        getSelectedCard: () => null, getMouseOverSdkCard: () => null, getMouseOverSdkEntity: () => mouseTarget,
+        getFollowupCard: () => null, getMouseOverArtifactNode: () => null, getMouseOverReplaceNode: () => null,
+        getSelectedSdkEntity: () => selected, getMouseDragging: () => false,
+      };
+      let cursorState;
+      const layer = {
+        _player: player, _battleLog: { getMouseOverBattleLogNode: () => null },
+        getIsGameOver: () => false, getPlayerSelectionLocked: () => false, getIsActive: () => true,
+        updateMouseCursorByState: (state) => { cursorState = state; },
+      };
+      hover.call(layer, false);
+      expect(validatedTarget, scenario.name).to.equal(targets[scenario.resolvedKind]);
+      expect(cursorState, scenario.name).to.equal('attack');
+    }
+  });
+
   describe('Practice UI caller paths', () => {
     it('passes the selected saved ID through the selection event into the serialized Practice request', () => {
       const noop = () => {};

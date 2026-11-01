@@ -606,7 +606,8 @@ class Entity extends Card
     return a
 
   actionAttackEntityAtPosition: (position) ->
-    targetEntity = @getGameSession().getBoard().getUnitAtPosition(position)
+    board = @getGameSession().getBoard()
+    targetEntity = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2 then @getAttackRange().getTargetAtPosition(board, @, position) else board.getUnitAtPosition(position)
     if !targetEntity
       Logger.module("SDK").error("[G:#{@getGameSession().getGameId()}] Entity #{@getLogName()} actionAttackEntityAtPosition - attempt to attack position with no entity")
     return @actionAttack(targetEntity)

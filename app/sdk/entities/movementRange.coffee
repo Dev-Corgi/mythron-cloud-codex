@@ -2,6 +2,8 @@ CONFIG = require 'app/common/config'
 UtilsPosition = require 'app/common/utils/utils_position'
 Range = require './range'
 ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
+CardType = require 'app/sdk/cards/cardType'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
 
 class MovementRange extends Range
 
@@ -44,7 +46,8 @@ class MovementRange extends Range
             continue unless canTraverse
             path = node.path.concat([nextPosition])
             queue.push({position: nextPosition, path: path})
-            @_validPositions.push(path) unless obstruction
+            isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and isFlying and board.getGameSession().getRulesetVersion() is 2
+            @_validPositions.push(path) unless obstruction and !isWallEndpoint
       return @_validPositions
     if !@_validPositions?
       entityPosition = entity.getPosition()

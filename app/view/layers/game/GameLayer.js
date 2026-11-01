@@ -5999,8 +5999,13 @@ var GameLayer = FXCompositeLayer.extend({
         // check for selected entity actions
         const selectedSdkEntity = player.getSelectedSdkEntity();
         if (selectedSdkEntity != null) {
-          if (mouseOverSdkEntity && mouseOverSdkEntity.getIsActive() && selectedSdkEntity !== mouseOverSdkEntity) {
-            if (!selectedSdkEntity.getIsSameTeamAs(mouseOverSdkEntity) && selectedSdkEntity.getAttackRange().getIsValidTarget(SDK.GameSession.getInstance().getBoard(), selectedSdkEntity, mouseOverSdkEntity)) {
+          const board = SDK.GameSession.getInstance().getBoard();
+          const isVersion2Hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex' && SDK.GameSession.getInstance().getRulesetVersion() === 2;
+          const resolvedAttackTarget = isVersion2Hex
+            ? selectedSdkEntity.getAttackRange().getTargetAtPosition(board, selectedSdkEntity, mouseBoardPosition)
+            : mouseOverSdkEntity;
+          if (resolvedAttackTarget && resolvedAttackTarget.getIsActive() && selectedSdkEntity !== resolvedAttackTarget) {
+            if (!selectedSdkEntity.getIsSameTeamAs(resolvedAttackTarget) && selectedSdkEntity.getAttackRange().getIsValidTarget(board, selectedSdkEntity, resolvedAttackTarget)) {
               return this.updateMouseCursorByState('attack');
             }
           } else if (selectedSdkEntity.getCanMove() && selectedSdkEntity.getMovementRange().getIsPositionValid(SDK.GameSession.getInstance().getBoard(), selectedSdkEntity, mouseBoardPosition)) {
@@ -6668,11 +6673,18 @@ var GameLayer = FXCompositeLayer.extend({
       const mouseBoardPosition = this._player.getMouseBoardPosition();
       const selectedSdkEntity = selectedEntityNode.getSdkCard();
       const mouseOverSdkEntity = mouseOverEntityNode && mouseOverEntityNode.getSdkCard();
+      const board = SDK.GameSession.getInstance().getBoard();
+      const isVersion2Hex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex' && SDK.GameSession.getInstance().getRulesetVersion() === 2;
+      const resolvedAttackTarget = isVersion2Hex
+        ? selectedSdkEntity.getAttackRange().getTargetAtPosition(board, selectedSdkEntity, mouseBoardPosition)
+        : mouseOverSdkEntity;
 
       // entity node exists, try to do action on Board
-      if (mouseOverSdkEntity && !mouseOverSdkEntity.getIsSameTeamAs(selectedSdkEntity) && selectedSdkEntity.getAttackRange().getIsValidTarget(SDK.GameSession.getInstance().getBoard(), selectedSdkEntity, mouseOverSdkEntity)) {
+      if (resolvedAttackTarget && !resolvedAttackTarget.getIsSameTeamAs(selectedSdkEntity) && selectedSdkEntity.getAttackRange().getIsValidTarget(board, selectedSdkEntity, resolvedAttackTarget)) {
         // attack an enemy
-        actionToExecute = selectedSdkEntity.actionAttack(mouseOverSdkEntity);
+        actionToExecute = isVersion2Hex
+          ? selectedSdkEntity.actionAttackEntityAtPosition(mouseBoardPosition)
+          : selectedSdkEntity.actionAttack(resolvedAttackTarget);
       } else if (selectedSdkEntity.getCanMove() && selectedSdkEntity.getMovementRange().getIsPositionValid(SDK.GameSession.getInstance().getBoard(), selectedSdkEntity, mouseBoardPosition)) {
         // move to location
         actionToExecute = selectedSdkEntity.actionMove(getActionPositionArgs(mouseBoardPosition));

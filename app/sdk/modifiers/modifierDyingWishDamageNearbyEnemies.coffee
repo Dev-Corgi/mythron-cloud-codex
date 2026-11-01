@@ -2,6 +2,7 @@ CONFIG = require 'app/common/config'
 ModifierDyingWish = require './modifierDyingWish'
 DamageAction = require 'app/sdk/actions/damageAction'
 CardType = require 'app/sdk/cards/cardType'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
 
 class ModifierDyingWishDamageNearbyEnemies extends ModifierDyingWish
 
@@ -26,7 +27,13 @@ class ModifierDyingWishDamageNearbyEnemies extends ModifierDyingWish
       return @description
 
   onDyingWish: () ->
-    validEntities = @getGameSession().getBoard().getEnemyEntitiesAroundEntity(@getCard(), CardType.Unit, 1)
+    board = @getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2
+      validEntities = board.getEntitiesAroundEntity(@getCard(), CardType.Entity, 1).filter (entity) =>
+        return entity.getType() is CardType.Unit and !@getCard().getIsSameTeamAs(entity) if entity.getType() is CardType.Unit
+        return entity.getType() is CardType.Tile and entity.getId() is Cards.Tile.Wall
+    else
+      validEntities = board.getEnemyEntitiesAroundEntity(@getCard(), CardType.Unit, 1)
 
     for entity in validEntities
       damageAction = new DamageAction(@getGameSession())

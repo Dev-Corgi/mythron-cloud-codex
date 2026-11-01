@@ -2,6 +2,7 @@ CONFIG = require 'app/common/config'
 ModifierOpeningGambit = require './modifierOpeningGambit'
 DamageAction = require 'app/sdk/actions/damageAction'
 CardType = require 'app/sdk/cards/cardType'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
 Modifier = require './modifier'
 
 class ModifierOpeningGambitDamageNearby extends ModifierOpeningGambit
@@ -28,7 +29,14 @@ class ModifierOpeningGambitDamageNearby extends ModifierOpeningGambit
       return @description
 
   onOpeningGambit: () ->
-    entities = @getGameSession().getBoard().getEntitiesAroundEntity(@getCard(), CardType.Unit, 1)
+    board = @getGameSession().getBoard()
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2
+      entities = board.getEntitiesAroundEntity(@getCard(), CardType.Entity, 1)
+      entities = entities.filter (entity) =>
+        return !@getCard().getIsSameTeamAs(entity) if entity.getType() is CardType.Unit
+        return entity.getType() is CardType.Tile and entity.getId() is Cards.Tile.Wall and !@getCard().getIsSameTeamAs(entity)
+    else
+      entities = board.getEntitiesAroundEntity(@getCard(), CardType.Unit, 1)
     for entity in entities
       damageAction = new DamageAction(@getGameSession())
       damageAction.setOwnerId(@getCard().getOwnerId())

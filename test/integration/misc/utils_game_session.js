@@ -135,6 +135,85 @@ describe('UtilsGameSession', () => {
       expect(replay.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(9);
     });
 
+    it('preserves co-located Unit and Wall identity, target priority, and independent removal in snapshots and replay', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const board = session.getBoard();
+      const wallPosition = SDK.HexTopology.renderedToAxial(2, 4);
+      const wall = board.getTileAtPosition(wallPosition);
+      expect(wall.getId()).to.equal(SDK.Cards.Tile.Wall);
+      const unit = session.getGeneralForPlayer1();
+      session.setStatus(SDK.GameStatus.active);
+      session.setIsRunningAsAuthoritative(true);
+      unit.setSpeed(2);
+      unit.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+      const move = unit.actionMove(wallPosition);
+      session.executeAction(move);
+      expect(move.getIsValid()).to.equal(true);
+      expect(unit.getPosition()).to.deep.equal(wallPosition);
+
+      const attacker = session.getGeneralForPlayer2();
+      attacker.setPosition({ q: wallPosition.q + 1, r: wallPosition.r });
+      attacker.setReach(2);
+      attacker.atk = 2;
+      attacker.refreshExhaustion();
+      session.syncState();
+      const wallHp = wall.getHP();
+      const unitHp = unit.getHP();
+      const initialSnapshot = JSON.parse(session.serializeToJSON(session));
+      const attack = attacker.actionAttackEntityAtPosition(wallPosition);
+      expect(attack.getTarget()).to.equal(unit);
+      expect(board.getUnitAtPosition(wallPosition, true)).to.equal(unit);
+      session.setIsRunningAsAuthoritative(true);
+      session.executeAction(attack);
+      expect(attack.getIsValid()).to.equal(true);
+      expect(unit.getHP()).to.equal(unitHp - 2);
+      expect(wall.getHP()).to.equal(wallHp);
+      const serializedAttack = JSON.parse(session.serializeToJSON(attack));
+
+      const replay = SDK.GameSession.create();
+      replay.deserializeSessionFromFirebase(initialSnapshot);
+      const replayedUnit = replay.getGeneralForPlayer1();
+      const replayedWall = replay.getBoard().getTileAtPosition(wallPosition);
+      expect(replayedUnit.getPosition()).to.deep.equal(wallPosition);
+      expect(replay.getBoard().getUnits()).to.include(replayedUnit);
+      expect(replayedWall).not.to.equal(null);
+      replay.setStatus(SDK.GameStatus.active);
+      replay.setIsRunningAsAuthoritative(true);
+      const replayedAttack = replay.deserializeActionFromFirebase(serializedAttack);
+      expect(replayedAttack.getTarget()).to.equal(replayedUnit);
+      const replayValidators = replay.getValidators();
+      replay.setValidators([]);
+      try {
+        replay.executeAction(replayedAttack);
+      } finally {
+        replay.setValidators(replayValidators);
+      }
+      expect(replayedUnit.getHP()).to.equal(unitHp - 2);
+      expect(replayedWall.getHP()).to.equal(wallHp);
+
+      const wallDamage = new SDK.DamageAction(replay);
+      wallDamage.setTarget(replayedWall);
+      wallDamage.setDamageAmount(wallHp);
+      const wallDamageValidators = replay.getValidators();
+      replay.setValidators([]);
+      try {
+        replay.executeAction(wallDamage);
+      } finally {
+        replay.setValidators(wallDamageValidators);
+      }
+      expect(replay.getBoard().getTileAtPosition(wallPosition) == null).to.equal(true);
+      expect(replay.getBoard().getUnitAtPosition(wallPosition, true)).to.equal(replayedUnit);
+      expect(replay.getBoard().hasTileAtPosition(wallPosition)).to.equal(true);
+
+      const unitRemovalReplay = SDK.GameSession.create();
+      unitRemovalReplay.deserializeSessionFromFirebase(initialSnapshot);
+      const unitToRemove = unitRemovalReplay.getGeneralForPlayer1();
+      const wallToKeep = unitRemovalReplay.getBoard().getTileAtPosition(wallPosition);
+      unitRemovalReplay.removeCardFromBoard(unitToRemove, wallPosition.q, wallPosition.r);
+      expect(unitRemovalReplay.getBoard().getUnitAtPosition(wallPosition, true) == null).to.equal(true);
+      expect(unitRemovalReplay.getBoard().getTileAtPosition(wallPosition)).to.equal(wallToKeep);
+    });
+
     it('rejects unknown rulesets before snapshot reconstruction', () => {
       const session = SDK.GameSession.create();
       expect(() => session.deserializeSessionFromFirebase({
