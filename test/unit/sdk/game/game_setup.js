@@ -63,6 +63,7 @@ describe('game setup', () => {
     it('selects Practice rules only from the server-side single-player entry', () => {
       expect(Rulesets.getServerRulesetForGameType(SDK.GameType.SinglePlayer)).to.deep.equal({ id: 'practice-sandbox-hex', version: 1 });
       expect(Rulesets.getServerRulesetForGameType(SDK.GameType.BossBattle)).to.deep.equal({ id: 'legacy', version: 1 });
+      expect(Rulesets.getRuleset('practice-sandbox-hex', 2)).to.deep.equal({ id: 'practice-sandbox-hex', version: 2 });
     });
 
     it('assigns the authoritative ruleset to the session before serialization', () => {
@@ -127,6 +128,7 @@ describe('game setup', () => {
       const developerSession = SDK.GameSession.create();
       new SDK.SandboxDeveloper().setupSessionModes(developerSession);
       expect(developerSession.getRulesetId()).to.equal('legacy');
+      expect(developerSession.getRulesetVersion()).to.equal(1);
     });
 
     it('places hex generals at the opposite center-edge axial cells while legacy starts stay square', () => {

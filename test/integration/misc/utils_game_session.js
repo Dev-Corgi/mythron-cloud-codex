@@ -10,37 +10,85 @@ const UtilsGameSession = require('../../../app/common/utils/utils_game_session.c
 const SDK = require('../../../app/sdk.coffee');
 const UtilsSDK = require('../../utils/utils_sdk');
 
+const createRulesetFixture = (rulesetId, rulesetVersion) => {
+  const gameSession = SDK.GameSession.create();
+  gameSession.setRuleset(rulesetId, rulesetVersion);
+  const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+  const practiceDeck1 = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
+  const practiceDeck2 = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
+  SDK.GameSetup.setupNewSession(gameSession,
+    {
+      userId: 'ruleset-player-1',
+      name: 'Ruleset Player 1',
+      deck: rulesetId === 'legacy'
+        ? SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction1, 30)
+        : practiceDeck1,
+    },
+    {
+      userId: 'ruleset-player-2',
+      name: 'Ruleset Player 2',
+      deck: rulesetId === 'legacy'
+        ? SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction2, 30)
+        : practiceDeck2,
+    },
+    true,
+  );
+  return gameSession;
+};
+
 describe('UtilsGameSession', () => {
   describe('ruleset persistence', () => {
     it('round trips a supported ruleset and defaults historical snapshots to legacy', () => {
-      UtilsSDK.setupSession(
-        SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction1, 30),
-        SDK.FactionFactory.starterDeckForFactionLevel(SDK.Factions.Faction2, 30),
-      );
-      const session = SDK.GameSession.current();
-      session.setRuleset('practice-sandbox-hex', 1);
+      const session = createRulesetFixture('practice-sandbox-hex', 1);
       const serialized = JSON.parse(session.serializeToJSON(session));
       const restored = SDK.GameSession.create();
       restored.deserializeSessionFromFirebase(serialized);
       expect(restored.getRulesetId()).to.equal('practice-sandbox-hex');
       expect(restored.getRulesetVersion()).to.equal(1);
+      expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
+      expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
 
       const replay = SDK.GameSession.create();
       SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, JSON.parse(JSON.stringify(serialized)));
       expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
       expect(replay.getRulesetVersion()).to.equal(1);
+      expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
+      expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
 
-      delete serialized.rulesetId;
-      delete serialized.rulesetVersion;
+      const historicalSession = createRulesetFixture('legacy', 1);
+      const historicalData = JSON.parse(historicalSession.serializeToJSON(historicalSession));
+      delete historicalData.rulesetId;
+      delete historicalData.rulesetVersion;
       const historical = SDK.GameSession.create();
-      historical.deserializeSessionFromFirebase(serialized);
+      historical.deserializeSessionFromFirebase(historicalData);
       expect(historical.getRulesetId()).to.equal('legacy');
       expect(historical.getRulesetVersion()).to.equal(1);
 
       const historicalReplay = SDK.GameSession.create();
-      SDK.GameSetup.setupNewSessionFromExistingSessionData(historicalReplay, serialized);
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(historicalReplay, historicalData);
       expect(historicalReplay.getRulesetId()).to.equal('legacy');
       expect(historicalReplay.getRulesetVersion()).to.equal(1);
+      expect(historicalReplay.getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
+      expect(historicalReplay.getGeneralForPlayer2().getPosition()).to.deep.equal({ x: 8, y: 2 });
+    });
+
+    it('round trips replacement ruleset version 2 in sessions and replays', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const serialized = JSON.parse(session.serializeToJSON(session));
+
+      const restored = SDK.GameSession.create();
+      restored.deserializeSessionFromFirebase(serialized);
+      expect(restored.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(restored.getRulesetVersion()).to.equal(2);
+      expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
+      expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
+
+      const replay = SDK.GameSession.create();
+      SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, serialized);
+      expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(replay.getRulesetVersion()).to.equal(2);
+      expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
+      expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
     });
 
     it('rejects unknown rulesets before snapshot reconstruction', () => {
@@ -57,7 +105,7 @@ describe('UtilsGameSession', () => {
       const session = SDK.GameSession.create();
       expect(() => session.deserializeSessionFromFirebase({
         rulesetId: 'practice-sandbox-hex',
-        rulesetVersion: 2,
+        rulesetVersion: 3,
         board: { cards: [999] },
       })).to.throw(/Unsupported ruleset/);
       expect(session.getRulesetId()).to.equal('legacy');
