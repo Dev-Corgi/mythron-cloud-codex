@@ -1,5 +1,7 @@
 # 카드 UI 작업 인계 — 현재 승인 기준
 
+추가 작업: 특수능력 카드 에셋은 `C:/Working/duelyst/duelyst/app/resources/card_ui/phobies_ability/`에 별도로 준비되어 있다. 그 폴더의 `README.md`와 `preview_phoenix_fire_assets_v3.png`를 참고한다. 왼쪽 보라 자물쇠는 lockdown, 오른쪽 청록 모래시계는 cooldown이며 게임 코드에는 아직 연결하지 않았다. 이 추가 작업은 아래 유닛 카드 승인 기준을 변경하지 않는다.
+
 사용자는 **`preview_astral_crusader_geometry_v3.png`를 앞으로의 작업 기준으로 승인**했다. 이전의 AI 카드 시안이나 겹쳐 합성한 프레임으로 되돌리지 않는다.
 
 작업 폴더: `C:/Working/duelyst/duelyst/app/resources/card_ui/phobies_unit/`
@@ -41,3 +43,5 @@
 미사용 구형 래스터 프레임 입력 3개(원형 소켓 입력 포함), 중복 구형 이름 미리보기, 부분 확대 이미지, 중복 공격 검 파일과 Python 캐시를 정리했다. 현재 남은 `sources/` 네 장은 빌드에 필요한 입력이다. `ui_icons_generated.png`의 예전 벽 통과 그림 셀은 사용하지 않으며, 실제 통과 아이콘은 별도 유령 소스에서 생성한다.
 
 `card_concepts/` 구형 폴더는 정리 시점에 이미 존재하지 않았다. `.codex/generated_images`의 대화 이력 파일은 프로젝트 기준이 아니다. 현재 작업 폴더와 이 인계 문서를 기준으로 진행한다.
+
+2026-11-02 레벨 표기 갱신: 두 카드 모두 기존 SPELL 스타일인 Lato Regular 18px(2x), #9bced8, 대문자 LEVEL 1을 사용한다. 최신 유닛 미리보기는 preview_astral_crusader_geometry_v4.png, 능력 미리보기는 preview_phoenix_fire_assets_v3.png이다. 유닛 v3는 승인된 프레임 구조의 이전 레벨 표기 스냅샷이다.
