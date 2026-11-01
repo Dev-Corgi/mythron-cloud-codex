@@ -113,18 +113,11 @@ UtilsHexView.createHexNode = function (position, origin, fillColor, options) {
     radiusScale: Number.isFinite(settings.radiusScale) ? settings.radiusScale : 0.94,
   };
   const draw = () => {
-    // Hexes are rendered inside Duelyst's perspective-projected tile layer.
-    // Inverse-project every screen-space vertex as well as the center so
-    // adjacent cells keep identical shared edges after perspective is applied.
-    const UtilsEngine = require('./utils_engine');
+    // The tile layer applies perspective once, just as for legacy floor tiles.
     const center = UtilsHexView.positionToScreen(current.position, origin);
     if (!center) return;
-    const tileMapCenter = UtilsEngine.transformScreenToTileMap(center);
     const radius = UtilsHexView.getHexRadius() * current.radiusScale;
-    const vertices = UtilsHexView.getHexVertices(radius).map((vertex) => {
-      const projected = UtilsEngine.transformScreenToTileMap(cc.p(center.x + vertex.x, center.y + vertex.y));
-      return cc.p(projected.x - tileMapCenter.x, projected.y - tileMapCenter.y);
-    });
+    const vertices = UtilsHexView.getHexVertices(radius);
     node.clear();
     node.drawPoly(
       vertices,
@@ -132,7 +125,7 @@ UtilsHexView.createHexNode = function (position, origin, fillColor, options) {
       0,
       cc.color(current.fillColor.r, current.fillColor.g, current.fillColor.b, 0),
     );
-    node.setPosition(tileMapCenter);
+    node.setPosition(center);
   };
   node.setColor = (color) => {
     current.fillColor = color;

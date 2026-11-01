@@ -9,6 +9,7 @@ const audio_engine = require('../../../audio/audio_engine');
 const BaseSprite = require('../BaseSprite');
 const EntitySprite = require('./EntitySprite');
 const EntityNode = require('./EntityNode');
+const UnitNode = require('./UnitNode');
 
 /** **************************************************************************
 TileNode
@@ -31,6 +32,13 @@ const TileNode = EntityNode.extend({
   },
 
   initEntitySprites(spriteOptions) {
+    const session = SDK.GameSession.getInstance();
+    if (this.sdkCard != null && this.sdkCard.getId() === SDK.Cards.Tile.Wall
+      && session.getRulesetId() === 'practice-sandbox-hex' && session.getRulesetVersion() === 2) {
+      // Standing walls share the complete unit ground anchor and sprite setup.
+      UnitNode.prototype.initEntitySprites.call(this, spriteOptions);
+      return;
+    }
     this.whenResourcesReady(this.getCardResourceRequestId()).then((cardResourceRequestId) => {
       if (!this.getAreResourcesValid(cardResourceRequestId)) return; // card has changed
 
@@ -41,7 +49,8 @@ const TileNode = EntityNode.extend({
       if (spriteOptions.scale == null) { this.entitySprite.setScale(CONFIG.SCALE); }
 
       // position sprites
-      this.entitySprite.setPosition(this.getCenterPosition());
+      const centerPosition = this.getCenterPosition();
+      this.entitySprite.setPosition(centerPosition);
 
       // add to scene
       this.addChild(this.entitySprite);
@@ -111,11 +120,19 @@ const TileNode = EntityNode.extend({
   },
 
   showPlaceholderSprites() {
+    if (this.shadowSprite != null) {
+      UnitNode.prototype.showPlaceholderSprites.call(this);
+      return;
+    }
     // TODO: maybe show actual placeholder sprites
     this.entitySprite.setOpacity(0);
   },
 
   showSpawnSprites() {
+    if (this.shadowSprite != null) {
+      UnitNode.prototype.showSpawnSprites.call(this);
+      return;
+    }
     const sdkCard = this.getSdkCard();
     // when an apply/spawn animation is present
     const animActionApply = this.getAnimResource() && UtilsEngine.getAnimationAction(this.getAnimResource().apply);

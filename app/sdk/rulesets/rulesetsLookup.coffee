@@ -15,7 +15,7 @@ RULESETS.getRuleset = (rulesetId, rulesetVersion) ->
 
 RULESETS.getServerRulesetForGameType = (gameType) ->
   if gameType == GameType.SinglePlayer
-    return practiceSandboxHex
+    return practiceSandboxHexV2
   return legacy
 
 RULESETS.assignServerRulesetToSession = (gameSession, gameType) ->

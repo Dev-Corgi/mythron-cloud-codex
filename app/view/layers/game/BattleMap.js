@@ -268,10 +268,7 @@ var BattleMap = cc.Class.extend({
         // fewer cells. The map uses rendered cell indices, not a dense list.
         if (tileSprite == null) continue;
         const { boardPosition } = tileSprite;
-        const isHex = SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex';
-        tileSprite.setPosition(isHex
-          ? UtilsEngine.transformBoardToTileMap(boardPosition)
-          : UtilsEngine.transformBoardToScreen(boardPosition));
+        tileSprite.setPosition(UtilsEngine.transformBoardToScreen(boardPosition));
       }
     }
 

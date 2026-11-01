@@ -4956,14 +4956,18 @@ var GameLayer = FXCompositeLayer.extend({
 
   addTileNodeForSdkTile(sdkTile, position) {
     const tileNode = TileNode.create(sdkTile);
+    const session = SDK.GameSession.getInstance();
+    const isVersion2Hex = session.getRulesetId() === 'practice-sandbox-hex' && session.getRulesetVersion() === 2;
+    const isWall = sdkTile.getId() === SDK.Cards.Tile.Wall;
 
-    if (!tileNode.layerName) {
-      // usually tile nodes should be added to the tile layer
+    if (isVersion2Hex && isWall) {
+      // Walls behave and render like units over the tile layer.
+      tileNode.layerName = 'middlegroundLayer';
+      tileNode.setPosition(UtilsEngine.transformBoardToTileMap(position));
+    } else {
+      // Methron Points are floor markers; place them with the floor cells.
       tileNode.layerName = 'tileLayer';
       tileNode.setPosition(UtilsEngine.transformBoardToScreen(position));
-    } else {
-      // transform position to tile map when tile node is not being added to tile layer
-      tileNode.setPosition(UtilsEngine.transformBoardToTileMap(position));
     }
 
     this._tileNodes.push(tileNode);
