@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 10-30-2026 00:31
-last_updated: 11-01-2026 18:44
+last_updated: 11-01-2026 19:11
 project: duelyst
 project_key: NOKEY
 tracking_system: file-system
@@ -57,7 +57,7 @@ development_status:
   2-4-traverse-and-occupy-holes-according-to-unit-movement: review
   2-5-attack-neutral-walls-and-open-their-tiles: review
   2-6-share-a-wall-position-and-attack-the-correct-target: review
-  2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: backlog
+  2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: review
   2-8-capture-and-retain-methron-points: backlog
   2-9-damage-the-disadvantaged-general-at-both-turn-ends: backlog
   2-10-face-a-practice-bot-that-makes-legal-terrain-aware-actions: backlog
