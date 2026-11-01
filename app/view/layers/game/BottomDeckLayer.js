@@ -323,9 +323,6 @@ var BottomDeckLayer = BaseLayer.extend({
         cc.delayTime(showDelay + 0.5),
         cc.callFunc(resolveHandReveal),
       ));
-      // Keep game-state transitions from depending on a Cocos action callback
-      // when the game layer is entering the scene.
-      window.setTimeout(resolveHandReveal, (showDelay + 0.55) * 1000);
     });
   },
 
@@ -365,7 +362,6 @@ var BottomDeckLayer = BaseLayer.extend({
         cc.delayTime(showDelay),
         cc.callFunc(resolveDrawReveal),
       ));
-      window.setTimeout(resolveDrawReveal, (showDelay + 0.05) * 1000);
     });
   },
 

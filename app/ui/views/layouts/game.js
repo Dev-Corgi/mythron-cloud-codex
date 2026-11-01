@@ -163,6 +163,7 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
   },
 
   onDestroy: function () {
+    this.chooseHandView = null;
     this._clearInspectCardHideProfilesTimeout();
     this._stopReminderTimeouts();
     this.stopListening(SDK.GameSession.getInstance().getEventBus(), EVENTS.action, this.onDrawStartingHand);
@@ -609,23 +610,15 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
       }
     }
 
-    // Submit as soon as the visual hand reveal completes. Waiting for the
-    // Marionette view transition or remote profile previews can stall forever.
-    if (isFixedPracticeHand) {
-      var autoSubmitTriggered = false;
-      var submitFixedPracticeHand = function () {
-        if (autoSubmitTriggered || this.chooseHandView == null) {
-          return;
+    // Submit only after this hand's reveal completes and while its view and
+    // session are still current. A destroyed or superseded chooser must not act.
+    if (isFixedPracticeHand && chooseHandItemView) {
+      handRevealPromise.then(function () {
+        if (!this.isDestroyed && this.chooseHandView === chooseHandItemView
+          && SDK.GameSession.getInstance() === gameSession) {
+          this.showSubmitChosenHand();
         }
-        autoSubmitTriggered = true;
-        this.showSubmitChosenHand();
-      }.bind(this);
-
-      // Prefer the animation completion signal. Some cocos scene transitions
-      // can leave its action callback pending, so keep a bounded fallback that
-      // lets the staggered card reveal finish before submitting the fixed hand.
-      handRevealPromise.then(submitFixedPracticeHand);
-      window.setTimeout(submitFixedPracticeHand, 2500);
+      }.bind(this));
     }
 
     return Promise.all(allPromises);

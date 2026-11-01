@@ -136,7 +136,9 @@ const findBestFollowup = function (followupSourcePosition, followupIntents, scor
 
       for (let j = 0, jl = validTargetPositions.length; j < jl; j++) {
         const followupTargetPosition = validTargetPositions[j];
-        const followupScoreKey = `${followupTargetPosition.x}_${followupTargetPosition.y}`;
+        const followupScoreKey = Number.isInteger(followupTargetPosition.q)
+          ? `${followupTargetPosition.q}_${followupTargetPosition.r}`
+          : `${followupTargetPosition.x}_${followupTargetPosition.y}`;
         if (followupScores[followupScoreKey] == null) {
           followupScores[followupScoreKey] = 0;
         }

@@ -1,3 +1,5 @@
+const BoardGeometry = require('../scoring/utils/utils_boardGeometry');
+const UtilsGameSession = require('app/common/utils/utils_game_session');
 const CONFIG = require('app/common/config');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const Cards = require('app/sdk/cards/cardsLookupComplete');
@@ -408,17 +410,12 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
   if (pattern != null && pattern.length > 0) {
     // case: targets within a pattern relative to target position
     if (card.isAreaOfEffectOnBoard(targetPosition)) {
-      const tx = targetPosition.x;
-      const ty = targetPosition.y;
-      const position = { x: 0, y: 0 };
-      for (let i = 0, il = pattern.length; i < il; i++) {
-        const offset = pattern[i];
-        position.x = tx + offset.x;
-        position.y = ty + offset.y;
+      const positions = BoardGeometry.isHex(gameSession)
+        ? UtilsGameSession.getValidBoardPositionsFromPattern(board, targetPosition, pattern)
+        : pattern.map((offset) => ({ x: targetPosition.x + offset.x, y: targetPosition.y + offset.y }));
+      for (const position of positions) {
         const unit = board.getUnitAtPosition(position);
-        if (CardIntent.getIsCardTargetedByCardWithIntent(card, intent, unit)) {
-          cards.push(unit);
-        }
+        if (CardIntent.getIsCardTargetedByCardWithIntent(card, intent, unit)) cards.push(unit);
       }
     }
   } else if (CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.All.value)) {
@@ -579,7 +576,7 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
     // case: targets all units in column
 
     // get all units in column
-    cards = cards.concat(board.getEntitiesInColumn(targetPosition.x));
+    cards = cards.concat(BoardGeometry.columnEntities(gameSession, targetPosition));
 
     // remove minions
     if (!CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Minion.value)) {
@@ -604,7 +601,9 @@ CardIntent.getCardsTargetedByCardWithIntent = function (card, intent, targetPosi
     // case: targets all units in row
 
     // get all units in column
-    cards = cards.concat(board.getEntitiesInRow(targetPosition.y));
+    cards = cards.concat((BoardGeometry.isHex(gameSession)
+      ? board.getEntities().filter((entity) => entity.getPosition().r === targetPosition.r)
+      : board.getEntitiesInRow(targetPosition.y)));
 
     // remove minions
     if (!CardIntent.getPartialBitmaskMatch(targetType, CardTargetType.Minion.value)) {

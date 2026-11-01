@@ -1,3 +1,4 @@
+const BoardGeometry = require('./utils_boardGeometry');
 const BOUNTY = require('server/ai/scoring/bounty');
 const filterAttackTargetsForUnit = require('server/ai/scoring/utils/utils_filterAttackTargetsForUnit');
 const ScoreForUnitDamage = require('server/ai/scoring/base/unit_damage');
@@ -43,7 +44,7 @@ const findAttackObjectivesAndScoresForUnit = function (gameSession, unit, target
       if (unit.hasModifierClass(SDK.ModifierRanged) || unit.hasModifierClass(SDK.ModifierBlastAttack)) sortBounty += distanceBetweenBoardPositions(unit.position, enemy.position) <= 1 ? 0 : BOUNTY.TARGET_AT_RANGE; // ranged prefer to attack units at range
       if (unit.hasModifierClass(SDK.ModifierBackstab)) sortBounty += gameSession.getBoard().getIsPositionBehindEntity(enemy, unit.position, 1, 0) ? BOUNTY.TARGET_BACKSTAB_PROC : 0; // backstab prefer to attack units from behind
       if (unit.hasModifierClass(SDK.ModifierBlastAttack)) {
-        sortBounty += _.reject(gameSession.getBoard().getEntitiesInRow(enemy.getPosition().y, SDK.CardType.Unit), (entity) => entity.getIsSameTeamAs(unit)).length * BOUNTY.TARGET_ENEMIES_IN_SAME_ROW;
+        sortBounty += _.reject(BoardGeometry.rowUnits(gameSession, enemy.getPosition(), SDK.CardType.Unit), (entity) => entity.getIsSameTeamAs(unit)).length * BOUNTY.TARGET_ENEMIES_IN_SAME_ROW;
       }
     } else { // unit not played, but we still want ranged/blastAttackers to spawn at distance.
       if (unit.hasModifierClass(SDK.ModifierRanged) || unit.hasModifierClass(SDK.ModifierBlastAttack)) sortBounty += distanceBetweenBoardPositions(sourceUnit.position, enemy.position) <= 1 ? 0 : BOUNTY.TARGET_AT_RANGE; // ranged prefer to attack units at range

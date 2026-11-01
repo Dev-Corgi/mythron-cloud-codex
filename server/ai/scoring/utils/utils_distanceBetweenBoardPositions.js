@@ -1,4 +1,10 @@
 const distanceBetweenBoardPositions = function (positionA, positionB) {
+  if (Number.isInteger(positionA.q) && Number.isInteger(positionA.r)
+    && Number.isInteger(positionB.q) && Number.isInteger(positionB.r)) {
+    const dq = positionA.q - positionB.q;
+    const dr = positionA.r - positionB.r;
+    return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
+  }
   // on the duelyst board, the closer we are to a position
   // the more likely it is that non-cardinal directions
   // are the same distance as cardinal directions

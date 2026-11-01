@@ -1,3 +1,4 @@
+const BoardGeometry = require('../utils/utils_boardGeometry');
 const distanceBetweenBoardPositions = require('server/ai/scoring/utils/utils_distanceBetweenBoardPositions');
 const BOUNTY = require('server/ai/scoring/bounty');
 const ModifierBlastAttack = require('app/sdk/modifiers/modifierBlastAttack');
@@ -22,12 +23,12 @@ const position_objective_distanceFromBestObjective = function (gameSession, unit
   // Logger.module("AI").debug("[G:" + gameSession.gameId + "] position_objective_distanceFromBestObjective() => isEvasive = " + isEvasive);
   const bounty = isEvasive ? BOUNTY.DISTANCE_FROM_BEST_ENEMY_TARGET_EVASIVE : BOUNTY.DISTANCE_FROM_BEST_ENEMY_TARGET;
   // Logger.module("AI").debug("[G:" + gameSession.gameId + "] position_objective_distanceFromBestObjective() => bounty = " + bounty);
-  const maxDistance = distanceBetweenBoardPositions({ x: 0, y: 0 }, { x: CONFIG.BOARDROW, y: CONFIG.BOARDCOL });
+  const maxDistance = BoardGeometry.maxDistance(gameSession, distanceBetweenBoardPositions({ x: 0, y: 0 }, { x: CONFIG.BOARDROW, y: CONFIG.BOARDCOL }));
   // Logger.module("AI").debug("[G:" + gameSession.gameId + "] position_objective_distanceFromBestObjective() => maxDistance = " + maxDistance);
   let score = isEvasive ? (distanceFromBestEnemyTarget * bounty) - maxDistance : distanceFromBestEnemyTarget * bounty;
   // Logger.module("AI").debug("[G:" + gameSession.gameId + "] 1 position_objective_distanceFromBestObjective() => score = " + score);
   if (unit.hasModifierClass(ModifierBlastAttack)) {
-    const distanceFromBestEnemyTargetX = distanceBetweenBoardPositions({ x: position.x, y: bestObjective.getPosition().y }, bestObjective.getPosition());
+    const distanceFromBestEnemyTargetX = BoardGeometry.distanceFromColumn(gameSession, position, bestObjective.getPosition());
     score += distanceFromBestEnemyTargetX * BOUNTY.DISTANCE_FROM_BEST_ENEMY_TARGET_BLASTATTACK_X_V2;
   }
   // Logger.module("AI").debug("[G:" + gameSession.gameId + "] 2 position_objective_distanceFromBestObjective() => score = " + score);

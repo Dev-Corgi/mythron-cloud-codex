@@ -1,3 +1,4 @@
+const BoardGeometry = require('./scoring/utils/utils_boardGeometry');
 const path = require('path');
 require('app-module-path').addPath(path.join(__dirname, '../../'));
 require('coffeescript/register');
@@ -164,6 +165,18 @@ StarterAI.prototype = {
 
   // endregion GETTERS / SETTERS
 
+  _getActionPositionArgs(position) {
+    return this.getGameSession().getRulesetId() === 'practice-sandbox-hex'
+      ? [{ q: position.q, r: position.r }] : [position.x, position.y];
+  },
+
+  _positionsEqual(a, b) {
+    if (a == null || b == null) return a === b;
+    return this.getGameSession().getRulesetId() === 'practice-sandbox-hex'
+      ? this.getGameSession().getBoard().positionsEqual(a, b)
+      : UtilsPosition.getPositionsAreEqual(a, b);
+  },
+
   // region NEXT ACTION
 
   /**
@@ -249,9 +262,9 @@ StarterAI.prototype = {
           if (this._lastInvalidAction != null
             && this._lastInvalidAction.getType() === nextAction.getType()
             && (this._lastInvalidAction.getSourceIndex() == null || this._lastInvalidAction.getSourceIndex() === nextAction.getSourceIndex())
-            && (this._lastInvalidAction.getSourcePosition() == null || this._lastInvalidAction.getSourcePosition().x === nextAction.getSourcePosition().x && this._lastInvalidAction.getSourcePosition().y === nextAction.getSourcePosition().y)
+            && (this._lastInvalidAction.getSourcePosition() == null || this._positionsEqual(this._lastInvalidAction.getSourcePosition(), nextAction.getSourcePosition()))
             && (this._lastInvalidAction.getTargetIndex() == null || this._lastInvalidAction.getTargetIndex() === nextAction.getTargetIndex())
-            && (this._lastInvalidAction.getTargetPosition() == null || this._lastInvalidAction.getTargetPosition().x === nextAction.getTargetPosition().x && this._lastInvalidAction.getTargetPosition().y === nextAction.getTargetPosition().y)
+            && (this._lastInvalidAction.getTargetPosition() == null || this._positionsEqual(this._lastInvalidAction.getTargetPosition(), nextAction.getTargetPosition()))
           ) {
             // end turn immediately
             nextAction = this.getGameSession().actionEndTurn();
@@ -780,11 +793,11 @@ StarterAI.prototype = {
         const cardIsSignatureSpell = cardWithBestScore.isSignatureCard();
         if (cardIsFollowup) {
           // followups always get played first
-          this._nextActions.unshift(player.actionPlayFollowup(cardWithBestScore, position.x, position.y));
+          this._nextActions.unshift(player.actionPlayFollowup(cardWithBestScore, ...this._getActionPositionArgs(position)));
         } else if (cardIsSignatureSpell) {
-          this._nextActions.push(player.actionPlaySignatureCard(position.x, position.y));
+          this._nextActions.push(player.actionPlaySignatureCard(...this._getActionPositionArgs(position)));
         } else {
-          this._nextActions.push(player.actionPlayCardFromHand(player.getDeck().getCardsInHand().indexOf(cardWithBestScore), position.x, position.y));
+          this._nextActions.push(player.actionPlayCardFromHand(player.getDeck().getCardsInHand().indexOf(cardWithBestScore), ...this._getActionPositionArgs(position)));
         }
       }
     }
@@ -854,7 +867,9 @@ StarterAI.prototype = {
         const scoreAndFollowupPositionsCache = cacheForCard.scoreAndFollowupPositions;
         const columnCount = board.getColumnCount();
         _.each(validTargetPositions, (validTargetPosition) => {
-          const scoreIndex = UtilsPosition.getMapIndexFromPosition(columnCount, validTargetPosition.x, validTargetPosition.y);
+          const scoreIndex = gameSession.getRulesetId() === 'practice-sandbox-hex'
+            ? `${validTargetPosition.q},${validTargetPosition.r}`
+            : UtilsPosition.getMapIndexFromPosition(columnCount, validTargetPosition.x, validTargetPosition.y);
           const scoreAndFollowupPositions = scoreAndFollowupPositionsCache[scoreIndex];
           let score;
           let followupPositions;
@@ -1106,8 +1121,7 @@ StarterAI.prototype = {
               // filtered valid target positions ended in bad state
               validTargetPositions = [];
             } else if (filteredValidTargetPositions.length === validTargetPositions.length
-              && filteredValidTargetPositions[0].x === validTargetPositions[0].x
-              && filteredValidTargetPositions[0].y === validTargetPositions[0].y
+              && this._positionsEqual(filteredValidTargetPositions[0], validTargetPositions[0])
               && card.getCanBeAppliedAnywhere()) {
               // pick random position from valid targets when card can be applied anywhere
               validTargetPositions = [validTargetPositions[Math.floor(Math.random() * validTargetPositions.length)]];
@@ -1125,10 +1139,10 @@ StarterAI.prototype = {
           let playCardAction;
           if (cardIsFollowup) {
             // we must always resolve followups before any possibly loaded subsequent actions (i.e. primordial gazer and repulsor beast)
-            playCardAction = player.actionPlayFollowup(card, validTargetPosition.x, validTargetPosition.y);
+            playCardAction = player.actionPlayFollowup(card, ...this._getActionPositionArgs(validTargetPosition));
             this._nextActions.unshift(playCardAction);
           } else if (cardIsSignatureSpell) {
-            this._nextActions.push(player.actionPlaySignatureCard(validTargetPosition.x, validTargetPosition.y));
+            this._nextActions.push(player.actionPlaySignatureCard(...this._getActionPositionArgs(validTargetPosition)));
 
             // add count for spawns
             if (this._getCardIsSpawn(card)) {
@@ -1136,7 +1150,7 @@ StarterAI.prototype = {
             }
           } else {
             playCardAction = player.actionPlayCardFromHand(this.getGameSession().getCurrentPlayer().getDeck().getCardsInHand()
-              .indexOf(card), validTargetPosition.x, validTargetPosition.y);
+              .indexOf(card), ...this._getActionPositionArgs(validTargetPosition));
             this._nextActions.push(playCardAction);
             // add count for spawns
             if (this._getCardIsSpawn(card)) {
@@ -1369,24 +1383,13 @@ StarterAI.prototype = {
             }
 
             // position to affect all targets - if no auxiliaryTarget, auxiliaryTarget will be same as primary target and will simply be redundant targeting
-            const affectPattern = card.getAffectPattern();
             const positionsToMatch = [primaryTarget.getPosition()];
             if (primaryTarget !== secondaryTarget) { positionsToMatch.push(secondaryTarget.getPosition()); }
             if (primaryTarget !== auxiliaryTarget) { positionsToMatch.push(auxiliaryTarget.getPosition()); }
             const positionThatAffectsAllTargets = _.find(validTargetPositions, (pos) => {
-              // find position that contains all targets
-              const bx = pos.x;
-              const by = pos.y;
-              let numMatches = 0;
-              for (let a = 0, al = affectPattern.length; a < al; a++) {
-                const offset = affectPattern[a];
-                if (UtilsPosition.getIsPositionInPositions(positionsToMatch, { x: bx + offset.x, y: by + offset.y })) {
-                  numMatches++;
-                  if (numMatches === positionsToMatch.length) {
-                    break;
-                  }
-                }
-              }
+              const affectedPositions = card.getAffectPositionsFromPattern(pos);
+              const numMatches = positionsToMatch.filter((target) =>
+                affectedPositions.some((affected) => this._positionsEqual(target, affected))).length;
 
               // position must also ensure that area of effect remains on board
               return numMatches === positionsToMatch.length && card.isAreaOfEffectOnBoard(pos);
@@ -1434,7 +1437,7 @@ StarterAI.prototype = {
           if (this._isTargetImmuneToSource(unit, card)) return; // don't count immune units
           if (CARD_INTENT[cardId].indexOf('minion') > -1 && unit.getIsGeneral()) return; // don't count generals if spell effects only minions (i.e. burn_mass_minion)
           if (cardId == SDK.Cards.Spell.Avalanche && this._isOnMySideOfBoard(card, unit.getPosition()) == false) return; // avalanche only deal dmg to units on starting side of field
-          if (cardId == SDK.Cards.Spell.Warbird && unit.getPosition().x !== this.getOpponentGeneral().getPosition().x) return; // warbird only deals damage in column of
+          if (cardId == SDK.Cards.Spell.Warbird && BoardGeometry.column(this.getGameSession(), unit.getPosition()) !== BoardGeometry.column(this.getGameSession(), this.getOpponentGeneral().getPosition())) return; // warbird only deals damage in column of
           if (cardId == SDK.Cards.Spell.PlasmaStorm && unit.getATK() > 3) return; // plasma storm only minions with 3 or less attack
           if (unit.getIsSameTeamAs(myGeneral) && CARD_INTENT[cardId].indexOf('enemy') == -1) {
             myDamageBounty += ScoreForUnitDamage(unit, damageAmount);
@@ -1886,7 +1889,7 @@ StarterAI.prototype = {
             // need to make sure the valid spawn location is actually a location that we can summon
             for (let i = 0; i < validSpawnLocations.length; i++) {
               for (let j = 0; j < validSummonLocations.length; j++) {
-                if (validSpawnLocations[i].x === validSummonLocations[j].x && validSpawnLocations[i].y === validSummonLocations[j].y) {
+                if (this._positionsEqual(validSpawnLocations[i], validSummonLocations[j])) {
                   actualSummonLocations.push(validSpawnLocations[i]);
                 }
               }
@@ -2184,11 +2187,9 @@ StarterAI.prototype = {
 
         for (var i = 0, il = potentialMoves.length; i < il; i++) {
           const potentialMovePos = potentialMoves[i];
-          const potentialX = potentialMovePos.x;
-          const potentialY = potentialMovePos.y;
           for (let k = 0, kl = locationsNearTarget.length; k < kl; k++) {
             var locationNearTarget = locationsNearTarget[k];
-            if (potentialX === locationNearTarget.x && potentialY === locationNearTarget.y) {
+            if (this._positionsEqual(potentialMovePos, locationNearTarget)) {
               // if we found a match on the move positions near the objective, find the best one
               if (bestPosition == null) {
                 bestPosition = potentialMovePos;
@@ -2270,7 +2271,7 @@ StarterAI.prototype = {
         score += this.getGameSession().getBoard().getIsPositionBehindEntity(enemy, targetPosition, 1, 0) ? BOUNTY.TARGET_BACKSTAB_PROC : 0;
       }
       if (unit.hasModifierClass(SDK.ModifierBlastAttack)) {
-        score += _.reject(this.getGameSession().getBoard().getEntitiesInRow(enemy.getPosition().y, SDK.CardType.Unit), (entity) => entity.getIsSameTeamAs(unit)).length * BOUNTY.TARGET_ENEMIES_IN_SAME_ROW;
+        score += _.reject(BoardGeometry.rowUnits(this.getGameSession(), enemy.getPosition(), SDK.CardType.Unit), (entity) => entity.getIsSameTeamAs(unit)).length * BOUNTY.TARGET_ENEMIES_IN_SAME_ROW;
       }
     } else { // unit not played, but we still want ranged/blastAttackers to spawn at distance.
       if (unit.hasModifierClass(SDK.ModifierRanged) || unit.hasModifierClass(SDK.ModifierBlastAttack)) {
@@ -2365,8 +2366,7 @@ StarterAI.prototype = {
 
   _isUnitPreventedFromMovingTo(unit, targetPosition) {
     return _.find(this._invalidMoveActions, (invalidMoveAction) => invalidMoveAction.getSource() === unit
-        && invalidMoveAction.getTargetPosition().x === targetPosition.x
-        && invalidMoveAction.getTargetPosition().y === targetPosition.y) != null;
+        && this._positionsEqual(invalidMoveAction.getTargetPosition(), targetPosition)) != null;
   },
 
   _findMoveActionsForUnit(unit, allowOnlyLethalAttacks) {
@@ -2417,7 +2417,9 @@ StarterAI.prototype = {
       mySideStartX = Math.floor((mySideEndX - mySideStartX) * 0.5 + 1);
     }
 
-    return position.x >= mySideStartX && position.x <= mySideEndX;
+    const column = this.getGameSession().getRulesetId() === 'practice-sandbox-hex'
+      ? this.getGameSession().getBoard().getHexRenderedColumn(position) : position.x;
+    return column >= mySideStartX && column <= mySideEndX;
   },
 
   _highestOrLowestPositionObjectiveAndScoreForUnitFromPositions(sourceUnit, positions, allowOnlyLethalAttacks) {
@@ -2587,7 +2589,7 @@ StarterAI.prototype = {
     if (unitToSend.getIsGeneral() && this._difficulty < DIFFICULTY_WHEN_GENERAL_CAN_RETREAT && unitToSend.getHP() < THRESHOLD_HP_GENERAL_RETREAT) {
       // reverse evasive score
       const distanceFromBestEnemyTarget = distanceBetweenBoardPositions(targetPosition, objective.getPosition());
-      const maxDistance = distanceBetweenBoardPositions({ x: 0, y: 0 }, { x: CONFIG.BOARDROW, y: CONFIG.BOARDCOL });
+      const maxDistance = BoardGeometry.maxDistance(this.getGameSession(), distanceBetweenBoardPositions({ x: 0, y: 0 }, { x: CONFIG.BOARDROW, y: CONFIG.BOARDCOL }));
       score -= (distanceFromBestEnemyTarget * BOUNTY.DISTANCE_FROM_BEST_ENEMY_TARGET_EVASIVE) - maxDistance;
       // add normal aggresive score
       score += distanceFromBestEnemyTarget * BOUNTY.DISTANCE_FROM_BEST_ENEMY_TARGET;

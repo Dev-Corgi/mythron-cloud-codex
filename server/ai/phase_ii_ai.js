@@ -1,3 +1,5 @@
+const actionPositionArgs = (position) => Number.isInteger(position.q) && Number.isInteger(position.r)
+  ? [{ q: position.q, r: position.r }] : [position.x, position.y];
 process.on('uncaughtException', (err) => {
   console.error(err.stack);
 });
@@ -1914,11 +1916,11 @@ var generateActionFromPseudoAction = function (gameSession, pseudoAction) {
   case SDK.PlayCardFromHandAction.type:
     var player = gameSession.getPlayerById(pseudoAction.playerId);
     var { targetPosition } = pseudoAction;
-    return player.actionPlayCardFromHand(pseudoAction.handIndex, targetPosition.x, targetPosition.y);
+    return player.actionPlayCardFromHand(pseudoAction.handIndex, ...actionPositionArgs(targetPosition));
   case SDK.PlaySignatureCardAction.type:
     var player = gameSession.getPlayerById(pseudoAction.playerId);
     var { targetPosition } = pseudoAction;
-    return player.actionPlaySignatureCard(targetPosition.x, targetPosition.y);
+    return player.actionPlaySignatureCard(...actionPositionArgs(targetPosition));
   case SDK.ReplaceCardFromHandAction.type:
     var player = gameSession.getPlayerById(pseudoAction.playerId);
     return player.actionReplaceCardFromHand(pseudoAction.handIndex);
@@ -1929,7 +1931,7 @@ var generateActionFromPseudoAction = function (gameSession, pseudoAction) {
     var cardWaitingForFollowups = gameSession.getValidatorFollowup().getCardWaitingForFollowups();
     var currentFollowupCard = cardWaitingForFollowups.getCurrentFollowupCard();
     var { targetPosition } = pseudoAction;
-    return player.actionPlayFollowup(currentFollowupCard, targetPosition.x, targetPosition.y);
+    return player.actionPlayFollowup(currentFollowupCard, ...actionPositionArgs(targetPosition));
   case SDK.DrawStartingHandAction.type:
     var player = gameSession.getPlayerById(pseudoAction.playerId);
     return player.actionDrawStartingHand(pseudoAction.mulliganIndices);
@@ -2139,17 +2141,17 @@ var _buildActionsAndBranchFromProtoAction = function (gameSession, protoAction, 
       var myPlayerBranched = gameSessionBranched.getCurrentPlayer();
       var indexOfCard = myPlayerBranched.getDeck().getCardsInHand().indexOf(cardInBranchedSession);
       // Logger.module("AI").debug("[G:" + gameSessionBranched.gameId + "] _buildActionsAndBranchFromProtoAction() => building actionPlayCardFromHand for card at index " + indexOfCard + " to " + position.x + ", " + position.y + ". Card is " + myPlayerBranched.getDeck().getCardInHandAtIndex(indexOfCard).getLogName());
-      actions.push(myPlayerBranched.actionPlayCardFromHand(indexOfCard, position.x, position.y));
+      actions.push(myPlayerBranched.actionPlayCardFromHand(indexOfCard, ...actionPositionArgs(position)));
       break;
     case SDK.PlayCardAction.type:
       var myPlayerBranched = gameSessionBranched.getCurrentPlayer();
       // Logger.module("AI").debug("[G:" + gameSessionBranched.gameId + "] _buildActionsAndBranchFromProtoAction() => building actionPlayFollowup for followupcard " + cardInBranchedSession.getLogName() + " to " + position.x + ", " + position.y);
-      actions.push(myPlayerBranched.actionPlayFollowup(cardInBranchedSession, position.x, position.y));
+      actions.push(myPlayerBranched.actionPlayFollowup(cardInBranchedSession, ...actionPositionArgs(position)));
       break;
     case SDK.PlaySignatureCardAction.type:
       var myPlayerBranched = gameSessionBranched.getCurrentPlayer();
       // Logger.module("AI").debug("[G:" + gameSessionBranched.gameId + "] _buildActionsAndBranchFromProtoAction() => building actionPlayFollowup for followupcard " + cardInBranchedSession.getLogName() + " to " + position.x + ", " + position.y);
-      actions.push(myPlayerBranched.actionPlaySignatureCard(position.x, position.y));
+      actions.push(myPlayerBranched.actionPlaySignatureCard(...actionPositionArgs(position)));
       break;
     }
   });
@@ -2183,9 +2185,7 @@ const _isUnitAdjacentToOrOnManaTile = function (unit) {
 
 // region BOARD SCORE
 
-let _arePositionsEqualOrAdjacent = function (positionA, positionB) {
-  return Math.abs(positionA.x - positionB.x) <= 1 && Math.abs(positionA.y - positionB.y) <= 1;
-};
+const _arePositionsEqualOrAdjacent = require('./scoring/utils/utils_arePositionsEqualOrAdjacent');
 
 // specific case positioning
 // PARAMETERS:

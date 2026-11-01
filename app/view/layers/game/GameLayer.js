@@ -1817,9 +1817,7 @@ var GameLayer = FXCompositeLayer.extend({
       this._notificationStartTurnSprite.setPosition(UtilsEngine.getGSIWinCenterPosition());
       this._notificationStartTurnSprite.setScale(0.0);
       this._notificationStartTurnSprite.setOpacity(255.0);
-      const notificationSprite = this._notificationStartTurnSprite;
-      let notificationAction;
-      notificationAction = notificationSprite.runAction(cc.sequence(
+      this._startTurnNotificationAction = this._notificationStartTurnSprite.runAction(cc.sequence(
         cc.scaleTo(CONFIG.NOTIFICATION_TRANSITION_DURATION, 1.0).easing(cc.easeExponentialOut()),
         cc.delayTime(CONFIG.NOTIFICATION_DURATION * (this._showingStartTurnWithAutomaticActions ? 0.75 : 1.0)),
         cc.callFunc(() => {
@@ -1845,16 +1843,9 @@ var GameLayer = FXCompositeLayer.extend({
           cc.fadeOut(CONFIG.ANIMATE_FAST_DURATION),
         ),
         cc.callFunc(() => {
-          // A new turn may start before the previous notification finishes.
-          // Only clean up the notification owned by this action.
-          if (this._startTurnNotificationAction === notificationAction) {
-            this._cleanupShowingStartTurn();
-          } else if (notificationSprite !== this._notificationStartTurnSprite) {
-            notificationSprite.setVisible(false);
-          }
+          this._cleanupShowingStartTurn();
         }),
       ));
-      this._startTurnNotificationAction = notificationAction;
 
       // trigger event
       this.getEventBus().trigger(EVENTS.show_start_turn, { type: EVENTS.show_start_turn, showDuration });
