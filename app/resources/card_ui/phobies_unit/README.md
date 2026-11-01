@@ -1,10 +1,10 @@
 # Approved card UI baseline
 
-The user approved `preview_astral_crusader_geometry_v3.png`. This is the sole visual baseline. Read `C:/Working/duelyst/CARD_UI_HANDOFF.md` before making changes.
+The user approved the geometry in `preview_astral_crusader_geometry_v3.png`. The current render is `preview_astral_crusader_geometry_v4.png`, applying the subsequently requested larger LEVEL 1 subtitle. Read `C:/Working/duelyst/CARD_UI_HANDOFF.md` before making changes.
 
 ## Current files
 
-- `preview_astral_crusader_geometry_v3.png`: approved full-card render.
+- `preview_astral_crusader_geometry_v4.png`: current full-card render; LEVEL N is 18px Lato Regular in #9bced8, matching the ability card and original SPELL subtitle.
 - `frame_geometry.py`: authoritative coordinate-based frame builder.
 - `frame_geometry.svg`, `frame-geometry.json`: generated geometry exports; edit the Python source, not these outputs.
 - `unit_card_frame.png` / `unit_card_frame@2x.png`: 226 x 296 / 452 x 592 frames.

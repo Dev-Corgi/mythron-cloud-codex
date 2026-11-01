@@ -26,6 +26,7 @@ const write = (value, x, y, font, color = '#fff', align = 'center') => {
   const cfg = window.CARD_PREVIEW_CONFIG;
   await document.fonts.load('700 52px Lato');
   await document.fonts.load('700 64px Trump');
+  await document.fonts.load('18px Lato');
   const card = cfg.sampleCard;
   const files = {
     frame: cfg.background,
@@ -78,7 +79,7 @@ const write = (value, x, y, font, color = '#fff', align = 'center') => {
 
   write(card.cost, ...cfg.positions.cost, '700 38px Trump', '#042558');
   write(card.name, ...cfg.positions.name, '700 24px Lato');
-  write('Level ' + card.level, ...cfg.positions.level, '700 13px Lato', '#5fd4ec');
+  write(cfg.levelStyle.prefix + card.level, ...cfg.positions.level, `${cfg.levelStyle.fontSize}px ${cfg.levelStyle.fontFamily}`, cfg.levelStyle.color);
   const stats = [
     [images.attack, card.attack], [images.health, card.health],
     [images.move, card.movementDistance], [images.range, card.range]

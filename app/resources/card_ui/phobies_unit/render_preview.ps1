@@ -8,7 +8,7 @@ $browserPath = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
 if (-not (Test-Path -LiteralPath $browserPath)) {
     $browserPath = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
 }
-$outputPath = Join-Path $assetRoot 'preview_astral_crusader_geometry_v3.png'
+$outputPath = Join-Path $assetRoot 'preview_astral_crusader_geometry_v4.png'
 $pageUrl = ([System.Uri](Join-Path $assetRoot 'preview.html')).AbsoluteUri
 try {
     $browserArgs = @('--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',

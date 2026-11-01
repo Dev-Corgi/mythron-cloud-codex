@@ -20,7 +20,7 @@ window.CARD_PREVIEW_CONFIG = {
     ],
     "level": [
       277,
-      77
+      80
     ],
     "stats": [
       [
@@ -148,5 +148,12 @@ window.CARD_PREVIEW_CONFIG = {
     "melee": "icons/attack_melee@2x.png",
     "ranged": "icons/attack_ranged@2x.png",
     "area": "icons/attack_area@2x.png"
+  },
+  "levelStyle": {
+    "fontFamily": "Lato",
+    "fontWeight": 400,
+    "fontSize": 18,
+    "color": "#9bced8",
+    "prefix": "LEVEL "
   }
 };
