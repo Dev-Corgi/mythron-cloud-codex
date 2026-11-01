@@ -54,7 +54,7 @@ development_status:
   2-1-preserve-each-saved-match-s-battlefield-and-rules: review
   2-2-resolve-positions-consistently-on-the-irregular-hex-battlefi: review
   2-3-enter-and-interact-with-the-exact-replacement-battlefield: review
-  2-4-traverse-and-occupy-holes-according-to-unit-movement: backlog
+  2-4-traverse-and-occupy-holes-according-to-unit-movement: review
   2-5-attack-neutral-walls-and-open-their-tiles: backlog
   2-6-share-a-wall-position-and-attack-the-correct-target: backlog
   2-7-apply-wall-obstruction-consistently-to-attacks-and-area-effe: backlog
