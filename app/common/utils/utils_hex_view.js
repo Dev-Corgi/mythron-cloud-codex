@@ -18,6 +18,21 @@ UtilsHexView.getCellIndex = function (position) {
   return rendered ? rendered.c * 5 + rendered.k : -1;
 };
 
+UtilsHexView.createTileMap = function (positions, createTile, addTile) {
+  const tileMap = [];
+  positions.forEach((position) => {
+    const mapIndex = UtilsHexView.getCellIndex(position);
+    if (mapIndex < 0) return;
+    const tile = createTile(position);
+    if (tile == null) return;
+    tile.boardPosition = { q: position.q, r: position.r };
+    tile.mapIndex = mapIndex;
+    tileMap[mapIndex] = tile;
+    if (addTile) addTile(tile);
+  });
+  return tileMap;
+};
+
 UtilsHexView.getHexRadius = function () {
   return CONFIG.TILESIZE * 0.5;
 };

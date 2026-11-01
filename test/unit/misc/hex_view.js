@@ -37,6 +37,47 @@ describe('hex display mapping', () => {
     });
   });
 
+  it('renders only version 2 physical tile positions while keeping hole coordinates addressable', () => {
+    let SDK;
+    try {
+      SDK = require('../../../app/sdk.coffee');
+      const session = SDK.GameSession.getInstance();
+      session.setRuleset('practice-sandbox-hex', 2);
+      const board = session.getBoard();
+      const tilePositions = board.getTilePositions();
+      const addedTiles = [];
+      const tilesByCell = UtilsHexView.createTileMap(tilePositions, (position) => ({ position }), (tile) => addedTiles.push(tile));
+      const tileIndices = tilePositions.map((position) => UtilsHexView.getCellIndex(position));
+      const holes = [HexTopology.renderedToAxial(2, 0), HexTopology.renderedToAxial(6, 4)];
+      const battleMapSource = fs.readFileSync(path.join(__dirname, '../../../app/view/layers/game/BattleMap.js'), 'utf8');
+      const setupTiles = battleMapSource.match(/_setupTiles\(\) \{([\s\S]*?)\r?\n  \},\r?\n  _setupLights/);
+      expect(tilePositions).to.have.length(41);
+      expect(new Set(tileIndices).size).to.equal(41);
+      expect(addedTiles).to.have.length(41);
+      expect(tilesByCell.filter(Boolean)).to.have.length(41);
+      tilePositions.forEach((position) => {
+        const index = UtilsHexView.getCellIndex(position);
+        expect(tilesByCell[index]).to.exist;
+        expect(tilesByCell[index].mapIndex).to.equal(index);
+        expect(tilesByCell[index].boardPosition).to.deep.equal(position);
+      });
+      holes.forEach((hole) => {
+        expect(tilePositions).not.to.deep.include(hole);
+        expect(tilesByCell[UtilsHexView.getCellIndex(hole)]).to.equal(undefined);
+        expect(UtilsHexView.screenToPosition(UtilsHexView.positionToScreen(hole, origin), origin)).to.deep.equal(hole);
+      });
+      tilePositions.forEach((position) => {
+        expect(UtilsHexView.screenToPosition(UtilsHexView.positionToScreen(position, origin), origin)).to.deep.equal(position);
+      });
+      expect(setupTiles, 'BattleMap floor setup').not.to.equal(null);
+      expect(setupTiles[1]).to.include('UtilsHexView.createTileMap(');
+      expect(setupTiles[1]).to.include('positions,');
+      expect(setupTiles[1]).to.include('addTile(tileSprite, 0, 255)');
+    } finally {
+      if (SDK) SDK.GameSession.reset();
+    }
+  });
+
   it('projects every valid axial neighbor pair at one equal center distance', () => {
     const expectedDistance = Math.sqrt(3) * UtilsHexView.getHexRadius();
     for (let c = 0; c <= 8; c++) {

@@ -810,30 +810,29 @@ var BattleMap = cc.Class.extend({
     // generate floor tiles
     const board = SDK.GameSession.getInstance().getBoard();
     this._floorTileMap = [];
-    const positions = board.getPositions();
-    for (let i = 0; i < positions.length; i++) {
-      const position = positions[i];
-      if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
-        const tileSprite = UtilsHexView.createHexNode(
+    const positions = board.getTilePositions();
+    if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') {
+      this._floorTileMap = UtilsHexView.createTileMap(
+        positions,
+        (position) => UtilsHexView.createHexNode(
           position,
           UtilsEngine.getScreenBoardOrigin(),
           { r: 0, g: 0, b: 0, a: 125 },
           { radiusScale: 0.97 },
-        );
-        tileSprite.boardPosition = { q: position.q, r: position.r };
-        const mapIndex = UtilsHexView.getCellIndex(position);
-        tileSprite.mapIndex = mapIndex;
-        this._floorTileMap[mapIndex] = tileSprite;
-        this._targetLayer.getTileLayer().addTile(tileSprite, 0, 255);
-      } else {
-        const tileSprite = TileMapGridSprite.create();
-        tileSprite.setColor(CONFIG.FLOOR_TILE_COLOR);
-        tileSprite.boardPosition = cc.p(position.x, position.y);
-        const mapIndex = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y);
-        tileSprite.mapIndex = mapIndex;
-        this._floorTileMap[mapIndex] = tileSprite;
-        this._targetLayer.getTileLayer().addBoardBatchedTile(tileSprite, 0, 0);
-      }
+        ),
+        (tileSprite) => this._targetLayer.getTileLayer().addTile(tileSprite, 0, 255),
+      );
+      return;
+    }
+    for (let i = 0; i < positions.length; i++) {
+      const position = positions[i];
+      const tileSprite = TileMapGridSprite.create();
+      tileSprite.setColor(CONFIG.FLOOR_TILE_COLOR);
+      tileSprite.boardPosition = cc.p(position.x, position.y);
+      const mapIndex = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y);
+      tileSprite.mapIndex = mapIndex;
+      this._floorTileMap[mapIndex] = tileSprite;
+      this._targetLayer.getTileLayer().addBoardBatchedTile(tileSprite, 0, 0);
     }
   },
   _setupLights() {

@@ -69,6 +69,11 @@ describe('board', () => {
     expect(SDK.GameSession.getInstance().getBoard().isOnBoard({ x: 8, y: 0 })).to.equal(true);
   });
 
+  it('keeps non-hex physical tile enumeration equal to its legacy positions', () => {
+    const board = SDK.GameSession.getInstance().getBoard();
+    expect(board.getTilePositions()).to.deep.equal(board.getPositions());
+  });
+
   it('expect -1, -1 to be off 9x5 board', () => {
     expect(SDK.GameSession.getInstance().getBoard().isOnBoard({ x: -1, y: -1 })).to.equal(false);
   });
