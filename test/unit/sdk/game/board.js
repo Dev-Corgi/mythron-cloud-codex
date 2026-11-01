@@ -143,6 +143,138 @@ describe('board', () => {
     expect(board.isOnBoard({ q: 8, r: 1 })).to.equal(false);
   });
 
+  it('blocks ordinary version 2 movement through or onto holes while Flying can use them', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const hole = { q: 2, r: 0 };
+    const beyondHole = { q: 3, r: 0 };
+    const ordinary = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    ordinary.setPosition({ q: 1, r: 0 });
+    ordinary.setSpeed(2);
+    const ordinaryRange = ordinary.getMovementRange();
+
+    expect(ordinaryRange.getIsPositionValid(board, ordinary, hole)).to.equal(false);
+    expect(ordinaryRange.getPathTo(board, ordinary, hole)).to.deep.equal([]);
+    expect(ordinaryRange.getIsPositionValid(board, ordinary, beyondHole)).to.equal(false);
+    expect(ordinaryRange.getPathTo(board, ordinary, beyondHole)).to.deep.equal([]);
+
+    const flying = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    flying.setPosition({ q: 1, r: 0 });
+    flying.setSpeed(2);
+    flying.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    const flyingRange = flying.getMovementRange();
+    expect(flyingRange.getIsPositionValid(board, flying, hole)).to.equal(true);
+    expect(flyingRange.getPathTo(board, flying, hole)).to.deep.equal([{ q: 1, r: 0 }, hole]);
+    expect(flyingRange.getIsPositionValid(board, flying, beyondHole)).to.equal(true);
+    expect(flyingRange.getPathTo(board, flying, beyondHole)).to.deep.equal([{ q: 1, r: 0 }, hole, beyondHole]);
+
+    const secondHole = { q: 4, r: 4 };
+    const secondBeyondHole = { q: 5, r: 4 };
+    const ordinaryNearSecondHole = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    ordinaryNearSecondHole.setPosition({ q: 3, r: 4 });
+    ordinaryNearSecondHole.setSpeed(2);
+    const ordinaryNearSecondHoleRange = ordinaryNearSecondHole.getMovementRange();
+    expect(ordinaryNearSecondHoleRange.getIsPositionValid(board, ordinaryNearSecondHole, secondHole)).to.equal(false);
+    expect(ordinaryNearSecondHoleRange.getPathTo(board, ordinaryNearSecondHole, secondBeyondHole)).to.deep.equal([]);
+
+    const flyingNearSecondHole = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    flyingNearSecondHole.setPosition({ q: 3, r: 4 });
+    flyingNearSecondHole.setSpeed(2);
+    flyingNearSecondHole.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    const flyingNearSecondHoleRange = flyingNearSecondHole.getMovementRange();
+    expect(flyingNearSecondHoleRange.getIsPositionValid(board, flyingNearSecondHole, secondHole)).to.equal(true);
+    expect(flyingNearSecondHoleRange.getPathTo(board, flyingNearSecondHole, secondBeyondHole)).to.deep.equal([
+      { q: 3, r: 4 }, secondHole, secondBeyondHole,
+    ]);
+  });
+
+  it('applies hole movement permissions in validation and move action resolution', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const ordinary = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    ordinary.setOwnerId(session.getPlayer1Id());
+    ordinary.setPosition({ q: 1, r: 0 });
+    ordinary.setSpeed(1);
+    ordinary.refreshExhaustion();
+    const invalidMove = ordinary.actionMove({ q: 2, r: 0 });
+    session.validateAction(invalidMove, false);
+    expect(invalidMove.getIsValid()).to.equal(false);
+
+    const flying = session.getGeneralForPlayer1();
+    flying.setPosition({ q: 3, r: 0 });
+    flying.setSpeed(1);
+    flying.refreshExhaustion();
+    flying.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    const flyingMove = flying.actionMove({ q: 2, r: 0 });
+    session.validateAction(flyingMove, false);
+    expect(flyingMove.getIsValid()).to.equal(true);
+    const serializedMove = JSON.parse(session.serializeToJSON(flyingMove));
+    const replayedMove = session.deserializeActionFromFirebase(serializedMove);
+    expect(replayedMove.getTargetPosition()).to.deep.equal({ q: 2, r: 0 });
+    expect(replayedMove.getPath()).to.deep.equal([{ q: 3, r: 0 }, { q: 2, r: 0 }]);
+    session.executeAction(replayedMove);
+    expect(replayedMove.getIsValid()).to.equal(true);
+    expect(flying.getPosition()).to.deep.equal({ q: 2, r: 0 });
+    expect(session.getBoard().getUnitAtPosition({ q: 2, r: 0 })).to.equal(flying);
+    expect(session.getBoard().hasTileAtPosition({ q: 2, r: 0 })).to.equal(false);
+  });
+
+  it('keeps hole summons subject to existing general adjacency and availability rules', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const hole = { q: 2, r: 0 };
+    const general = session.getGeneralForPlayer1();
+    general.setPosition({ q: 0, r: 0 });
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setOwnerId(session.getPlayer1Id());
+
+    expect(board.hasTileAtPosition(hole)).to.equal(false);
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(false);
+    general.setPosition({ q: 1, r: 0 });
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(true);
+  });
+
+  it('lets Flying traverse an occupied hole but does not allow ending there', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const hole = { q: 2, r: 0 };
+    const flying = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    flying.setPosition({ q: 1, r: 0 });
+    flying.setSpeed(2);
+    flying.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+    const range = flying.getMovementRange();
+    const getObstructionAtPositionForEntity = board.getObstructionAtPositionForEntity;
+    const occupant = { getIsSameTeamAs: () => false };
+    board.getObstructionAtPositionForEntity = (position, entity) =>
+      position.q === hole.q && position.r === hole.r ? occupant : getObstructionAtPositionForEntity.call(board, position, entity);
+    try {
+      expect(range.getPathTo(board, flying, hole)).to.deep.equal([]);
+      expect(range.getPathTo(board, flying, { q: 3, r: 0 })).to.deep.equal([
+        { q: 1, r: 0 }, hole, { q: 3, r: 0 },
+      ]);
+    } finally {
+      board.getObstructionAtPositionForEntity = getObstructionAtPositionForEntity;
+    }
+  });
+
+  it('preserves version 1 movement onto positions that are holes in version 2', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    unit.setPosition({ q: 1, r: 0 });
+    unit.setSpeed(1);
+
+    expect(board.hasTileAtPosition({ q: 2, r: 0 })).to.equal(true);
+    expect(unit.getMovementRange().getIsPositionValid(board, unit, { q: 2, r: 0 })).to.equal(true);
+    expect(unit.getMovementRange().getPathTo(board, unit, { q: 2, r: 0 })).to.deep.equal([
+      { q: 1, r: 0 }, { q: 2, r: 0 },
+    ]);
+  });
+
   it('limits hex unit spawn prediction to unobstructed neighbors of its own general', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
