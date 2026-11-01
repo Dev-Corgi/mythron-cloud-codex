@@ -110,4 +110,43 @@ HEX_TOPOLOGY.getLine = (start, finish) ->
     positions.push({q: rx, r: rz})
   return positions
 
+# True only when the open segment enters the open interior of the hex centered
+# at hexCenter. In axial coordinates a point is inside that hex when each of
+# these three absolute linear forms is less than one.
+HEX_TOPOLOGY.segmentEntersHexInterior = (start, finish, hexCenter) ->
+  return false unless HEX_TOPOLOGY.isAxialPosition(start) and HEX_TOPOLOGY.isAxialPosition(finish) and HEX_TOPOLOGY.isAxialPosition(hexCenter)
+  return false if (start.q is finish.q and start.r is finish.r)
+
+  dq = start.q - hexCenter.q
+  dr = start.r - hexCenter.r
+  deltaQ = finish.q - start.q
+  deltaR = finish.r - start.r
+  forms = [
+    {value: 2 * dq + dr, delta: 2 * deltaQ + deltaR}
+    {value: dq + 2 * dr, delta: deltaQ + 2 * deltaR}
+    {value: dq - dr, delta: deltaQ - deltaR}
+  ]
+  lower = 0
+  upper = 1
+  for form in forms
+    if form.delta is 0
+      return false if Math.abs(form.value) >= 1
+      continue
+    t1 = (-1 - form.value) / form.delta
+    t2 = (1 - form.value) / form.delta
+    intervalLower = Math.min(t1, t2)
+    intervalUpper = Math.max(t1, t2)
+    lower = Math.max(lower, intervalLower)
+    upper = Math.min(upper, intervalUpper)
+    return false unless upper > lower
+  # Clipping against open half-planes makes boundary-only and vertex-only
+  # contacts have zero overlap and therefore remain non-blocking.
+  return Math.min(upper, 1) > Math.max(lower, 0)
+
+HEX_TOPOLOGY.isOnHexAxis = (start, finish) ->
+  return false unless HEX_TOPOLOGY.isAxialPosition(start) and HEX_TOPOLOGY.isAxialPosition(finish)
+  dq = finish.q - start.q
+  dr = finish.r - start.r
+  return dq is 0 or dr is 0 or dq + dr is 0
+
 module.exports = HEX_TOPOLOGY

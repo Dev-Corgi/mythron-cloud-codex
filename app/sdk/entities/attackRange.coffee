@@ -1,5 +1,7 @@
 UtilsPosition = require 'app/common/utils/utils_position'
 HexTopology = require 'app/sdk/rulesets/hexTopology'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
+CardType = require 'app/sdk/cards/cardType'
 Range = require './range'
 _ = require 'underscore'
 
@@ -24,6 +26,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(fromPosition)
         for position in board.getHexPositionsInRange(fromPosition, entity.getReach())
           continue if board.positionsEqual(fromPosition, position)
+          continue if @_isV2RangedAttack(entity) and !@_isLegalV2RangedLine(board, entity, fromPosition, position)
           continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, fromPosition, position)
           key = "#{position.q},#{position.r}"
           unless positionsByKey[key]
@@ -42,6 +45,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(origin)
         distance = board.getHexDistance(origin, position)
         continue if distance is 0 or distance > entity.getReach()
+        continue if @_isV2RangedAttack(entity) and !@_isLegalV2RangedLine(board, entity, origin, position)
         continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, origin, position)
         return position
       return null
@@ -133,6 +137,21 @@ class AttackRange extends Range
       continue if board.positionsEqual(cell, targetPosition)
       obstruction = board.getObstructionAtPositionForEntity(cell, entity)
       return false if obstruction and !entity.getIsSameTeamAs(obstruction) and obstruction.getIsObstructing()
+    return true
+
+  _isV2RangedAttack: (entity) ->
+    session = entity?.getGameSession?()
+    return !!(session? and session.getRulesetId() is 'practice-sandbox-hex' and session.getRulesetVersion() is 2 and entity.isRanged?() and entity.isRanged())
+
+  _isLegalV2RangedLine: (board, entity, fromPosition, targetPosition) ->
+    return false unless HexTopology.isOnHexAxis(fromPosition, targetPosition)
+    for obstruction in board.getEntities()
+      continue unless obstruction.getIsActive?() and obstruction.getIsActive()
+      continue unless obstruction.getType?() is CardType.Tile and obstruction.getId?() is Cards.Tile.Wall
+      continue unless obstruction.getIsObstructing?() and obstruction.getIsObstructing()
+      wallPosition = obstruction.getPosition()
+      continue if board.positionsEqual(wallPosition, fromPosition) or board.positionsEqual(wallPosition, targetPosition)
+      return false if HexTopology.segmentEntersHexInterior(fromPosition, targetPosition, wallPosition)
     return true
 
   getAttackAtlas: (board, entity, fromPositions) ->

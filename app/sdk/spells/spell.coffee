@@ -3,6 +3,8 @@ UtilsGameSession = require 'app/common/utils/utils_game_session'
 UtilsPosition = require 'app/common/utils/utils_position'
 Card = require 'app/sdk/cards/card'
 CardType = require 'app/sdk/cards/cardType'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
 SpellFilterType = require './spellFilterType'
 _ = require 'underscore'
 
@@ -157,6 +159,15 @@ class Spell extends Card
 
     # filter positions
     applyEffectPositions = @_filterApplyPositions(applyEffectPositions)
+
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2 and (@radius > 0 or (affectPattern? and affectPattern.length > 1))
+      walls = (entity for entity in board.getEntities() when entity.getIsActive() and entity.getType() is CardType.Tile and entity.getId() is Cards.Tile.Wall and entity.getIsObstructing())
+      applyEffectPositions = applyEffectPositions.filter (candidate) =>
+        for wall in walls
+          wallPosition = wall.getPosition()
+          continue if board.positionsEqual(wallPosition, position) or board.positionsEqual(wallPosition, candidate)
+          return false if HexTopology.segmentEntersHexInterior(position, candidate, wallPosition)
+        return true
 
     return applyEffectPositions
 

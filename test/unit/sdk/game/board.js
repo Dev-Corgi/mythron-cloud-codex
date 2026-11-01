@@ -145,6 +145,119 @@ describe('board', () => {
     expect(board.isOnBoard({ q: 8, r: 1 })).to.equal(false);
   });
 
+  it('clips open segments against hex interiors without counting vertex contact', () => {
+    const topology = SDK.HexTopology;
+    const center = { q: 0, r: 0 };
+    expect(topology.segmentEntersHexInterior({ q: -2, r: 0 }, { q: 2, r: 0 }, center)).to.equal(true);
+    expect(topology.segmentEntersHexInterior({ q: -2, r: 1 }, { q: 2, r: 1 }, center)).to.equal(false);
+    expect(topology.segmentEntersHexInterior({ q: 0, r: 1 }, { q: 1, r: -1 }, center)).to.equal(false);
+    expect(topology.segmentEntersHexInterior({ q: 0, r: -2 }, { q: 0, r: 2 }, center)).to.equal(true);
+    expect(topology.isOnHexAxis({ q: 0, r: 0 }, { q: 3, r: 0 })).to.equal(true);
+    expect(topology.isOnHexAxis({ q: 0, r: 0 }, { q: 2, r: 1 })).to.equal(false);
+  });
+
+  it('restricts v2 ranged attacks to six axes and blocks intervening Walls', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const attacker = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id());
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(CONFIG.REACH_RANGED);
+    const enemy = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    enemy.setOwnerId(session.getPlayer2Id());
+    enemy.setPosition({ q: 7, r: 0 });
+    enemy.setIsPlayed(true);
+    enemy.setIsRemoved(false);
+    board.addCard(enemy);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(true);
+
+    const offAxis = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    offAxis.setOwnerId(session.getPlayer2Id());
+    offAxis.setPosition({ q: 6, r: 1 });
+    offAxis.setIsPlayed(true);
+    offAxis.setIsRemoved(false);
+    board.addCard(offAxis);
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, offAxis)).to.equal(false);
+
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, 6, 0);
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(false);
+    enemy.setPosition({ q: 6, r: 0 });
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(true);
+    const interveningWall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(interveningWall, 5, 0);
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(false);
+    interveningWall.setIsRemoved(true);
+
+    offAxis.setIsRemoved(true);
+    attacker.setPosition({ q: 4, r: 1 });
+    enemy.setPosition({ q: 7, r: 1 });
+    const oddRowWall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(oddRowWall, 6, 1);
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(false);
+    enemy.setPosition({ q: 6, r: 1 });
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(true);
+  });
+
+  it('resolves Maw follow-up damage to an adjacent enemy Unit sharing a Wall', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const maw = session.createCardForIdentifier(SDK.Cards.Neutral.Maw);
+    maw.setOwnerId(session.getPlayer1Id());
+    maw.setPosition({ q: 4, r: 2 });
+    maw.setIsPlayed(true);
+    maw.setIsRemoved(false);
+    board.addCard(maw);
+
+    const targetPosition = { q: 5, r: 2 };
+    const target = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    target.setOwnerId(session.getPlayer2Id());
+    target.setPosition(targetPosition);
+    target.setIsPlayed(true);
+    target.setIsRemoved(false);
+    board.addCard(target);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, targetPosition.q, targetPosition.r);
+
+    const followup = maw.getCurrentFollowupCard();
+    expect(followup.getValidTargetPositions()).to.deep.include(targetPosition);
+    const initialWallHp = wall.getHP();
+    let queuedDamageAction = null;
+    const executeAction = session.executeAction;
+    session.executeAction = (action) => { queuedDamageAction = action; };
+    try {
+      followup.onApplyEffectToBoardTile(board, targetPosition.q, targetPosition.r, null);
+    } finally {
+      session.executeAction = executeAction;
+    }
+    expect(queuedDamageAction.getTarget()).to.equal(target);
+    expect(queuedDamageAction.getDamageAmount()).to.equal(2);
+    expect(wall.getHP()).to.equal(initialWallHp);
+  });
+
+  it('delivers circular area effects along direct segments while allowing off-axis candidates', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, 6, 0);
+    const spell = new Spell(session);
+    spell.radius = 3;
+    const center = { q: 4, r: 0 };
+    const positions = spell._findApplyEffectPositions(center, null);
+    expect(positions).not.to.deep.include({ q: 7, r: 0 });
+    expect(positions).to.deep.include({ q: 6, r: 0 });
+    expect(positions).to.deep.include({ q: 5, r: 2 });
+    expect(board.getHexDistance(center, { q: 5, r: 2 })).to.equal(3);
+  });
+
   it('blocks ordinary version 2 movement through or onto holes while Flying can use them', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 2);
