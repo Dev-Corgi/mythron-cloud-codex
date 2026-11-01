@@ -320,6 +320,7 @@ ResignAction = require './actions/resignAction'
 StartTurnAction = require './actions/startTurnAction'
 EndTurnAction = require './actions/endTurnAction'
 CaptureMethronPointAction = require './actions/captureMethronPointAction'
+ResolveMethronPointControlDamageAction = require './actions/resolveMethronPointControlDamageAction'
 RevealHiddenCardAction = require './actions/revealHiddenCardAction'
 StopBufferingEventsAction = require './actions/stopBufferingEventsAction'
 RemoveAction = require './actions/removeAction'
@@ -430,6 +431,7 @@ class _GameSession extends SDKObject
     p.updatedElapsedEndTurn = false # whether end turn duration elapsed has updated
     p.updatedElapsedStartTurn = false # whether start turn duration elapsed has updated
     p.authorizedMethronPointCaptureActions = []
+    p.authorizedMethronPointControlDamageActions = []
     p.startTurnAction = null # current start turn action if turns are changing
     p.step = null # currently executing step
     p.stepsByIndex = {} # map of steps by index
@@ -1409,6 +1411,12 @@ class _GameSession extends SDKObject
     @_private.authorizedMethronPointCaptureActions.splice(actionIndex, 1)
     return true
 
+  consumeMethronPointControlDamageAuthorization: (action) ->
+    actionIndex = @_private.authorizedMethronPointControlDamageActions.indexOf(action)
+    return false if actionIndex < 0
+    @_private.authorizedMethronPointControlDamageActions.splice(actionIndex, 1)
+    return true
+
   _getNumberOfTurnsUntilPlayerActivatesSignatureCard: (player, fromTurnNumber) ->
     if @getIsSignatureCardAlwaysReady()
       return 0
@@ -2198,6 +2206,11 @@ class _GameSession extends SDKObject
                 captureAction.setIsAutomatic(true)
                 @_private.authorizedMethronPointCaptureActions.push(captureAction)
                 @executeAction(captureAction)
+
+            controlDamageAction = @createActionForType(ResolveMethronPointControlDamageAction.type)
+            controlDamageAction.setIsAutomatic(true)
+            @_private.authorizedMethronPointControlDamageActions.push(controlDamageAction)
+            @executeAction(controlDamageAction)
 
           if !@_private.startTurnAction?
             # start new turn

@@ -17,7 +17,8 @@ const createRulesetFixture = (rulesetId, rulesetVersion) => {
   const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
   const practiceDeck1 = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
   const practiceDeck2 = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
-  SDK.GameSetup.setupNewSession(gameSession,
+  SDK.GameSetup.setupNewSession(
+    gameSession,
     {
       userId: 'ruleset-player-1',
       name: 'Ruleset Player 1',
@@ -35,6 +36,29 @@ const createRulesetFixture = (rulesetId, rulesetVersion) => {
     true,
   );
   return gameSession;
+};
+
+const getMethronPoints = (gameSession) => gameSession.getBoard().getTiles(true)
+  .filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint);
+
+const setMethronControlCounts = (gameSession, player1Count, player2Count) => {
+  const points = getMethronPoints(gameSession);
+  points.slice(0, player1Count).forEach((point) => point.setOwnerId(gameSession.getPlayer1Id()));
+  points.slice(player1Count, player1Count + player2Count)
+    .forEach((point) => point.setOwnerId(gameSession.getPlayer2Id()));
+  return points;
+};
+
+const executeEndTurnWithoutValidation = (gameSession) => {
+  gameSession.setStatus(SDK.GameStatus.active);
+  gameSession.setIsRunningAsAuthoritative(true);
+  const validators = gameSession.getValidators();
+  gameSession.setValidators([]);
+  try {
+    gameSession.executeAction(gameSession.actionEndTurn());
+  } finally {
+    gameSession.setValidators(validators);
+  }
 };
 
 describe('UtilsGameSession', () => {
@@ -236,6 +260,161 @@ describe('UtilsGameSession', () => {
       expect(point.getOwnerId()).to.equal(session.getPlayer2Id());
       expect(point.getDepleted()).to.equal(false);
       expect(point.getIsRemoved()).to.equal(false);
+    });
+
+    it('deals twice the control-count difference to the disadvantaged General at both turn ends', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const controlledPoints = setMethronControlCounts(session, 3, 1);
+      expect(controlledPoints.every((point) => point.getOccupant() == null)).to.equal(true);
+      const general1 = session.getGeneralForPlayer1();
+      const general2 = session.getGeneralForPlayer2();
+      const general1Hp = general1.getHP();
+      const general2Hp = general2.getHP();
+      const player1 = session.getPlayer1();
+      const player1MaximumMana = player1.getMaximumMana();
+      player1.setReserveMana(5);
+
+      executeEndTurnWithoutValidation(session);
+      expect(general1.getHP()).to.equal(general1Hp);
+      expect(general2.getHP()).to.equal(general2Hp - 4);
+      expect(player1.getReserveMana()).to.equal(2);
+      expect(player1.getMaximumMana()).to.equal(player1MaximumMana + 3);
+      expect(session.getCurrentPlayer().getPlayerId()).to.equal(session.getPlayer2Id());
+
+      executeEndTurnWithoutValidation(session);
+      expect(general1.getHP()).to.equal(general1Hp);
+      expect(general2.getHP()).to.equal(general2Hp - 8);
+
+      const reverseControl = createRulesetFixture('practice-sandbox-hex', 2);
+      setMethronControlCounts(reverseControl, 1, 3);
+      const reverseGeneral1Hp = reverseControl.getGeneralForPlayer1().getHP();
+      const reverseGeneral2Hp = reverseControl.getGeneralForPlayer2().getHP();
+      executeEndTurnWithoutValidation(reverseControl);
+      expect(reverseControl.getGeneralForPlayer1().getHP()).to.equal(reverseGeneral1Hp - 4);
+      expect(reverseControl.getGeneralForPlayer2().getHP()).to.equal(reverseGeneral2Hp);
+
+      const equalControl = createRulesetFixture('practice-sandbox-hex', 2);
+      setMethronControlCounts(equalControl, 2, 2);
+      const equalGeneral1Hp = equalControl.getGeneralForPlayer1().getHP();
+      const equalGeneral2Hp = equalControl.getGeneralForPlayer2().getHP();
+      executeEndTurnWithoutValidation(equalControl);
+      expect(equalControl.getGeneralForPlayer1().getHP()).to.equal(equalGeneral1Hp);
+      expect(equalControl.getGeneralForPlayer2().getHP()).to.equal(equalGeneral2Hp);
+      expect(equalControl.getActions().some((action) => action instanceof SDK.DamageAction
+        && action.getTarget() && action.getTarget().getIsGeneral())).to.equal(false);
+
+      const maximumControl = createRulesetFixture('practice-sandbox-hex', 2);
+      setMethronControlCounts(maximumControl, 5, 0);
+      const disadvantagedGeneral = maximumControl.getGeneralForPlayer2();
+      const advantagedGeneralHp = maximumControl.getGeneralForPlayer1().getHP();
+      const disadvantagedGeneralHp = disadvantagedGeneral.getHP();
+      executeEndTurnWithoutValidation(maximumControl);
+      expect(maximumControl.getGeneralForPlayer1().getHP()).to.equal(advantagedGeneralHp);
+      expect(disadvantagedGeneral.getHP()).to.equal(disadvantagedGeneralHp - 10);
+    });
+
+    it('counts a point captured during the same turn-end before applying deficit damage', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const points = setMethronControlCounts(session, 2, 2);
+      const neutralPoint = points[4];
+      const general1 = session.getGeneralForPlayer1();
+      const general2 = session.getGeneralForPlayer2();
+      const general1Hp = general1.getHP();
+      const general2Hp = general2.getHP();
+      general1.setPosition(neutralPoint.getPosition());
+      session.syncState();
+
+      executeEndTurnWithoutValidation(session);
+
+      expect(neutralPoint.getOwnerId()).to.equal(session.getPlayer1Id());
+      expect(general1.getHP()).to.equal(general1Hp);
+      expect(general2.getHP()).to.equal(general2Hp - 2);
+      const resolvedControlAction = session.getActions().find((action) =>
+        action instanceof SDK.ResolveMethronPointControlDamageAction);
+      expect(resolvedControlAction).to.exist;
+      expect(resolvedControlAction.getIndex()).to.be.greaterThan(
+        session.getActions().find((action) => action instanceof SDK.CaptureMethronPointAction).getIndex(),
+      );
+      expect(resolvedControlAction.getIndex()).to.be.lessThan(
+        session.getActions().find((action) => action instanceof SDK.StartTurnAction).getIndex(),
+      );
+    });
+
+    it('replays and restores deficit damage and uses normal lethal General handling', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const points = setMethronControlCounts(session, 3, 1);
+      session.syncState();
+      const general2 = session.getGeneralForPlayer2();
+      const startingHp = general2.getHP();
+      const initialSnapshot = JSON.parse(session.serializeToJSON(session));
+      executeEndTurnWithoutValidation(session);
+      expect(general2.getHP()).to.equal(startingHp - 4);
+
+      const restored = SDK.GameSession.create();
+      restored.deserializeSessionFromFirebase(JSON.parse(session.serializeToJSON(session)));
+      expect(restored.getGeneralForPlayer2().getHP()).to.equal(startingHp - 4);
+      expect(getMethronPoints(restored).map((point) => point.getOwnerId()))
+        .to.deep.equal(points.map((point) => point.getOwnerId()));
+      const serializedResolver = JSON.parse(session.serializeToJSON(session.getActions().find((action) =>
+        action instanceof SDK.ResolveMethronPointControlDamageAction)));
+      const replayResolver = restored.deserializeActionFromFirebase(serializedResolver);
+      expect(replayResolver).to.be.instanceOf(SDK.ResolveMethronPointControlDamageAction);
+
+      const replay = SDK.GameSession.create();
+      replay.deserializeSessionFromFirebase(initialSnapshot);
+      expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(replay.getRulesetVersion()).to.equal(2);
+      replay.syncState();
+      expect(getMethronPoints(replay).filter((point) => point.getOwnerId() === replay.getPlayer1Id())).to.have.length(3);
+      expect(getMethronPoints(replay).filter((point) => point.getOwnerId() === replay.getPlayer2Id())).to.have.length(1);
+      executeEndTurnWithoutValidation(replay);
+      expect(replay.getGeneralForPlayer2().getHP()).to.equal(startingHp - 4);
+
+      const lethal = createRulesetFixture('practice-sandbox-hex', 2);
+      setMethronControlCounts(lethal, 5, 0);
+      const lethalGeneral = lethal.getGeneralForPlayer2();
+      lethalGeneral.setDamage(lethalGeneral.getMaxHP() - 9);
+      executeEndTurnWithoutValidation(lethal);
+      expect(lethalGeneral.getHP()).to.be.at.most(0);
+      expect(lethal.isOver()).to.equal(true);
+    });
+
+    it('does not apply Methron deficit damage outside replacement rules version 2', () => {
+      for (const [rulesetId, rulesetVersion] of [['practice-sandbox-hex', 1], ['legacy', 1]]) {
+        const session = createRulesetFixture(rulesetId, rulesetVersion);
+        const general1Hp = session.getGeneralForPlayer1().getHP();
+        const general2Hp = session.getGeneralForPlayer2().getHP();
+        executeEndTurnWithoutValidation(session);
+        expect(session.getGeneralForPlayer1().getHP(), `${rulesetId} v${rulesetVersion} player 1`).to.equal(general1Hp);
+        expect(session.getGeneralForPlayer2().getHP(), `${rulesetId} v${rulesetVersion} player 2`).to.equal(general2Hp);
+      }
+    });
+
+    it('requires one-shot end-turn authorization for the replayable control resolver', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      setMethronControlCounts(session, 5, 0);
+      const general2 = session.getGeneralForPlayer2();
+      const startingHp = general2.getHP();
+      session.setStatus(SDK.GameStatus.active);
+      session.setIsRunningAsAuthoritative(true);
+
+      const forged = new SDK.ResolveMethronPointControlDamageAction(session);
+      forged.setIsAutomatic(true);
+      forged.setOwnerId(session.getPlayer1Id());
+      expect(session.submitExplicitAction(forged)).to.equal(true);
+      expect(general2.getHP()).to.equal(startingHp);
+
+      const authorized = new SDK.ResolveMethronPointControlDamageAction(session);
+      session._private.authorizedMethronPointControlDamageActions.push(authorized);
+      const validators = session.getValidators();
+      session.setValidators([]);
+      try {
+        session.executeAction(authorized);
+      } finally {
+        session.setValidators(validators);
+      }
+      expect(general2.getHP()).to.equal(startingHp - 10);
+      expect(session.consumeMethronPointControlDamageAuthorization(authorized)).to.equal(false);
     });
 
     it('captures a point for the surviving occupant at either player’s end turn', () => {

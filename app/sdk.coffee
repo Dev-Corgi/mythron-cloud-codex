@@ -68,6 +68,7 @@ SDK.SwapUnitAllegianceAction = require 'app/sdk/actions/swapUnitAllegianceAction
 SDK.DrawStartingHandAction = require 'app/sdk/actions/drawStartingHandAction'
 SDK.EndTurnAction = require 'app/sdk/actions/endTurnAction'
 SDK.CaptureMethronPointAction = require 'app/sdk/actions/captureMethronPointAction'
+SDK.ResolveMethronPointControlDamageAction = require 'app/sdk/actions/resolveMethronPointControlDamageAction'
 SDK.StartTurnAction = require 'app/sdk/actions/startTurnAction'
 SDK.StopBufferingEventsAction = require 'app/sdk/actions/stopBufferingEventsAction'
 SDK.EndFollowupAction = require 'app/sdk/actions/endFollowupAction'
