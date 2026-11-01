@@ -10,6 +10,7 @@ const UtilsGameSession = require('../../../app/common/utils/utils_game_session.c
 const SDK = require('../../../app/sdk.coffee');
 const UtilsSDK = require('../../utils/utils_sdk');
 const EVENTS = require('../../../app/common/event_types');
+const StarterAI = require('../../../server/ai/starter_ai');
 
 const createRulesetFixture = (rulesetId, rulesetVersion) => {
   const gameSession = SDK.GameSession.create();
@@ -63,6 +64,41 @@ const executeEndTurnWithoutValidation = (gameSession) => {
 
 describe('UtilsGameSession', () => {
   describe('ruleset persistence', () => {
+    it('generates, validates, and restores a legal version 2 Practice AI action at each representative difficulty', () => {
+      for (const difficulty of [0, 0.1, 0.2, 0.5, 1]) {
+        const session = createRulesetFixture('practice-sandbox-hex', 2);
+        const playerId = session.getPlayer1Id();
+        session.getPlayer1().setHasStartingHand(true);
+        session.getPlayer2().setHasStartingHand(true);
+        session.setStatus(SDK.GameStatus.active);
+        session.getPlayer1().setStartingMana(0);
+        const initialSnapshot = JSON.parse(session.serializeToJSON(session));
+        const initialCurrentPlayerId = session.getCurrentPlayerId();
+        const ai = new StarterAI(session, playerId, difficulty);
+        const action = ai.nextAction();
+
+        expect(action, `difficulty ${difficulty}`).not.to.equal(null);
+        session.validateAction(action, false);
+        expect(action.getIsValid(), `difficulty ${difficulty}`).to.equal(true);
+        const serializedAction = JSON.parse(session.serializeToJSON(action));
+
+        const replay = SDK.GameSession.create();
+        replay.deserializeSessionFromFirebase(initialSnapshot);
+        replay.getPlayer1().setIsCurrentPlayer(initialCurrentPlayerId === replay.getPlayer1Id());
+        replay.getPlayer2().setIsCurrentPlayer(initialCurrentPlayerId === replay.getPlayer2Id());
+        replay.getCurrentTurn().setPlayerId(initialCurrentPlayerId);
+        expect(replay.getCurrentPlayerId(), `initial replay difficulty ${difficulty}`).to.equal(initialCurrentPlayerId);
+        replay.setIsRunningAsAuthoritative(true);
+        const replayAction = replay.deserializeActionFromFirebase(serializedAction);
+        replay.validateAction(replayAction, false);
+        expect(replayAction.getIsValid(), `replay difficulty ${difficulty}: ${replayAction.getValidationMessage()}`).to.equal(true);
+
+        expect(replayAction.getType(), `replay difficulty ${difficulty}`).to.equal(action.getType());
+        session.terminate();
+        replay.terminate();
+      }
+    });
+
     it('round trips a supported ruleset and defaults historical snapshots to legacy', () => {
       const session = createRulesetFixture('practice-sandbox-hex', 1);
       const serialized = JSON.parse(session.serializeToJSON(session));

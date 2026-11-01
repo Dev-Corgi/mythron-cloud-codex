@@ -13,6 +13,8 @@ const SpellWrathOfGod = require('../../../../app/sdk/spells/spellWrathOfGod.coff
 const UtilsGameSession = require('../../../../app/common/utils/utils_game_session.coffee');
 const ModifierOpeningGambitDamageNearby = require('../../../../app/sdk/modifiers/modifierOpeningGambitDamageNearby.coffee');
 const ModifierDyingWishDamageNearbyEnemies = require('../../../../app/sdk/modifiers/modifierDyingWishDamageNearbyEnemies.coffee');
+const ValidatorApplyCardToBoard = require('../../../../app/sdk/validators/validatorApplyCardToBoard.coffee');
+const RandomPlayCardSilentlyAction = require('../../../../app/sdk/actions/randomPlayCardSilentlyAction.coffee');
 
 // disable the logger for cleaner test output
 Logger.enabled = false;
@@ -532,7 +534,7 @@ describe('board', () => {
     expect(session.getBoard().hasTileAtPosition({ q: 2, r: 0 })).to.equal(false);
   });
 
-  it('keeps hole summons subject to existing general adjacency and availability rules', () => {
+  it('rejects hole summons for every movement class while preserving adjacency rules', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 2);
     const board = session.getBoard();
@@ -545,7 +547,53 @@ describe('board', () => {
     expect(board.hasTileAtPosition(hole)).to.equal(false);
     expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(false);
     general.setPosition({ q: 1, r: 0 });
-    expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(true);
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(false);
+
+    for (const movementClass of [SDK.ModifierFlying, SDK.ModifierPhasing]) {
+      unit.hasActiveModifierClass = (modifierClass) => modifierClass === movementClass;
+      expect(board.isValidGeneralAdjacentSpawnPosition(unit, hole)).to.equal(false);
+    }
+    unit.hasActiveModifierClass = () => false;
+    expect(board.isValidGeneralAdjacentSpawnPosition(unit, { q: 0, r: 0 })).to.equal(true);
+  });
+
+  it('rejects version 2 summon actions on holes and preserves version 1 hole placement', () => {
+    const session = SDK.GameSession.getInstance();
+    const playerId = session.getPlayer1Id();
+    const hole = { q: 2, r: 0 };
+    const unit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
+    unit.setOwnerId(playerId);
+    const action = new SDK.PlayCardAction(session, playerId, hole, { id: unit.getId() });
+    const validator = new ValidatorApplyCardToBoard(session);
+
+    session.setRuleset('practice-sandbox-hex', 2);
+    validator.onValidateAction({ action });
+    expect(action.getIsValid()).to.equal(false);
+
+    const randomAction = new RandomPlayCardSilentlyAction(session, playerId, { id: unit.getId() });
+    randomAction.setTargetPosition(hole);
+    validator.onValidateAction({ action: randomAction });
+    expect(randomAction.getIsValid()).to.equal(false);
+
+    const missingCardAction = new SDK.ApplyCardToBoardAction(session, playerId, hole, null);
+    expect(() => validator.onValidateAction({ action: missingCardAction })).not.to.throw();
+    expect(missingCardAction.getIsValid()).to.equal(false);
+
+    session.setRuleset('practice-sandbox-hex', 1);
+    session.getGeneralForPlayerId(playerId).setPosition({ q: 1, r: 0 });
+    expect(session.getBoard().hasTileAtPosition(hole)).to.equal(true);
+    expect(session.getBoard().getValidGeneralAdjacentSpawnPositions(unit)).to.include.deep.members([hole]);
+    const legacyHoleAction = new PlayCardAction(session, playerId, hole, { id: unit.getId() });
+    validator.onValidateAction({ action: legacyHoleAction });
+    expect(legacyHoleAction.getIsValid(), legacyHoleAction.getValidationMessage()).to.equal(true);
+  });
+
+  it('excludes version 2 holes from shared smart Unit spawn candidates', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const unit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
+    unit.setOwnerId(session.getPlayer1Id());
+    expect(UtilsGameSession.getSmartSpawnPositionsFromPattern(session, { q: 0, r: 0 }, [{ q: 2, r: 0 }], unit)).to.deep.equal([]);
   });
 
   it('lets Flying traverse an occupied hole but does not allow ending there', () => {

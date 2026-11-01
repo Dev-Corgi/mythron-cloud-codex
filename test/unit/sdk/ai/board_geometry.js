@@ -57,4 +57,17 @@ describe('Practice AI board geometry', () => {
     const objectives = ai._findSortedFilteredAttackObjectivesAndScoresForUnit(source, source.getPosition(), false, false);
     expect(objectives.map((entry) => entry.objective)).to.deep.equal([enemy]);
   });
+
+  it('returns the existing legal EndTurn when no non-ending action is available', () => {
+    const session = SDK.GameSession.getInstance();
+    const playerId = session.getCurrentPlayerId();
+    const general = session.getGeneralForPlayerId(playerId);
+    general.setExhausted(true);
+    const ai = new StarterAI(session, playerId, 1);
+
+    const action = ai.nextAction();
+    expect(action).to.be.instanceOf(SDK.EndTurnAction);
+    session.validateAction(action, false);
+    expect(action.getIsValid()).to.equal(true);
+  });
 });

@@ -421,6 +421,9 @@ class Board extends SDKObject
 
     validPositions = []
     for position in @getHexNeighbors(general.getPosition())
+      # Holes remain addressable for movement and targeting, but summons always
+      # require a rendered tile, regardless of the card's movement permissions.
+      continue if @getGameSession().getRulesetVersion() is 2 and !@hasTileAtPosition(position)
       if !@getObstructionAtPositionForEntity(position, card, true, allowQueued)
         validPositions.push(position)
     return validPositions
