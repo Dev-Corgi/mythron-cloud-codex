@@ -18,23 +18,23 @@ describe('persistent reserve-funded mana', () => {
 
   afterEach(() => SDK.GameSession.reset());
 
-  function setup(hex) {
+  function createSession(hex) {
     SDK.GameSession.reset();
     const session = SDK.GameSession.getInstance();
     session.setIsRunningAsAuthoritative(true);
     session.setIsDeveloperMode(true);
     if (hex) session.setRuleset('practice-sandbox-hex', 1);
     SDK.GameSetup.setupNewSession(session, {
-      userId: 'player1_id', name: 'player1_name', deck: deck1,
+      userId: 'player1_id', name: 'player1_name', deck: hex ? [{ id: SDK.Cards.Faction1.General }, ...require('../../../../app/sdk/rulesets/cardEligibility.coffee').getPracticeBotRoster().map((id) => ({ id }))] : deck1,
     }, {
-      userId: 'player2_id', name: 'player2_name', deck: deck2,
+      userId: 'player2_id', name: 'player2_name', deck: hex ? [{ id: SDK.Cards.Faction4.AltGeneral }, ...require('../../../../app/sdk/rulesets/cardEligibility.coffee').getPracticeBotRoster().map((id) => ({ id }))] : deck2,
     });
     session.setStatus(SDK.GameStatus.active);
     return session;
   }
 
   it('allocates the fixed opening pools and transfers reserve before end-turn observers', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     const second = session.getPlayer2();
     expect([first.getRemainingMana(), first.getReserveMana()]).to.deep.equal([3, 17]);
@@ -49,7 +49,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('preserves mana through start turns and exhausts reserve only by available amount', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     first.remainingMana = 8;
     first.maximumMana = 8;
@@ -63,7 +63,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('does not transfer depleted reserve on later own turns or repeat an ended turn', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     first.remainingMana = 5;
     first.maximumMana = 5;
@@ -93,7 +93,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('transfers each player reserve in three-mana chunks with a final partial payout', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     const second = session.getPlayer2();
     first.remainingMana = 1;
@@ -124,21 +124,19 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('charges spendable mana when a hex card is played', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const player = session.getPlayer1();
     player.remainingMana = 3;
-    UtilsSDK.executeActionWithoutValidation(new SDK.PutCardInHandAction(
-      session, player.getPlayerId(), { id: SDK.Cards.Faction1.WindbladeAdept },
-    ));
-    const card = player.getDeck().getCardInHandAtIndex(0);
+    const slot = 2; // Audited Golem Metallurgist, already present in the fixed hand.
+    const card = player.getDeck().getCardInHandAtIndex(slot);
     const cost = card.getManaCost();
     expect(cost).to.be.greaterThan(0);
-    UtilsSDK.executeActionWithoutValidation(player.actionPlayCardFromHand(0, -1, 3));
+    UtilsSDK.executeActionWithoutValidation(player.actionPlayCardFromHand(slot, { q: 0, r: 2 }));
     expect(player.getRemainingMana()).to.equal(3 - cost);
   });
 
   it('keeps legacy starting mana and turn progression unchanged', () => {
-    const session = setup(false);
+    const session = createSession(false);
     const first = session.getPlayer1();
     expect(first.getReserveMana()).to.equal(0);
     expect(first.getMaximumMana()).to.equal(2);
@@ -150,7 +148,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('serializes reserve in player snapshots and setup data for replay reconstruction', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     session.p_endTurn();
     const snapshot = JSON.parse(session.serializeToJSON(session));
@@ -169,7 +167,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('restores reserve, mana, and end-turn action history from an executed sequence', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const first = session.getPlayer1();
     first.remainingMana = 2;
     session.executeAction(session.actionEndTurn());
@@ -185,7 +183,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('blocks bonus, bonus-core, and restore grants in hex matches', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const player = session.getPlayer1();
     const general = session.getGeneralForPlayer(player);
     const bonusMana = new BonusManaAction(session);
@@ -201,7 +199,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('normalizes and caps reserve assignments to the unallocated 20-point pool', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const player = session.getPlayer1();
     player.setReserveMana(Infinity);
     expect(player.getReserveMana()).to.equal(0);
@@ -217,7 +215,7 @@ describe('persistent reserve-funded mana', () => {
   });
 
   it('normalizes missing and oversized reserve values when restoring a hex snapshot', () => {
-    const session = setup(true);
+    const session = createSession(true);
     const snapshot = JSON.parse(session.serializeToJSON(session));
     snapshot.players[0].maximumMana = 8;
     delete snapshot.players[0].reserveMana;

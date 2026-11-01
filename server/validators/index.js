@@ -79,7 +79,7 @@ const matchmakingInput = t.struct({
 });
 
 const singlePlayerInput = t.struct({
-  deck: types.Deck,
+  deck_id: t.subtype(t.Str, (s) => s.length > 0 && s.length <= 100),
   cardBackId: t.maybe(t.Num),
   battleMapId: t.maybe(t.Num),
   hasPremiumBattleMaps: t.maybe(t.Bool),

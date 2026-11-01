@@ -58,10 +58,10 @@ describe('basic', () => {
   it('does not generate a counterattack for explicit or forced attacks in the hex ruleset', () => {
     const gameSession = SDK.GameSession.getInstance();
     gameSession.setRuleset('practice-sandbox-hex', 1);
-    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
     attacker.setOwnerId(gameSession.getPlayer1Id());
     gameSession.applyCardToBoard(attacker, -1, 2, null, null);
-    const defender = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    const defender = gameSession.createCardForIdentifier(SDK.Cards.Neutral.DragoneboneGolem);
     defender.setOwnerId(gameSession.getPlayer2Id());
     gameSession.applyCardToBoard(defender, 0, 2, null, null);
     attacker.refreshExhaustion();
@@ -103,15 +103,16 @@ describe('basic', () => {
   it('preserves hex blast damage without a strikeback from its implicit attack', () => {
     const gameSession = SDK.GameSession.getInstance();
     gameSession.setRuleset('practice-sandbox-hex', 1);
-    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Faction3.Pyromancer);
+    const attacker = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
     attacker.setOwnerId(gameSession.getPlayer1Id());
     gameSession.applyCardToBoard(attacker, 0, 0, null, null);
-    const primaryTarget = gameSession.createCardForIdentifier(SDK.Cards.Faction1.WindbladeAdept);
+    const primaryTarget = gameSession.createCardForIdentifier(SDK.Cards.Neutral.DragoneboneGolem);
     primaryTarget.setOwnerId(gameSession.getPlayer2Id());
     gameSession.applyCardToBoard(primaryTarget, 0, 1, null, null);
     attacker.refreshExhaustion();
 
     const ModifierBlastAttack = require('../../../../app/sdk/modifiers/modifierBlastAttack.coffee');
+    gameSession.applyModifierContextObject(ModifierBlastAttack.createContextObject(), attacker);
     const blastModifier = attacker.getActiveModifierByClass(ModifierBlastAttack);
     const parentAttack = attacker.actionAttack(primaryTarget);
     parentAttack.setIndex(gameSession.generateIndex());

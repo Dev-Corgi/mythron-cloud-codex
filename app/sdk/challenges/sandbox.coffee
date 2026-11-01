@@ -1,6 +1,7 @@
 Challenge = require './challenge'
 GameSetup = require './../gameSetup'
 GameType = require 'app/sdk/gameType'
+CardEligibility = require './../rulesets/cardEligibility'
 PlayModeFactory = require './../playModes/playModeFactory'
 PlayModes = require './../playModes/playModesLookup'
 
@@ -23,15 +24,21 @@ class Sandbox extends Challenge
     @player1Deck = player1Deck
 
   getMyPlayerDeckData: () ->
-    return @player1Deck
+    return @player1Deck?.cards ? @player1Deck
 
   setPlayer2DeckData: (player2Deck) ->
     @player2Deck = player2Deck
 
   getOpponentPlayerDeckData: () ->
-    return @player2Deck
+    return @player2Deck?.cards ? @player2Deck
 
   setupSession:(gameSession)->
+    if @type is Sandbox.type
+      results = (CardEligibility.validateSavedDeck(savedDeck, "sandbox") for savedDeck in [@player1Deck, @player2Deck])
+      for eligibility in results
+        throw new Error(eligibility.reason) unless eligibility.valid
+      @player1Deck = Object.assign({}, @player1Deck, {cards: results[0].deck})
+      @player2Deck = Object.assign({}, @player2Deck, {cards: results[1].deck})
     return super(gameSession, {
       userId: gameSession.getUserId()
       name: "Player 1"

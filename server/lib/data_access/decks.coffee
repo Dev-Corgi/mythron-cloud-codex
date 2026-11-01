@@ -21,6 +21,10 @@ class DecksModule
   # @param  {String}    userId      User ID.
   # @return  {Promise}
   ###
+  # Scope entry lookup to the authenticated owner, never a submitted user id.
+  @deckForUser: (userId, deckId)->
+    return knex("user_decks").where({user_id: userId, id: deckId}).first()
+
   @decksForUser: (userId)->
     return knex("user_decks").where('user_id',userId).select()
 

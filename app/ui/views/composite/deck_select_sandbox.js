@@ -27,8 +27,8 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
   _selectingForPlayer2: false,
 
   initialize: function () {
-    DeckSelectCompositeView.prototype.initialize.apply(this, arguments);
     this.requiredDeckPurpose = this.model.get('developer') ? 'legacy' : 'sandbox';
+    DeckSelectCompositeView.prototype.initialize.apply(this, arguments);
 
     // update title
     this.model.set('title', 'Select Decks');
@@ -37,12 +37,14 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
   /* region SELECTION */
 
   setStartingSelectedDeckModel: function () {
+    this._selectedDeckModelPlayer1 = null;
+    this._selectedDeckModelPlayer2 = null;
     // player 1
     var lastSelectedPlayer1DeckId = CONFIG.lastSelectedSandboxPlayer1DeckId;
     if (lastSelectedPlayer1DeckId) {
       var collectionToSearch = this.collection instanceof VirtualCollection ? this.collection.collection : this.collection;
       var lastSelectedDeckModel = collectionToSearch.find(function (model) { return model.get('id') === lastSelectedPlayer1DeckId; });
-      if (lastSelectedDeckModel != null) {
+      if (this._canUseDeck(lastSelectedDeckModel)) {
         this._selectedDeckModelPlayer1 = lastSelectedDeckModel;
         this._selectingForPlayer2 = true;
         if (!lastSelectedDeckModel.get('isStarter')) {
@@ -50,6 +52,8 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
         } else {
           this.selectedDeckGroup = 'starter';
         }
+      } else {
+        CONFIG.lastSelectedSandboxPlayer1DeckId = null;
       }
     }
 
@@ -58,9 +62,11 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
     if (lastSelectedPlayer2DeckId) {
       var collectionToSearch = this.collection instanceof VirtualCollection ? this.collection.collection : this.collection;
       var lastSelectedDeckModel = collectionToSearch.find(function (model) { return model.get('id') === lastSelectedPlayer2DeckId; });
-      if (lastSelectedDeckModel != null) {
+      if (this._canUseDeck(lastSelectedDeckModel)) {
         this._selectedDeckModelPlayer2 = lastSelectedDeckModel;
         this._selectingForPlayer2 = false;
+      } else {
+        CONFIG.lastSelectedSandboxPlayer2DeckId = null;
       }
     }
   },
@@ -115,15 +121,30 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
     }
   },
 
+  _canUseDeck: function (deckModel) {
+    if (deckModel == null) return false;
+    if (this.model.get('developer')) return true;
+    return this.filterDecks(deckModel) && deckModel.isValid()
+      && SDK.CardEligibility.validateSavedDeck(deckModel.toJSON(), 'sandbox').valid;
+  },
+
   onConfirmSelection: function () {
+    if (!this._canUseDeck(this._selectedDeckModelPlayer1)) {
+      this._selectedDeckModelPlayer1 = null;
+      CONFIG.lastSelectedSandboxPlayer1DeckId = null;
+    }
+    if (!this._canUseDeck(this._selectedDeckModelPlayer2)) {
+      this._selectedDeckModelPlayer2 = null;
+      CONFIG.lastSelectedSandboxPlayer2DeckId = null;
+    }
     var selectedDeckModelPlayer1 = this._selectedDeckModelPlayer1;
     var selectedDeckModelPlayer2 = this._selectedDeckModelPlayer2;
     if (selectedDeckModelPlayer1 != null && selectedDeckModelPlayer2 != null) {
       audio_engine.current().play_effect_for_interaction(RSX.sfx_ui_confirm.audio, CONFIG.CONFIRM_SFX_PRIORITY);
       var challengeType = this.model.get('developer') ? SDK.SandboxDeveloper.type : SDK.Sandbox.type;
       var challenge = SDK.ChallengeFactory.challengeForType(challengeType);
-      challenge.setPlayer1DeckData(UtilsJavascript.deepCopy(selectedDeckModelPlayer1.get('cards')));
-      challenge.setPlayer2DeckData(UtilsJavascript.deepCopy(selectedDeckModelPlayer2.get('cards')));
+      challenge.setPlayer1DeckData(UtilsJavascript.deepCopy(this.model.get('developer') ? selectedDeckModelPlayer1.get('cards') : selectedDeckModelPlayer1.toJSON()));
+      challenge.setPlayer2DeckData(UtilsJavascript.deepCopy(this.model.get('developer') ? selectedDeckModelPlayer2.get('cards') : selectedDeckModelPlayer2.toJSON()));
       var battleMapId = ProfileManager.getInstance().get('battle_map_id');
       if (battleMapId != null) {
         var cosmeticData = CosmeticsFactory.cosmeticForIdentifier(battleMapId);

@@ -36,11 +36,24 @@ var RiftRunDeckView = require('app/ui/views2/rift/rift_run_deck');
 var i18next = require('i18next');
 var ArenaRunDeckView = require('app/ui/views2/arena/arena_run_deck');
 const Chroma = require('app/common/chroma');
+
+var EventBus = require('app/common/eventbus');
+var EVENTS = require('app/common/event_types');
+var DeckSelectPurposeEmptyTmpl = require('app/ui/templates/item/deck_select_purpose_empty.hbs');
 var SlidingPanelSelectCompositeView = require('./sliding_panel_select');
 
 var DeckSelectEmptyView = Backbone.Marionette.ItemView.extend({
   tagName: 'li',
   template: DeckSelectEmptyTmpl,
+});
+
+var DeckSelectPurposeEmptyView = Backbone.Marionette.ItemView.extend({
+  tagName: 'li',
+  template: DeckSelectPurposeEmptyTmpl,
+  events: { 'click .open-deck-builder': 'openDeckBuilder' },
+  openDeckBuilder: function () {
+    EventBus.getInstance().trigger(EVENTS.show_collection);
+  },
 });
 
 var DeckSelectEmptyViewStandard = Backbone.Marionette.ItemView.extend({
@@ -149,7 +162,7 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
         this.collection.reset(decks);
 
         // set starting selected deck group
-        if (InventoryManager.getInstance().hasValidCustomDecks()) {
+        if (this.requiredDeckPurpose !== 'legacy' || InventoryManager.getInstance().hasValidCustomDecks()) {
           this.selectedDeckGroup = 'custom';
         } else {
           this.selectedDeckGroup = 'starter';
@@ -179,7 +192,10 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
   },
 
   getEmptyView: function () {
-    if (this.selectedDeckGroup == 'rift') {
+    if (this.requiredDeckPurpose === 'practice' || this.requiredDeckPurpose === 'sandbox') {
+      var purpose = this.requiredDeckPurpose === 'practice' ? 'Practice' : 'Sandbox';
+      return DeckSelectPurposeEmptyView.extend({ templateHelpers: { purpose: purpose } });
+    } else if (this.selectedDeckGroup == 'rift') {
       return RiftDeckSelectEmptyView;
     } else if (this.selectedDeckGroup == 'gauntlet') {
       return ArenaDeckSelectEmptyView;
@@ -227,30 +243,6 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
         decks.push(starterDeckModel);
       }
     });
-
-    // Practice starts with audited, ready-to-play roster decks so a new
-    // account can enter the mode without first building and saving a deck.
-    if (this.requiredDeckPurpose === 'practice') {
-      var practiceRoster = SDK.CardEligibility.getPracticeBotRoster();
-      _.each(SDK.CardEligibility.getPracticeGeneralIds(), function (generalId) {
-        var faction = SDK.FactionFactory.factionForGeneralId(generalId);
-        var factionModel = faction && GameDataManager.getInstance().visibleFactionsCollection.get(faction.id);
-        var generalCard = GameDataManager.getInstance().getCardModelById(generalId);
-        if (factionModel && generalCard) {
-          var practiceDeckModel = new DeckModel({
-            id: 'Practice ' + generalId,
-            name: generalCard.get('name') + ' Practice',
-            faction_id: faction.id,
-            crestImg: factionModel.get('crestResource').img,
-            description: factionModel.get('description'),
-            purpose: 'practice',
-            isStarter: true,
-          });
-          practiceDeckModel.addCardsData([{ id: generalId }].concat(_.map(practiceRoster, function (cardId) { return { id: cardId }; })));
-          decks.push(practiceDeckModel);
-        }
-      });
-    }
 
     // add all custom user decks
     decks = decks.concat(InventoryManager.getInstance().getDecksCollection().slice(0));

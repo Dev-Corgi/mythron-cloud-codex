@@ -64,47 +64,20 @@ var DeckSelectSinglePlayerCompositeView = DeckSelectCompositeView.extend({
     // get recommended opponent
     var recommendedOpponentId = this.getRecommendedOpponentId();
 
-    // for each faction
-    var factionModels = GameDataManager.getInstance().visibleFactionsCollection.where({ isNeutral: false, enabled: true });
-    for (var i = 0, il = factionModels.length; i < il; i++) {
-      var factionModel = factionModels[i];
-      var factionId = factionModel.get('id');
-
-      // opponent should be primary general from faction
-      var generalId = SDK.FactionFactory.generalIdForFactionByOrder(factionId, SDK.FactionFactory.GeneralOrder.Primary);
+    SDK.CardEligibility.getPracticeGeneralIds().forEach(function (generalId) {
       var generalCard = SDK.GameSession.getCardCaches().getCardById(generalId);
-
-      var opponentData = {
-        name: factionModel.get('name'),
-        factionId: factionId,
-        id: generalId,
-        portraitImg: generalCard.getPortraitHexResource().img,
-      };
-
-      // recommend opponent
-      if (generalId === recommendedOpponentId) {
-        opponentData.recommended = true;
+      var factionId = generalCard.getFactionId();
+      var factionModel = GameDataManager.getInstance().visibleFactionsCollection.get(factionId);
+      if (factionModel && factionModel.get('enabled')) {
+        opponents.push({
+          name: generalCard.getName(),
+          factionId: factionId,
+          id: generalId,
+          portraitImg: generalCard.getPortraitHexResource().img,
+          recommended: generalId === recommendedOpponentId,
+        });
       }
-
-      opponents.push(opponentData);
-
-      // if ai tools enabled, add other generals for faction
-      if (process.env.AI_TOOLS_ENABLED) {
-        var otherGeneralOrders = [SDK.FactionFactory.GeneralOrder.Secondary];
-        for (var j = 0, jl = otherGeneralOrders.length; j < jl; j++) {
-          var generalOrder = otherGeneralOrders[j];
-          var otherOpponentData = UtilsJavascript.fastExtend({}, opponentData);
-          var otherGeneralId = SDK.FactionFactory.generalIdForFactionByOrder(factionId, generalOrder);
-          var otherGeneralCard = SDK.GameSession.getCardCaches().getCardById(otherGeneralId);
-          if (otherGeneralCard != null) {
-            otherOpponentData.id = otherGeneralId;
-            otherOpponentData.portraitImg = otherGeneralCard.getPortraitHexResource().img;
-            opponents.push(otherOpponentData);
-          }
-        }
-      }
-    }
-
+    });
     return opponents;
   },
 
@@ -208,6 +181,7 @@ var DeckSelectSinglePlayerCompositeView = DeckSelectCompositeView.extend({
         selectedOpponentId,
         aiDifficulty,
         aiNumRandomCards,
+        selectedDeckModel.get('id'),
       );
     } else if (selectedDeckModel != null) {
       audio_engine.current().play_effect_for_interaction(RSX.sfx_ui_error.audio, CONFIG.ERROR_SFX_PRIORITY);

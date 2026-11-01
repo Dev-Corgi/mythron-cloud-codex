@@ -255,6 +255,7 @@ class Deck extends SDKObject
    * @param {Number|String} cardIndex
    ###
   putCardIndexIntoDeck: (cardIndex) ->
+    return unless @getGameSession().getRulesetId() isnt "practice-sandbox-hex" or @getGameSession()._private.initializingFixedDeck
     if cardIndex? and !_.contains(@drawPile, cardIndex)
       @drawPile.push(cardIndex)
       @flushCachedCards()
@@ -265,6 +266,7 @@ class Deck extends SDKObject
    * @param {Number|String} cardIndex
    ###
   putCardIndexInHand: (cardIndex) ->
+    return unless @getGameSession().getRulesetId() isnt "practice-sandbox-hex" or @getGameSession()._private.initializingFixedDeck
     indexOfCardInHand = null
 
     if cardIndex?
@@ -285,6 +287,7 @@ class Deck extends SDKObject
    * @param {Number} indexOfCard
    ###
   putCardIndexInHandAtIndex: (cardIndex, indexOfCard) ->
+    return unless @getGameSession().getRulesetId() isnt "practice-sandbox-hex" or @getGameSession()._private.initializingFixedDeck
     if cardIndex? and indexOfCard?
       @hand[indexOfCard] = cardIndex
       @flushCachedCardsInHand()

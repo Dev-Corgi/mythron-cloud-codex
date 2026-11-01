@@ -165,66 +165,71 @@ GameSetup.setupDeck = (gameSession, player) ->
       playerDeck.getHand()[index] = null
 
 GameSetup.addCardsToDeck = (gameSession, player, playerData, playerCardsData) ->
-  if playerCardsData?
-    playerDeck = player.getDeck()
+  previousPermission = gameSession._private.initializingFixedDeck
+  gameSession._private.initializingFixedDeck = true
+  try
+    if playerCardsData?
+      playerDeck = player.getDeck()
 
-    # copy cards data
-    playerCardsData = UtilsJavascript.deepCopy(playerCardsData)
+      # copy cards data
+      playerCardsData = UtilsJavascript.deepCopy(playerCardsData)
 
-    # remove first as it should always be general
-    playerCardsData.shift()
+      # remove first as it should always be general
+      playerCardsData.shift()
 
-    if gameSession.getRulesetId() is "practice-sandbox-hex"
-      # Hex matches expose the full, original deck order as fixed hand slots.
-      for index in [0...8]
-        cardData = playerCardsData[index]
-        continue unless cardData?
+      if gameSession.getRulesetId() is "practice-sandbox-hex"
+        # Hex matches expose the full, original deck order as fixed hand slots.
+        for index in [0...8]
+          cardData = playerCardsData[index]
+          continue unless cardData?
+          card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
+          if card?
+            card.setOwner(player)
+            gameSession.applyCardToHand(playerDeck, cardData, card, index)
+        # Preserve excess cards on malformed/unvalidated legacy deck input instead of losing them.
+        for cardData in playerCardsData[8..]
+          card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
+          if card?
+            card.setOwner(player)
+            gameSession.applyCardToDeck(playerDeck, cardData, card)
+        return
+
+      # change starting hand size as needed
+      if playerData.startingHandSize?
+        playerStartingHandSize = Math.max(0, playerData.startingHandSize)
+      else
+        playerStartingHandSize = CONFIG.STARTING_HAND_SIZE
+
+      # now check for a Starts In Player Hand card, and if found, insert it at end of starting end
+      for cardData, index in playerCardsData
+        card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
+        if card? and card.hasModifierClass(ModifierStartsInHand)
+          playerCardsData.splice(index, 1)
+          card.setOwner(player)
+          gameSession.applyCardToHand(playerDeck, cardData, card, playerStartingHandSize)
+          break
+
+
+      # add cards to hand
+      for i in [0...playerStartingHandSize]
+        if !gameSession.getAreDecksRandomized()
+          index = playerCardsData.length - 1
+        else
+          index = Math.floor(Math.random() * playerCardsData.length)
+        cardData = playerCardsData.splice(index, 1)[0]
         card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
         if card?
           card.setOwner(player)
-          gameSession.applyCardToHand(playerDeck, cardData, card, index)
-      # Preserve excess cards on malformed/unvalidated legacy deck input instead of losing them.
-      for cardData in playerCardsData[8..]
+          gameSession.applyCardToHand(playerDeck, cardData, card)
+
+      # add cards to decks
+      for cardData in playerCardsData
         card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
         if card?
           card.setOwner(player)
           gameSession.applyCardToDeck(playerDeck, cardData, card)
-      return
-
-    # change starting hand size as needed
-    if playerData.startingHandSize?
-      playerStartingHandSize = Math.max(0, playerData.startingHandSize)
-    else
-      playerStartingHandSize = CONFIG.STARTING_HAND_SIZE
-
-    # now check for a Starts In Player Hand card, and if found, insert it at end of starting end
-    for cardData, index in playerCardsData
-      card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
-      if card? and card.hasModifierClass(ModifierStartsInHand)
-        playerCardsData.splice(index, 1)
-        card.setOwner(player)
-        gameSession.applyCardToHand(playerDeck, cardData, card, playerStartingHandSize)
-        break
-
-
-    # add cards to hand
-    for i in [0...playerStartingHandSize]
-      if !gameSession.getAreDecksRandomized()
-        index = playerCardsData.length - 1
-      else
-        index = Math.floor(Math.random() * playerCardsData.length)
-      cardData = playerCardsData.splice(index, 1)[0]
-      card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
-      if card?
-        card.setOwner(player)
-        gameSession.applyCardToHand(playerDeck, cardData, card)
-
-    # add cards to decks
-    for cardData in playerCardsData
-      card = gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData)
-      if card?
-        card.setOwner(player)
-        gameSession.applyCardToDeck(playerDeck, cardData, card)
+  finally
+    gameSession._private.initializingFixedDeck = previousPermission
 
 GameSetup.addCardsToBoard = (gameSession, boardCardsData, owner) ->
   if boardCardsData?
@@ -293,21 +298,26 @@ GameSetup.setupPlayerFromData = (gameSession, player, playerGameSetupData) ->
   GameSetup.setupDeck(gameSession, player)
 
 GameSetup.addCardsToDeckFromData = (gameSession, player, playerGameSetupData) ->
-  playerDeck = player.getDeck()
+  previousPermission = gameSession._private.initializingFixedDeck
+  gameSession._private.initializingFixedDeck = true
+  try
+    playerDeck = player.getDeck()
 
-  # add cards to decks
-  for cardData in playerGameSetupData.startingDrawPile
-    gameSession.applyCardToDeck(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
+    # add cards to decks
+    for cardData in playerGameSetupData.startingDrawPile
+      gameSession.applyCardToDeck(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
 
-  # add cards to hand
-  for cardData, index in playerGameSetupData.startingHand
-    if cardData?
-      if gameSession.getRulesetId() is "practice-sandbox-hex"
-        gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData), index)
-      else
-        gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
-    else if gameSession.getRulesetId() is "practice-sandbox-hex"
-      playerDeck.getHand()[index] = null
+    # add cards to hand
+    for cardData, index in playerGameSetupData.startingHand
+      if cardData?
+        if gameSession.getRulesetId() is "practice-sandbox-hex"
+          gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData), index)
+        else
+          gameSession.applyCardToHand(playerDeck, cardData, gameSession.getExistingCardFromIndexOrCreateCardFromData(cardData))
+      else if gameSession.getRulesetId() is "practice-sandbox-hex"
+        playerDeck.getHand()[index] = null
+  finally
+    gameSession._private.initializingFixedDeck = previousPermission
 
 # endregion SETUP FROM DATA
 

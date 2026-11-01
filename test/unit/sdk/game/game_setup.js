@@ -3,15 +3,15 @@ require('app-module-path').addPath(path.join(__dirname, '../../../../'));
 require('coffeescript/register');
 const { expect } = require('chai');
 const _ = require('underscore');
+const Promise = require('bluebird');
 const CONFIG = require('../../../../app/common/config');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
 const EVENTS = require('../../../../app/common/event_types');
 const Rulesets = require('../../../../app/sdk/rulesets/rulesetsLookup.coffee');
 const createSinglePlayerGame = require('../../../../server/lib/create_single_player_game.coffee');
-const GameManager = require('../../../../server/redis').GameManager;
+const GameManager = require('../../../../server/redis/index.coffee').GameManager;
 const GamesModule = require('../../../../server/lib/data_access/games.coffee');
-const Promise = require('bluebird');
 const UtilsSDK = require('../../../utils/utils_sdk');
 
 // disable the logger for cleaner test output
@@ -139,11 +139,11 @@ describe('game setup', () => {
       }, {
         userId: 'hex-player-2', name: 'Hex Player 2', deck: deck2,
       }, true);
-      expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
-      expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 2, r: 4 });
+      expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
+      expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
       expect(session.getBoard().isOnBoard(session.getGeneralForPlayer1().getPosition())).to.equal(true);
       expect(session.getBoard().isOnBoard(session.getGeneralForPlayer2().getPosition())).to.equal(true);
-      expect(session.getBoard().getUnitAtPosition({ q: -2, r: 4 })).to.equal(session.getGeneralForPlayer1());
+      expect(session.getBoard().getUnitAtPosition({ q: -1, r: 2 })).to.equal(session.getGeneralForPlayer1());
       expect(SDK.GameSession.getInstance().getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
     });
 
@@ -247,7 +247,8 @@ describe('game setup', () => {
       // automatic refill generation and direct draw execution.
       const drawnCard = playerDeck.getCardIndexInHandAtIndex(0);
       playerDeck.removeCardIndexFromHand(drawnCard);
-      session.applyCardToDeck(playerDeck, drawnCard, session.getCardByIndex(drawnCard));
+      // Explicitly construct artificial stale draw-pile state; runtime insertion is forbidden.
+      playerDeck.setDrawPile([drawnCard]);
       const handBefore = playerDeck.getHand().slice();
       const drawPileBefore = playerDeck.getDrawPile().slice();
       const resolvedMutationEvents = [];
@@ -328,7 +329,8 @@ describe('game setup', () => {
       const playerDeck = player.getDeck();
       const cardToLeaveInDeck = playerDeck.getCardIndexInHandAtIndex(0);
       playerDeck.removeCardIndexFromHand(cardToLeaveInDeck);
-      session.applyCardToDeck(playerDeck, cardToLeaveInDeck, session.getCardByIndex(cardToLeaveInDeck));
+      // Explicitly construct artificial stale draw-pile state; runtime insertion is forbidden.
+      playerDeck.setDrawPile([cardToLeaveInDeck]);
       // Spend the remaining slots so turn progression is also covered when
       // the fixed hand is completely empty.
       for (let i = 0; i < playerDeck.getHand().length; i++) {

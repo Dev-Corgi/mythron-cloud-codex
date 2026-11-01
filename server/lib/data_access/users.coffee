@@ -41,6 +41,7 @@ Entity = require '../../../app/sdk/entities/entity'
 QuestFactory = require '../../../app/sdk/quests/questFactory'
 QuestType = require '../../../app/sdk/quests/questTypeLookup'
 GameType = require '../../../app/sdk/gameType'
+CardEligibility = require '../../../app/sdk/rulesets/cardEligibility'
 GameFormat = require '../../../app/sdk/gameFormat'
 UtilsGameSession = require '../../../app/common/utils/utils_game_session.coffee'
 NewPlayerProgressionHelper = require '../../../app/sdk/progression/newPlayerProgressionHelper'
@@ -736,12 +737,18 @@ class UsersModule
   # @param  {Boolean}  [forceValidation=false]  Force validation regardless of ENV. Useful for unit tests.
   # @return  {Promise}          Promise that will resolve if the deck is valid and throw an "InvalidDeckError" otherwise
   ###
-  @isAllowedToUseDeck: (userId,deck,gameType, ticketId, forceValidation) ->
+  @isAllowedToUseDeck: (userId,deck,gameType, ticketId, forceValidation, savedDeck) ->
 
     # userId must be defined
     if !userId || !deck
       Logger.module("UsersModule").debug "isAllowedToUseDeck() -> invalid user ID or deck parameter - #{userId.blue}.".red
       return Promise.reject(new Errors.InvalidDeckError("invalid user ID or deck - #{userId}"))
+
+    if gameType is GameType.SinglePlayer
+      eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice")
+      unless eligibility.valid
+        return Promise.reject(new Errors.InvalidDeckError(eligibility.reason))
+      deck = eligibility.deck
 
     # on DEV + STAGING environments, always allow any deck
     if !forceValidation and config.get('allCardsAvailable')
@@ -838,7 +845,8 @@ class UsersModule
       # starter decks must contain all cards in level 0 faction starter deck
       # normal decks must match exact deck size
       maxDeckSize = if CONFIG.DECK_SIZE_INCLUDES_GENERAL then CONFIG.MAX_DECK_SIZE else CONFIG.MAX_DECK_SIZE + 1
-      if basicsOnly
+      maxDeckSize = CONFIG.MAX_NEW_RULES_DECK_SIZE if gameType is GameType.SinglePlayer
+      if basicsOnly and gameType isnt GameType.SinglePlayer
         if deck.length < CONFIG.MIN_BASICS_DECK_SIZE
           Logger.module("UsersModule").debug "isAllowedToUseDeck() -> invalid starter deck (#{deck.length}) - #{userId.blue}.".yellow
           return Promise.reject(new Errors.InvalidDeckError("Starter decks must have at least #{CONFIG.MIN_BASICS_DECK_SIZE} cards!"))

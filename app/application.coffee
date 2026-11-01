@@ -1660,7 +1660,7 @@ App._resumeGame = (lastGameModel) ->
 # --- Single Player ---- #
 #
 
-App._startSinglePlayerGame = (myPlayerDeck, myPlayerFactionId, myPlayerGeneralId, myPlayerCardBackId, myPlayerBattleMapId, aiGeneralId, aiDifficulty, aiNumRandomCards) ->
+App._startSinglePlayerGame = (myPlayerDeck, myPlayerFactionId, myPlayerGeneralId, myPlayerCardBackId, myPlayerBattleMapId, aiGeneralId, aiDifficulty, aiNumRandomCards, savedDeckId) ->
   if ChatManager.getInstance().getStatusIsInBattle()
     Logger.module("APPLICATION").log("App._startSinglePlayerGame -> cannot start game when already in a game!")
     return
@@ -1682,7 +1682,7 @@ App._startSinglePlayerGame = (myPlayerDeck, myPlayerFactionId, myPlayerGeneralId
     request = $.ajax
       url: process.env.API_URL + '/api/me/games/single_player',
       data: JSON.stringify({
-        deck: myPlayerDeck,
+        deck_id: savedDeckId,
         cardBackId: myPlayerCardBackId,
         battleMapId: myPlayerBattleMapId,
         hasPremiumBattleMaps: InventoryManager.getInstance().hasAnyBattleMapCosmetics(),

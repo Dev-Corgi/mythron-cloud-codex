@@ -329,7 +329,8 @@ router.post "/single_player", (req, res, next) ->
     return res.status(400).json(result.errors)
 
   userId = req.user.d.id
-  deck = result.value.deck
+  deck = null
+  userFactionId = null
   aiGeneralId = result.value.ai_general_id
   cardBackId = result.value.cardBackId
   battleMapId = result.value.battleMapId
@@ -343,33 +344,22 @@ router.post "/single_player", (req, res, next) ->
   else if battleMapId?
     Logger.module("SINGLE PLAYER").debug "#{userId} wants battlemap #{battleMapId}"
 
-  # re-map deck for correct formatting and anti-cheat
-  deck = _.map(deck, (card)->
-    if _.isString(card) or _.isNumber(card)
-      return { id: card }
-    else if card.id?
-      return { id: card.id }
-  )
+  # Load purpose and cards together from the authenticated user's saved record.
+  return DecksModule.deckForUser(userId, result.value.deck_id)
+  .then (savedDeck)->
+    eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice")
+    unless eligibility.valid
+      throw new Errors.InvalidDeckError(eligibility.reason)
+    deck = eligibility.deck
+    generalCard = GameSession.getCardCaches().getCardById(deck[0].id)
+    userFactionId = generalCard.getFactionId()
 
-  eligibility = CardEligibility.validateDeck(deck)
-  if !eligibility.valid
-    return res.status(400).json({error: eligibility.reason})
-
-  # get user faction
-  generalId = deck[0].id
-  generalCard = GameSession.getCardCaches().getCardById(generalId)
-  userFactionId = generalCard.getFactionId()
-
-  # validate deck
-  return Promise.all([
-    # if no selected battlemap, but user wants a random battlemap from their set, grab the battlemaps they own and add them to the list
-    (if hasPremiumBattleMaps and not battleMapId? then knex("user_cosmetic_inventory").select("cosmetic_id").where("cosmetic_id", ">", 50000).andWhere("cosmetic_id", "<", 60000).andWhere("user_id", userId) else Promise.resolve())
-    # check whether user is allowed to use this deck
-    UsersModule.isAllowedToUseDeck(userId, deck, GameType.SinglePlayer,null),
-    # check whether user is allowed to use this card back
-    (if cardBackId? then InventoryModule.isAllowedToUseCosmetic(Promise.resolve(), knex, userId, cardBackId) else Promise.resolve()),
-    (if battleMapId? then InventoryModule.isAllowedToUseCosmetic(Promise.resolve(), knex, userId, battleMapId) else Promise.resolve())
-  ])
+    return Promise.all([
+      (if hasPremiumBattleMaps and not battleMapId? then knex("user_cosmetic_inventory").select("cosmetic_id").where("cosmetic_id", ">", 50000).andWhere("cosmetic_id", "<", 60000).andWhere("user_id", userId) else Promise.resolve())
+      UsersModule.isAllowedToUseDeck(userId, deck, GameType.SinglePlayer, null, false, savedDeck),
+      (if cardBackId? then InventoryModule.isAllowedToUseCosmetic(Promise.resolve(), knex, userId, cardBackId) else Promise.resolve()),
+      (if battleMapId? then InventoryModule.isAllowedToUseCosmetic(Promise.resolve(), knex, userId, battleMapId) else Promise.resolve())
+    ])
   .bind {}
   .spread (ownedBattleMapCosmeticRows)->
 

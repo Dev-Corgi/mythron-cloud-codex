@@ -1990,7 +1990,7 @@ class _GameSession extends SDKObject
         # every otherwise-audited hand card fail Practice validation.
         submittedCardMatchesCandidate = submittedCardData is candidate.getIndex()
       else if candidate? and action instanceof PlayCardFromHandAction
-        # Local hand-play actions intentionally keep cardDataOrIndex empty;
+        # Local hand-play actions intentionally keep cardDataOrIndex empty.
         # their card is resolved from the selected hand slot. Validate against
         # the captured authoritative card index for that slot.
         submittedCardMatchesCandidate = action.expectedHandCardIndex? and action.expectedHandCardIndex is candidate.getIndex()
@@ -2779,6 +2779,7 @@ class _GameSession extends SDKObject
    * @param {Action} [sourceAction=null] action that applied the card
    ###
   applyCardToDeck: (deck, cardDataOrIndex, card, sourceAction) ->
+    return unless @getRulesetId() isnt "practice-sandbox-hex" or @_private.initializingFixedDeck
     if deck?
       if card?
         # apply card data received
@@ -2857,6 +2858,7 @@ class _GameSession extends SDKObject
    * @returns {Number|null} index in hand card was applied to, or null if not applied
    ###
   applyCardToHand: (deck, cardDataOrIndex, card, indexInHand, sourceAction, burnCard=false) ->
+    return unless @getRulesetId() isnt "practice-sandbox-hex" or @_private.initializingFixedDeck
     if deck?
       if card?
         # apply card data received

@@ -93,6 +93,16 @@ CardEligibility =
     general = gameSession.getGeneralForPlayerId(playerId)
     return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
 
+  validateSavedDeck: (savedDeck, purpose) ->
+    unless savedDeck?.id? and savedDeck.purpose is purpose and purpose in ["practice", "sandbox"]
+      return {valid: false, reason: "Select a saved #{purpose} deck."}
+    unless Array.isArray(savedDeck.cards)
+      return {valid: false, reason: "Saved deck has no cards."}
+    deck = savedDeck.cards.map((card) -> if typeof card is "number" then {id: card} else card)
+    result = @validateDeck(deck)
+    result.deck = deck if result.valid
+    return result
+
   validateDeck: (deck) ->
     return {valid: false, reason: "Practice and Sandbox decks must contain exactly one general and eight cards."} unless Array.isArray(deck) and deck.length is CONFIG.MAX_NEW_RULES_DECK_SIZE
     generalId = deck[0]?.id

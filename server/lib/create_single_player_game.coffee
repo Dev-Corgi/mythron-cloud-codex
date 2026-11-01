@@ -93,14 +93,15 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
 
     return eventValidationPromise
   .then ()->
-    # get ai deck
-    if aiDeckId?
+    # Practice never consults difficulty-tiered or randomized legacy decks.
+    if isPracticeHex
+      aiDeck = [{id: aiGeneralId}].concat(CardEligibility.getPracticeBotRoster().map((id) -> {id: id}))
+      eligibility = CardEligibility.validateDeck(aiDeck)
+      throw new Errors.InvalidDeckError(eligibility.reason) unless eligibility.valid
+    else if aiDeckId?
       aiDeck = UsableDecks.getUsableDeckForIdentifier(aiGeneralId, aiDeckId)
     else
       aiDeck = UsableDecks.getAutomaticUsableDeck(aiGeneralId, aiDifficulty, aiNumRandomCards)
-
-    if gameType is GameType.SinglePlayer
-      aiDeck = [{id: aiGeneralId}].concat((CardEligibility.getPracticeBotRoster() ? []).map((id) -> {id: id}))
 
     # generate players data
     player1DataForGame =
@@ -133,6 +134,8 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
         player2DataForGame = _.extend(player2DataForGame, aiOptions)
 
     if isPracticeHex
+      # Setup options may customize behavior, never the fixed Practice roster.
+      player2DataForGame.deck = aiDeck
       # Duelyst assigns the first player to player 1 (the left-side slot).
       # Keep that behavior in Practice so the human changes sides with initiative.
       if startingOrderAI? and startingOrderAI > 0
