@@ -19,6 +19,9 @@ class Unit extends Entity
   maxHP: 1
   speed: CONFIG.SPEED_BASE
   reach: CONFIG.REACH_MELEE
+  movementType: "walk"
+  attackType: null
+  level: 1
 
   onApplyToBoard: (board,x,y,sourceAction) ->
     super(board, x, y, sourceAction)

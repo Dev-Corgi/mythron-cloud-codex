@@ -28,6 +28,8 @@ ModifierRangedProvoked = require 'app/sdk/modifiers/modifierRangedProvoked'
 ModifierRangedProvoke = require 'app/sdk/modifiers/modifierRangedProvoke'
 ModifierBattlePet = require 'app/sdk/modifiers/modifierBattlePet'
 ModifierTamedBattlePet = require 'app/sdk/modifiers/modifierTamedBattlePet'
+ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
+ModifierBlastAttack = require 'app/sdk/modifiers/modifierBlastAttack'
 
 PlayerModifierChangeSignatureCard = require 'app/sdk/playerModifiers/playerModifierChangeSignatureCard'
 
@@ -86,8 +88,17 @@ class Entity extends Card
     cardData = super()
 
     cardData.damage = @damage
+    # Preserve explicit unit stats when cards are cloned or reconstructed.
+    for key in ["speed", "reach", "movementType", "attackType", "level"]
+      if @[key]?
+        cardData[key] = @[key]
 
     return cardData
+
+  getCardDataKeysForCopy: () ->
+    keys = super()
+    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level"])
+    return keys
 
   onRemoveFromBoard: (board, x, y, sourceAction) ->
     super(board, x, y, sourceAction)
@@ -312,6 +323,45 @@ class Entity extends Card
 
   getReach: (withAuras) ->
     return @getBuffedAttribute(@reach, "reach", withAuras)
+
+  setMovementType: (type) ->
+    if type in ["walk", "fly", "phase"]
+      @movementType = type
+
+  getMovementType: () ->
+    return "phase" if @movementType is "phase"
+    if @hasModifierClass(ModifierFlying)
+      return "fly"
+    return @movementType or "walk"
+
+  getMovementDistance: (withAuras) ->
+    return @getSpeed(withAuras)
+
+  setAttackType: (type) ->
+    if type in ["melee", "ranged", "area"]
+      @attackType = type
+
+  getAttackType: () ->
+    if @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "area"]
+      return @attackType
+    if @hasModifierClass(ModifierBlastAttack)
+      return "area"
+    if @isRanged()
+      return "ranged"
+    return @attackType or "melee"
+
+  getAttackRangeValue: (withAuras) ->
+    return @getReach(withAuras)
+
+  getAttackRangeStat: (withAuras) ->
+    return @getAttackRangeValue(withAuras)
+
+  setLevel: (level) ->
+    if typeof level is "number" and isFinite(level) and level >= 1
+      @level = Math.floor(level)
+
+  getLevel: () ->
+    return @level or 1
 
   isMelee: () ->
     return @getReach() == CONFIG.REACH_MELEE
