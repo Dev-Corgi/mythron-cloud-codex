@@ -1,4 +1,3 @@
-const BoardGeometry = require('./scoring/utils/utils_boardGeometry');
 const path = require('path');
 require('app-module-path').addPath(path.join(__dirname, '../../'));
 require('coffeescript/register');
@@ -12,6 +11,7 @@ const CONFIG = require('app/common/config');
 const ModifierDyingWishReSpawnEntityAnywhere = require('app/sdk/modifiers/modifierDyingWishReSpawnEntityAnywhere');
 const ModifierDyingWishSpawnEntityInCorner = require('app/sdk/modifiers/modifierDyingWishSpawnEntityInCorner');
 const _ = require('underscore');
+const BoardGeometry = require('./scoring/utils/utils_boardGeometry');
 const CardIntent = require('./card_intent/card_intent');
 const CardIntentType = require('./card_intent/card_intent_type');
 const CardTargetType = require('./card_intent/card_target_type');
@@ -22,6 +22,7 @@ const ScoreForCard = require('./scoring/base/card');
 const ScoreForModifiers = require('./scoring/base/modifiers');
 const ScoreForUnit = require('./scoring/base/unit');
 const ScoreForUnitDamage = require('./scoring/base/unit_damage');
+const scoreWallRouteBenefit = require('./scoring/utils/utils_scoreWallRouteBenefit');
 const ScoreForIntents = require('./scoring/intent/intents');
 const ScoreForIntentFollowup = require('./scoring/intent/intent_followup');
 const ScoreForCardAtTargetPosition = require('./scoring/position/position_ScoreForCardAtTargetPosition');
@@ -210,9 +211,10 @@ StarterAI.prototype = {
         const mulliganIndices = [];
         const cardsInHand = myPlayer.getDeck().getCardsInHand();
         // Practice hands are fixed by the selected roster and cannot be replaced.
-        if (this.getGameSession().getRulesetId() !== "practice-sandbox-hex") for (let i = 0, il = cardsInHand.length; i < il; i++) {
-          const card = cardsInHand[i];
-          if (mulliganIndices.length < CONFIG.STARTING_HAND_REPLACE_COUNT
+        if (this.getGameSession().getRulesetId() !== 'practice-sandbox-hex') {
+          for (let i = 0, il = cardsInHand.length; i < il; i++) {
+            const card = cardsInHand[i];
+            if (mulliganIndices.length < CONFIG.STARTING_HAND_REPLACE_COUNT
             && card != null
             && (card instanceof SDK.Artifact
             || card.getManaCost() > myPlayer.getRemainingMana() + 1
@@ -221,7 +223,8 @@ StarterAI.prototype = {
             || CARD_INTENT[card.getId()] == null
             || CARD_INTENT[card.getId()].indexOf('summon') === -1)))) {
             // Logger.module("AI").debug("[G:" + this.getGameSession().gameId + "] _nextActionForNewGame -> mulligan " + card.getLogName() + "because it is a non summon spell, artifact, or costs too much mana");
-            mulliganIndices.push(i);
+              mulliganIndices.push(i);
+            }
           }
         }
         // Logger.module("AI").debug("[G:" + this.getGameSession().gameId + "] _nextActionForNewGame -> returning action withh " + mulliganIndices.length + " mulligan indices.");
@@ -2242,8 +2245,15 @@ StarterAI.prototype = {
     _.each(filteredAttackTargets, (enemy) => {
       // Logger.module("AI").debug("[G:" + this.getGameSession().gameId + "] _findSortedFilteredAttackObjectivesAndScoresForUnit() => unit " + unit.getLogName() + "'s enemy " + enemy.getLogName() + " sorted bounty = " + score);
       // insert sort objective and score
-      let attackScore = ScoreForUnitDamage(enemy, unitATK);
-      attackScore += this._scoreAttackTargetForUnit(unit, unitATK, enemy, targetPosition); // redundant with above. to remove.
+      let attackScore;
+      if (this.getGameSession().getRulesetId() === 'practice-sandbox-hex'
+        && this.getGameSession().getRulesetVersion() === 2
+        && enemy.getType() === SDK.CardType.Tile && enemy.getId() === SDK.Cards.Tile.Wall) {
+        attackScore = scoreWallRouteBenefit(this.getGameSession(), unit, enemy);
+      } else {
+        attackScore = ScoreForUnitDamage(enemy, unitATK);
+        attackScore += this._scoreAttackTargetForUnit(unit, unitATK, enemy, targetPosition); // redundant with above. to remove.
+      }
       const objectiveAndScore = { objective: enemy, score: attackScore };
       UtilsJavascript.arraySortedInsertByProperty(filteredAttackTargetsAndScores, objectiveAndScore, 'score');
     });

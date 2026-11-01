@@ -862,6 +862,66 @@ describe('UtilsGameSession', () => {
       expect(unitRemovalReplay.getBoard().getTileAtPosition(wallPosition)).to.equal(wallToKeep);
     });
 
+    it('executes and replays the Wall attack selected by Practice AI with matching Wall health and route state', () => {
+      const session = createRulesetFixture('practice-sandbox-hex', 2);
+      const board = session.getBoard();
+      const wall = board.getTileAtPosition({ q: 1, r: 0 });
+      const unit = session.createCardForIdentifier(SDK.Cards.Neutral.SaberspineTiger);
+      unit.setOwnerId(session.getPlayer1Id());
+      session._indexCardAsNeeded(unit);
+      unit.setPosition({ q: 0, r: 0 });
+      unit.setIsPlayed(true);
+      unit.setIsRemoved(false);
+      unit.setReach(2);
+      unit.atk = wall.getHP();
+      unit.refreshExhaustion();
+      board.addCard(unit);
+      wall.setDamage(wall.getHP() - 1);
+      session.setStatus(SDK.GameStatus.active);
+      const beforeSnapshot = JSON.parse(session.serializeToJSON(session));
+      const preexistingEndpoints = unit.getMovementRange().getValidPositions(board, unit)
+        .map((path) => path[path.length - 1]);
+
+      const ai = new StarterAI(session, session.getPlayer1Id(), 1);
+      ai._nextActions = [];
+      ai._findAttackActionsForUnit(unit, false);
+      const selected = ai._nextActions[0];
+      expect(selected).to.be.instanceOf(SDK.AttackAction);
+      expect(selected.getTarget()).to.equal(wall);
+      const serializedAction = JSON.parse(session.serializeToJSON(selected));
+
+      const runSelected = (targetSession, action) => {
+        targetSession.setStatus(SDK.GameStatus.active);
+        targetSession.setIsRunningAsAuthoritative(true);
+        const validators = targetSession.getValidators();
+        targetSession.setValidators([]);
+        try {
+          targetSession.executeAction(action);
+        } finally {
+          targetSession.setValidators(validators);
+        }
+      };
+      runSelected(session, selected);
+      expect(board.getTileAtPosition({ q: 1, r: 0 }) == null).to.equal(true);
+      unit.getMovementRange().flushCachedState();
+      const postEndpoints = unit.getMovementRange().getValidPositions(board, unit)
+        .map((path) => path[path.length - 1]);
+      expect(postEndpoints.length).to.be.greaterThan(preexistingEndpoints.length);
+
+      const replay = SDK.GameSession.create();
+      replay.deserializeSessionFromFirebase(beforeSnapshot);
+      const replayedUnit = replay.getCardByIndex(unit.getIndex());
+      const replayedWall = replay.getBoard().getTileAtPosition({ q: 1, r: 0 });
+      const replayedAction = replay.deserializeActionFromFirebase(serializedAction);
+      expect(replayedAction.getTarget()).to.equal(replayedWall);
+      runSelected(replay, replayedAction);
+      expect(replayedWall.getIsActive()).to.equal(false);
+      expect(replay.getBoard().getTileAtPosition({ q: 1, r: 0 }) == null).to.equal(true);
+      const replayEndpoints = replayedUnit.getMovementRange().getValidPositions(replay.getBoard(), replayedUnit)
+        .map((path) => path[path.length - 1]);
+      expect(replayEndpoints).to.deep.equal(postEndpoints);
+    });
+
     it('rejects unknown rulesets before snapshot reconstruction', () => {
       const session = SDK.GameSession.create();
       expect(() => session.deserializeSessionFromFirebase({
