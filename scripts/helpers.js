@@ -63,38 +63,16 @@
    * @returns {Promise}
    */
   helpers.recursivelyGetFilesStartingFrom = function (dir) {
-    return new Promise((resolve, reject) => {
-      let files = [];
-      fs.readdir(dir, (err, list) => {
-        if (err) throw err;
-
-        const subDirectoryPromises = [];
-        if (list == null || list.length === 0) {
-          resolve(files);
-        } else {
-          list.forEach((file, index) => {
-            file = path.resolve(dir, file);
-            fs.stat(file, (err, stat) => {
-              if (stat && stat.isDirectory()) {
-                const subDirectoryPromise = helpers.recursivelyGetFilesStartingFrom(file);
-                subDirectoryPromise.then((filesInSubDirectory) => {
-                  files = files.concat(filesInSubDirectory);
-                });
-                subDirectoryPromises.push(subDirectoryPromise);
-              } else {
-                files.push(file);
-              }
-
-              if (index === list.length - 1) {
-                Promise.all(subDirectoryPromises).then(() => {
-                  resolve(files);
-                });
-              }
-            });
-          });
-        }
-      });
-    });
+    // Await every stat and recursive read, regardless of callback completion order.
+    return Promise.promisify(fs.readdir)(dir)
+      .then((list) => Promise.map(list, (name) => {
+        const file = path.resolve(dir, name);
+        return Promise.promisify(fs.stat)(file)
+          .then((stat) => (stat.isDirectory()
+            ? helpers.recursivelyGetFilesStartingFrom(file)
+            : [file]));
+      }))
+      .then((groups) => [].concat(...groups));
   };
 
   /**
@@ -120,7 +98,7 @@
           }
           return Promise.resolve();
         }, { concurrency }))
-        .then(resolve);
+        .then(resolve, reject);
     });
   };
 
