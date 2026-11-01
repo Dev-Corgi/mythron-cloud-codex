@@ -41,17 +41,23 @@ class Board extends SDKObject
     return @rowCount
 
   getPositions: () ->
-    positions = []
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
-      for k in [0..4]
-        for c in [0..8]
-          position = HexTopology.renderedToAxial(c, k)
-          positions.push(position) if position?
-      return positions
+      return HexTopology.getPositions()
+    positions = []
     for x in [0...@columnCount]
       for y in [0...@rowCount]
         positions.push({x:x,y:y})
     return positions
+
+  getTilePositions: () ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return HexTopology.getTilePositions(@getGameSession().getRulesetVersion())
+    return @getPositions()
+
+  hasTileAtPosition: (position) ->
+    if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
+      return HexTopology.hasTile(position, @getGameSession().getRulesetVersion())
+    return @isOnBoard(position)
 
   getUnobstructedPositions: () ->
     positions = []

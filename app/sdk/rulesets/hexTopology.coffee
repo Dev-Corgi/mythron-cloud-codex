@@ -12,12 +12,18 @@ HEX_TOPOLOGY.neighborDeltas = [
   {q: -1, r: 1}
 ]
 
+HEX_TOPOLOGY.rowLengths = [9, 8, 9, 8, 9]
+HEX_TOPOLOGY.version2Holes = [
+  {q: 2, r: 0} # (row, column) (0, 2)
+  {q: 4, r: 4} # (row, column) (4, 6)
+]
+
 HEX_TOPOLOGY.isAxialPosition = (position) ->
   return position? and Number.isInteger(position.q) and Number.isInteger(position.r)
 
 HEX_TOPOLOGY.renderedToAxial = (c, k) ->
   return null unless Number.isInteger(c) and Number.isInteger(k)
-  return null unless k >= 0 and k <= 4 and c >= 0 and c <= (if k % 2 is 0 then 8 else 7)
+  return null unless k >= 0 and k < HEX_TOPOLOGY.rowLengths.length and c >= 0 and c < HEX_TOPOLOGY.rowLengths[k]
   return {q: c - Math.floor(k / 2), r: k}
 
 HEX_TOPOLOGY.axialToRendered = (position) ->
@@ -28,7 +34,24 @@ HEX_TOPOLOGY.axialToRendered = (position) ->
 HEX_TOPOLOGY.isOnBoard = (position) ->
   return false unless HEX_TOPOLOGY.isAxialPosition(position)
   rendered = HEX_TOPOLOGY.axialToRendered(position)
-  return rendered? and rendered.k >= 0 and rendered.k <= 4 and rendered.c >= 0 and rendered.c <= (if rendered.k % 2 is 0 then 8 else 7)
+  return rendered? and rendered.k >= 0 and rendered.k < HEX_TOPOLOGY.rowLengths.length and rendered.c >= 0 and rendered.c < HEX_TOPOLOGY.rowLengths[rendered.k]
+
+HEX_TOPOLOGY.getPositions = () ->
+  positions = []
+  for k in [0...HEX_TOPOLOGY.rowLengths.length]
+    rowLength = HEX_TOPOLOGY.rowLengths[k]
+    for c in [0...rowLength]
+      positions.push(HEX_TOPOLOGY.renderedToAxial(c, k))
+  return positions
+
+HEX_TOPOLOGY.hasTile = (position, rulesetVersion=1) ->
+  return false unless HEX_TOPOLOGY.isOnBoard(position)
+  return true if rulesetVersion is 1
+  return false unless rulesetVersion is 2
+  return !HEX_TOPOLOGY.version2Holes.some((hole) -> hole.q is position.q and hole.r is position.r)
+
+HEX_TOPOLOGY.getTilePositions = (rulesetVersion=1) ->
+  return (position for position in HEX_TOPOLOGY.getPositions() when HEX_TOPOLOGY.hasTile(position, rulesetVersion))
 
 HEX_TOPOLOGY.getNeighbors = (position) ->
   return [] unless HEX_TOPOLOGY.isAxialPosition(position)

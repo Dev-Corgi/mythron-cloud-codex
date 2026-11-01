@@ -28,6 +28,15 @@ describe('hex display mapping', () => {
     });
   });
 
+  it('keeps replacement-map hole coordinates addressable through the view adapter', () => {
+    const holes = [HexTopology.renderedToAxial(2, 0), HexTopology.renderedToAxial(6, 4)];
+    holes.forEach((hole) => {
+      const rendered = UtilsHexView.getRenderedPosition(hole);
+      expect(rendered).not.to.equal(null);
+      expect(UtilsHexView.screenToPosition(UtilsHexView.positionToScreen(hole, origin), origin)).to.deep.equal(hole);
+    });
+  });
+
   it('projects every valid axial neighbor pair at one equal center distance', () => {
     const expectedDistance = Math.sqrt(3) * UtilsHexView.getHexRadius();
     for (let c = 0; c <= 8; c++) {

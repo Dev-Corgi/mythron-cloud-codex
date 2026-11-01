@@ -99,6 +99,43 @@ describe('board', () => {
     expect(board.isOnBoard({ q: 7, r: 4 })).to.equal(false);
     expect(board.isOnBoard({ q: 0.5, r: 0 })).to.equal(false);
     expect(board.isOnBoard({ x: 0, y: 0 })).to.equal(false);
+    expect(board.getTilePositions()).to.have.length(43);
+    expect(board.getTilePositions().every((position) => board.hasTileAtPosition(position))).to.equal(true);
+  });
+
+  it('keeps version 2 holes logical while excluding them from the tile mask', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const topology = SDK.HexTopology;
+    const positions = board.getPositions();
+    const tiles = board.getTilePositions();
+    const firstHole = topology.renderedToAxial(2, 0);
+    const secondHole = topology.renderedToAxial(6, 4);
+
+    expect(positions).to.have.length(43);
+    expect(new Set(positions.map((position) => `${position.q},${position.r}`)).size).to.equal(43);
+    expect(positions.every((position) => board.isOnBoard(position))).to.equal(true);
+    expect(tiles).to.have.length(41);
+    expect(board.isOnBoard(firstHole)).to.equal(true);
+    expect(board.isOnBoard(secondHole)).to.equal(true);
+    expect(board.hasTileAtPosition(firstHole)).to.equal(false);
+    expect(board.hasTileAtPosition(secondHole)).to.equal(false);
+    expect(board.hasTileAtPosition({ q: 3, r: 2 })).to.equal(true);
+    expect(board.hasTileAtPosition({ q: 8, r: 1 })).to.equal(false);
+    expect(tiles).not.to.deep.include(firstHole);
+    expect(tiles).not.to.deep.include(secondHole);
+
+    const center = topology.renderedToAxial(4, 2);
+    const neighborCells = board.getHexNeighbors(center).map((position) => topology.axialToRendered(position))
+      .map(({ c, k }) => `${k},${c}`).sort();
+    expect(neighborCells).to.deep.equal(['1,3', '1,4', '2,3', '2,5', '3,3', '3,4']);
+    expect(board.getHexDistance(firstHole, center)).to.equal(3);
+    expect(board.getHexPositionsInRange(firstHole, 1)).to.deep.include(firstHole);
+    const path = board.getHexPath(firstHole, center);
+    expect(path).to.have.length(board.getHexDistance(firstHole, center));
+    expect(path.every((position) => board.isOnBoard(position))).to.equal(true);
+    expect(board.isOnBoard({ q: 8, r: 1 })).to.equal(false);
   });
 
   it('limits hex unit spawn prediction to unobstructed neighbors of its own general', () => {

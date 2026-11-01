@@ -47,6 +47,7 @@ describe('UtilsGameSession', () => {
       expect(restored.getRulesetVersion()).to.equal(1);
       expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
       expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
+      expect(restored.getBoard().getTilePositions()).to.have.length(43);
 
       const replay = SDK.GameSession.create();
       SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, JSON.parse(JSON.stringify(serialized)));
@@ -80,6 +81,8 @@ describe('UtilsGameSession', () => {
       restored.deserializeSessionFromFirebase(serialized);
       expect(restored.getRulesetId()).to.equal('practice-sandbox-hex');
       expect(restored.getRulesetVersion()).to.equal(2);
+      expect(restored.getBoard().getTilePositions()).to.have.length(41);
+      expect(restored.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(2, 0))).to.equal(false);
       expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
       expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
 
@@ -87,6 +90,8 @@ describe('UtilsGameSession', () => {
       SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, serialized);
       expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
       expect(replay.getRulesetVersion()).to.equal(2);
+      expect(replay.getBoard().getTilePositions()).to.have.length(41);
+      expect(replay.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(6, 4))).to.equal(false);
       expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -1, r: 2 });
       expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 7, r: 2 });
     });
