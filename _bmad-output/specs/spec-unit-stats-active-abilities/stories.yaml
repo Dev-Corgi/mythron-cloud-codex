@@ -1,7 +1,7 @@
 - id: "1"
   title: Add move, attack, and level stats with defaults
   description: >-
-    Expose movement type (walk, fly, phase) and distance, attack type (melee, ranged, area) and range,
+    Expose movement type (walk, fly, phase) and distance, attack type (melee, ranged, lobbed, area) and range,
     and level as card stats (CAP-1 stats, CAP-2 stats, CAP-3 of SPEC.md), mapped onto existing speed
     and reach in sdk/entities/entity.coffee. Defaults are walk/2, melee/1, level 1; the new stat rules
     apply only in Practice and Sandbox and legacy modes stay unchanged. Read SPEC.md and its companions first.
@@ -12,9 +12,9 @@
     enemy units (CAP-1); hole and Wall permissions equal fly. This supersedes the Story 2.4 note against
     a separate Phasing modifier. Read SPEC.md and its companions first.
 - id: "3"
-  title: Apply attack range to ranged and area attacks
+  title: Apply attack range to ranged, lobbed, and area attacks
   description: >-
-    Ranged attacks follow the range stat along the six hex axes instead of the whole board; area attacks
+    Ranged attacks follow the range stat along the six hex axes instead of the whole board; lobbed attacks arc over intervening Walls and units and may target any tile within range; area attacks
     explode centered on the attacker with the range stat as radius, excluding allies (CAP-2). Reuse the map
     spec geometry and Wall-blocking rules in map-layout.md and add no separate radius stat.
     Read SPEC.md and its companions first.
@@ -36,7 +36,7 @@
 - id: "6"
   title: Wire unit and ability card UI into the hand
   description: >-
-    Render stat icons, level, and the lockdown or cooldown counter using the card_ui phobies_unit and
+    Render stat icons (including attack_arc.png for lobbed), level, and the lockdown or cooldown counter using the card_ui phobies_unit and
     phobies_ability layered assets and layout JSON, never the preview PNGs (CAP-5). Stat icons replace keyword
     text, and since the assets are not yet connected to CardNode, verify in the running game.
     Read SPEC.md and active-ability-rules.md first.

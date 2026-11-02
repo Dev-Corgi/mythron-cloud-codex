@@ -31,7 +31,7 @@ Show only the nonzero counter. Layout, sizes, and positions are authoritative in
 
 ## Stat icons (unit card)
 
-Attack type: melee sword, ranged bow, area bomb. Movement type: walk boots, fly wings, phase ghost. Icons in `card_ui/phobies_unit/icons/`.
+Attack type: melee sword, ranged bow, lobbed arc (`attack_arc.png`), area bomb. Movement type: walk boots, fly wings, phase ghost. Icons in `card_ui/phobies_unit/icons/`.
 
 ## Detail view
 
