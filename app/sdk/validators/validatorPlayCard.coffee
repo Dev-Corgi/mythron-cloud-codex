@@ -19,7 +19,7 @@ class ValidatorPlayCard extends Validator
     action = event.action
     if action? and action.getIsValid() and !action.getIsImplicit() and action instanceof PlaySignatureCardAction and gameSession.getIsPracticeSandboxV2()
       general = gameSession.getGeneralForPlayerId(action.getOwnerId())
-      state = action.getOwner()?.getSignatureAbilityState?()
+      state = general?.getActiveAbilityState()
       card = action.getCard()
       targetPosition = action.getTargetPosition()
       if !general? or action.getOwnerId() isnt general.getOwnerId() or !state? or !general.getIsActive() or general.getIsSilenced() or general.getActionPoints() < 1 or state.lockdown > 0 or state.cooldown > 0

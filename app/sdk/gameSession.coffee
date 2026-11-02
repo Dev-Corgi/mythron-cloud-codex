@@ -880,8 +880,14 @@ class _GameSession extends SDKObject
     throw new Error("Unsupported ruleset #{rulesetId} version #{rulesetVersion}") unless ruleset?
     @rulesetId = ruleset.id
     @rulesetVersion = ruleset.version
-    for player in (@players or [])
-      player.initializeSignatureAbilityState()
+    @initializeGeneralActiveAbilities()
+
+  # Explicitly gives existing Generals their active ability state (version 2 only, never overwrites).
+  initializeGeneralActiveAbilities: () ->
+    return unless @players? and @cardsByIndex?
+    for player in @players
+      general = @getGeneralForPlayerId(player.getPlayerId())
+      general?.initializeActiveAbility()
 
   getRulesetId: () ->
     return @rulesetId ? Rulesets.defaultRuleset.id
@@ -1346,7 +1352,6 @@ class _GameSession extends SDKObject
         for entity in @board.getEntities(allowUntargetable=true)
           if entity.getOwnerId() is currentPlayer.getPlayerId() and entity.decrementActiveAbilityCounters?
             entity.decrementActiveAbilityCounters()
-        currentPlayer.decrementSignatureAbilityCounters()
 
       if @getRulesetId() is "practice-sandbox-hex"
         transferredMana = Math.min(3, currentPlayer.getReserveMana())
@@ -3579,11 +3584,15 @@ class _GameSession extends SDKObject
     @turns = []
     @modifiersByIndex = {}
 
+    legacySignatureAbilityStates = {}
     if sessionData.players?
       for playerData, i in sessionData.players
         player = @players[i]
         player.deserialize(playerData)
-        player.initializeSignatureAbilityState()
+        # older version 2 snapshots kept Bloodbound counters on the player; restored onto the General below
+        if player.signatureAbilityState?
+          legacySignatureAbilityStates[player.getPlayerId()] = player.signatureAbilityState
+        delete player.signatureAbilityState
 
     # deserialize
     if sessionData.battleMapTemplate?
@@ -3699,6 +3708,14 @@ class _GameSession extends SDKObject
       card = @cardsByIndex[index]
       if card?
         card.postDeserialize()
+
+    # restore General Bloodbound state from older snapshots, then initialize any missing state
+    if @getIsPracticeSandboxV2()
+      for playerId, legacyState of legacySignatureAbilityStates
+        general = @getGeneralForPlayerId(playerId)
+        if general? and !general.getActiveAbilityState()?
+          general.activeAbilityState = _.extend({}, legacyState)
+      @initializeGeneralActiveAbilities()
 
     # post deserialize players once all cards and modifiers are guaranteed
     for player in @players

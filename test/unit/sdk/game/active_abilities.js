@@ -34,6 +34,27 @@ describe('active ability state', () => {
     expect(data.activeAbilityState).to.deep.equal(deployed.getActiveAbilityState());
   });
 
+  it('starts a non-General unit with fresh ability state even when it carries copied state', () => {
+    const copy = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
+    copy.setOwnerId(gameSession.getPlayer1Id());
+    copy.activeAbilityState = { lockdown: 0, cooldown: 1, baseLockdown: 1, baseCooldown: 1, handSlotIndex: 5 };
+    gameSession.applyCardToBoard(copy, 0, 1, copy.createNewCardData(), null);
+    expect(copy.getActiveAbilityState()).to.deep.equal({ lockdown: 1, cooldown: 0, baseLockdown: 1, baseCooldown: 1 });
+  });
+
+  it('does not let the generic ability action use the General as its source', () => {
+    const general = gameSession.getGeneralForPlayer1();
+    general.getActiveAbilityState().lockdown = 0;
+    general.getActiveAbilityState().cooldown = 0;
+    const before = JSON.stringify(general.getActiveAbilityState());
+    const actionPoints = general.getActionPoints();
+    const action = gameSession.getPlayer1().actionUseActiveAbility(general.getIndex(), { q: 4, r: 0 });
+    gameSession.executeAction(action);
+    expect(action.getIsValid()).to.equal(false);
+    expect(general.getActionPoints()).to.equal(actionPoints);
+    expect(JSON.stringify(general.getActiveAbilityState())).to.equal(before);
+  });
+
   it('counts counters down at the owning player end turn only', () => {
     const deployed = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
     deployed.setOwnerId(gameSession.getPlayer1Id());
@@ -158,7 +179,7 @@ describe('active ability state', () => {
     const ally = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
     ally.setOwnerId(player.getPlayerId());
     gameSession.applyCardToBoard(ally, 3, 0, null, null);
-    const state = player.getSignatureAbilityState();
+    const state = general.getActiveAbilityState();
     const generalSignatureData = general.getSignatureCardData();
     const generalSignatureManaCost = generalSignatureData.manaCost;
     expect(state).to.include({ lockdown: 2, cooldown: 0, baseLockdown: 2, baseCooldown: 2 });
@@ -198,7 +219,11 @@ describe('active ability state', () => {
     expect(state.cooldown).to.equal(0);
 
     const serialized = JSON.parse(gameSession.serializeToJSON(gameSession));
+    const generalData = serialized.cardsByIndex[general.getIndex()];
+    expect(generalData.activeAbilityState).to.deep.equal(state);
     const playerData = serialized.players.find((candidate) => candidate.playerId === player.getPlayerId());
-    expect(playerData.signatureAbilityState).to.deep.equal(state);
+    expect(playerData).to.not.have.property('signatureAbilityState');
+    // the opponent's counters are untouched by this player's turn ends
+    expect(gameSession.getGeneralForPlayer2().getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 0 });
   });
 });

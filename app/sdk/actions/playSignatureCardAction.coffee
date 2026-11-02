@@ -21,10 +21,10 @@ class PlaySignatureCardAction extends PlayCardAction
     session = @getGameSession()
     if session?.getIsPracticeSandboxV2?()
       general = session.getGeneralForPlayerId(@getOwnerId())
-      state = owner?.getSignatureAbilityState?()
+      state = general?.getActiveAbilityState()
       return unless general? and state? and general.getIsActive() and !general.getIsSilenced() and general.getActionPoints() > 0 and state.lockdown is 0 and state.cooldown is 0
       return unless general.spendActionPoint()
-      owner.startSignatureAbilityCooldown()
+      general.startActiveAbilityCooldown()
       @_private.source = general
     super()
 

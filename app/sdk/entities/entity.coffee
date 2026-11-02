@@ -36,6 +36,10 @@ PlayerModifierChangeSignatureCard = require 'app/sdk/playerModifiers/playerModif
 
 _ = require 'underscore'
 
+# Version 2 General Bloodbound active ability counters (Lockdown, then repeating Cooldown).
+GENERAL_ACTIVE_ABILITY_LOCKDOWN = 2
+GENERAL_ACTIVE_ABILITY_COOLDOWN = 2
+
 class Entity extends Card
 
   type: CardType.Entity
@@ -104,13 +108,24 @@ class Entity extends Card
     keys = keys.concat(["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"])
     return keys
 
+  getGeneralActiveAbilityDefinition: () ->
+    return {lockdown: GENERAL_ACTIVE_ABILITY_LOCKDOWN, cooldown: GENERAL_ACTIVE_ABILITY_COOLDOWN}
+
+  # Explicit, non-overwriting initialization. Never call from a getter.
+  # Version 2 Generals carry the Bloodbound active ability (Lockdown 2, Cooldown 2).
   initializeActiveAbility: (handSlotIndex) ->
-    definition = @activeAbility
     session = @getGameSession()
-    return unless definition? and session? and session.getIsPracticeSandboxV2()
+    return unless session? and session.getIsPracticeSandboxV2()
+    if @getIsGeneral() and !@activeAbility?
+      @activeAbility = @getGeneralActiveAbilityDefinition()
+    definition = @activeAbility
+    return unless definition?
+    # a General's state outlives re-application; other units start fresh each time they are applied
+    return if @getIsGeneral() and @activeAbilityState?
     lockdown = Math.max(0, Math.floor(definition.lockdown or 0))
     cooldown = Math.max(1, Math.floor(definition.cooldown or 1))
-    @activeAbilityState = { lockdown: lockdown, cooldown: 0, baseLockdown: lockdown, baseCooldown: cooldown, handSlotIndex: handSlotIndex }
+    @activeAbilityState = { lockdown: lockdown, cooldown: 0, baseLockdown: lockdown, baseCooldown: cooldown }
+    @activeAbilityState.handSlotIndex = handSlotIndex if handSlotIndex?
 
   getActiveAbilityState: () ->
     return @activeAbilityState
@@ -125,6 +140,8 @@ class Entity extends Card
     @activeAbilityState.cooldown = @activeAbilityState.baseCooldown
 
   clearActiveAbility: () ->
+    # a General's Bloodbound state outlives board removal and re-application
+    return if @getIsGeneral()
     @activeAbilityState = null
 
   onRemoveFromBoard: (board, x, y, sourceAction) ->

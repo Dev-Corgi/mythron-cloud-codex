@@ -158,6 +158,7 @@ GameSetup.createGeneral = (gameSession, player, generalCardData) ->
 GameSetup.addGeneral = (gameSession, player, general, generalX, generalY) ->
   # apply general
   gameSession.applyCardToBoard(general, generalX, generalY)
+  general.initializeActiveAbility() # explicit, version 2 only, never overwrites
   general.refreshExhaustion()
 
   # add signature card
