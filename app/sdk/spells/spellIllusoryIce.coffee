@@ -26,7 +26,7 @@ class SpellIllusoryIce extends Spell
         if existingEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(position, existingEntity)
           cardDataOrIndexToSpawn = existingEntity.createCloneCardData()
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
-          cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
+          cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn()))
           spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), ownerId, position, cardDataOrIndexToSpawn)
           @getGameSession().executeAction(spawnEntityAction)
 

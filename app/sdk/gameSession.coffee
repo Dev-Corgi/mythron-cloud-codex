@@ -1380,7 +1380,10 @@ class _GameSession extends SDKObject
 
       # update entities
       for entity in @board.getEntities(allowUntargetable=true)
-        entity.refreshExhaustion()
+        if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+          entity.refreshExhaustion() if entity.getOwnerId() is @getCurrentPlayer().getPlayerId()
+        else
+          entity.refreshExhaustion()
 
       for player in @players
         # retain last mana

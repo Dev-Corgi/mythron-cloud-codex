@@ -45,6 +45,8 @@ class Entity extends Card
   atk: 0 # attack damage
   attacks: 1 # max attacks this entity can make
   attacksMade: 0 # number of attacks this entity has made this turn
+  actionPoints: 0 # remaining explicit actions in Practice/Sandbox ruleset v2
+  actionPointsSpentThisTurn: false # distinguishes a fresh summon at 0 AP from a unit that spent both points
   damage: 0 # current damage
   exhausted: true # whether an entity is exhausted regardless of how many moves/attacks it has made
   isGeneral: false # whether entity is a general
@@ -90,7 +92,7 @@ class Entity extends Card
 
     cardData.damage = @damage
     # Preserve explicit unit stats when cards are cloned or reconstructed.
-    for key in ["speed", "reach", "movementType", "attackType", "level"]
+    for key in ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn"]
       if @[key]?
         cardData[key] = @[key]
 
@@ -98,7 +100,7 @@ class Entity extends Card
 
   getCardDataKeysForCopy: () ->
     keys = super()
-    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level"])
+    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn"])
     return keys
 
   onRemoveFromBoard: (board, x, y, sourceAction) ->
@@ -444,9 +446,11 @@ class Entity extends Card
     return @getBuffedAttribute(@moves, "moves", withAuras)
 
   getHasMovesLeft:() ->
+    return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getMovesMade() < @getMoves()
 
   getCanMove:() ->
+    return @getActionPoints() > 0 and @getSpeed() > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasMovesLeft() and @getSpeed() > 0
 
   setAttacksMade:(attacksMade) ->
@@ -462,10 +466,39 @@ class Entity extends Card
     return @getBuffedAttribute(@attacks, "attacks", withAuras)
 
   getHasAttacksLeft:() ->
+    return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getAttacksMade() < @getAttacks()
 
   getCanAttack:() ->
+    return @getActionPoints() > 0 and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasAttacksLeft() and @getATK() > 0 and @getReach() > 0
+
+  getUsesActionPoints: () ->
+    session = @getGameSession()
+    return !!(session? and session.getRulesetId() is "practice-sandbox-hex" and session.getRulesetVersion() is 2)
+
+  getActionPoints: () ->
+    return Math.max(0, @actionPoints or 0) if @getUsesActionPoints()
+    return 0
+
+  getHasSpentActionPointThisTurn: () ->
+    return !!@actionPointsSpentThisTurn if @getUsesActionPoints()
+    return false
+
+  setHasSpentActionPointThisTurn: (val) ->
+    @actionPointsSpentThisTurn = !!val
+
+  setActionPoints: (points) ->
+    @actionPoints = Math.max(0, Math.min(2, Math.floor(points or 0)))
+    @exhausted = @actionPoints is 0 if @getUsesActionPoints()
+    @actionPointsSpentThisTurn = false if @actionPoints is 2 and @getUsesActionPoints()
+
+  spendActionPoint: () ->
+    return false unless @getUsesActionPoints() and @getActionPoints() > 0
+    @actionPoints -= 1
+    @actionPointsSpentThisTurn = true
+    @exhausted = @actionPoints is 0
+    return true
 
   getCanAct:() ->
     return @isOwnersTurn() and @getDoesOwnerHaveEnoughManaToAct() and (@getCanMove() or @getCanAttack())
@@ -479,13 +512,18 @@ class Entity extends Card
   * @returns {Boolean}
   ###
   getIsExhausted:() ->
-    if @getIsUncontrollableBattlePet()
+    if @getUsesActionPoints()
+      return @getActionPoints() is 0
+    else if @getIsUncontrollableBattlePet()
       return false
     else
       return @getExhausted() or !@getHasAttacksLeft()
 
   setExhausted: (val) ->
     @exhausted = val
+    if @getUsesActionPoints()
+      @actionPoints = if val then 0 else 2
+      @actionPointsSpentThisTurn = false unless val
 
   ###
   * Returns actual exhausted state value, not accounting for any other factors.
@@ -497,11 +535,14 @@ class Entity extends Card
 
   refreshExhaustion:() ->
     @setExhausted(false)
+    @setActionPoints(2) if @getUsesActionPoints()
+    @setHasSpentActionPointThisTurn(false) if @getUsesActionPoints()
     @setMovesMade(0)
     @setAttacksMade(0)
 
   applyExhaustion: () ->
     @setExhausted(true)
+    @setActionPoints(0) if @getUsesActionPoints()
 
   getDoesOwnerHaveEnoughManaToAct: () ->
     if @getGameSession()?

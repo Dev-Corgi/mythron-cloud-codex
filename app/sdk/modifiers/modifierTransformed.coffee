@@ -21,11 +21,13 @@ class ModifierTransformed extends Modifier
 
   fxResource: ["FX.Modifiers.ModifierTransformed"]
 
-  @createContextObject: (exhausted, movesMade, attacksMade, options) ->
+  @createContextObject: (exhausted, movesMade, attacksMade, actionPoints, actionPointsSpentThisTurn, options) ->
     contextObject = super(options)
     contextObject.exhausted = exhausted
     contextObject.movesMade = movesMade
     contextObject.attacksMade = attacksMade
+    contextObject.actionPoints = actionPoints
+    contextObject.actionPointsSpentThisTurn = actionPointsSpentThisTurn
     return contextObject
 
   onApplyToCard: (card)  ->
@@ -38,6 +40,8 @@ class ModifierTransformed extends Modifier
       setExhaustionAction.setExhausted(@exhausted)
       setExhaustionAction.setMovesMade(@movesMade)
       setExhaustionAction.setAttacksMade(@attacksMade)
+      setExhaustionAction.setActionPoints(@actionPoints)
+      setExhaustionAction.setActionPointsSpentThisTurn(@actionPointsSpentThisTurn)
       setExhaustionAction.setSource(@getCard())
       setExhaustionAction.setTarget(@getCard())
       @getCard().getGameSession().executeAction(setExhaustionAction)

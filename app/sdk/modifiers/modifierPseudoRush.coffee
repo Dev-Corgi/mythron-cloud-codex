@@ -22,11 +22,13 @@ class ModifierPseudoRush extends Modifier
   onActivate: (card)  ->
     super(card)
 
-    if @getCard().getMovesMade() == 0 and @getCard().getAttacksMade() == 0
+    card = @getCard()
+    hasNotActed = if card.getUsesActionPoints?() and card.getUsesActionPoints() then !card.getHasSpentActionPointThisTurn() else card.getMovesMade() == 0 and card.getAttacksMade() == 0
+    if hasNotActed
       refreshExhaustionAction = @getGameSession().createActionForType(RefreshExhaustionAction.type)
-      refreshExhaustionAction.setSource(@getCard())
-      refreshExhaustionAction.setTarget(@getCard())
-      @getCard().getGameSession().executeAction(refreshExhaustionAction)
+      refreshExhaustionAction.setSource(card)
+      refreshExhaustionAction.setTarget(card)
+      card.getGameSession().executeAction(refreshExhaustionAction)
 
     if @_private.cachedIsActive
       # if General ended up in an Egg and is respawning, make sure it is not set as General
@@ -34,14 +36,15 @@ class ModifierPseudoRush extends Modifier
       if card.getType() is CardType.Unit and card.getIsGeneral()
         card.setIsGeneral(false)
 
-      # set exhaustion state of hatched card to not exhausted
-      # only do this when this modifier is initially applied to the card
-      setExhaustionAction = @getGameSession().createActionForType(SetExhaustionAction.type)
-      setExhaustionAction.setExhausted(false)
-      setExhaustionAction.setMovesMade(0)
-      setExhaustionAction.setAttacksMade(0)
-      setExhaustionAction.setSource(@getCard())
-      setExhaustionAction.setTarget(@getCard())
-      @getCard().getGameSession().executeAction(setExhaustionAction)
+      if hasNotActed
+        # set exhaustion state of hatched card to not exhausted
+        # only do this when this modifier is initially applied to the card and it has not acted
+        setExhaustionAction = @getGameSession().createActionForType(SetExhaustionAction.type)
+        setExhaustionAction.setExhausted(false)
+        setExhaustionAction.setMovesMade(0)
+        setExhaustionAction.setAttacksMade(0)
+        setExhaustionAction.setSource(card)
+        setExhaustionAction.setTarget(card)
+        card.getGameSession().executeAction(setExhaustionAction)
 
 module.exports = ModifierPseudoRush

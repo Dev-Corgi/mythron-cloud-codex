@@ -7,6 +7,8 @@ class SetExhaustionAction extends Action
   exhausted: null
   movesMade: null
   attacksMade: null
+  actionPoints: null
+  actionPointsSpentThisTurn: null
 
   constructor: () ->
     @type ?= SetExhaustionAction.type
@@ -30,6 +32,12 @@ class SetExhaustionAction extends Action
   getAttacksMade: () ->
     return @attacksMade
 
+  setActionPoints: (val) ->
+    @actionPoints = val
+
+  setActionPointsSpentThisTurn: (val) ->
+    @actionPointsSpentThisTurn = val
+
   _execute: () ->
     super()
     target = @getTarget()
@@ -38,5 +46,7 @@ class SetExhaustionAction extends Action
       if @exhausted? then target.setExhausted(@exhausted)
       if @movesMade? then target.setMovesMade(@movesMade)
       if @attacksMade? then target.setAttacksMade(@attacksMade)
+      if @actionPoints? and target.getUsesActionPoints?() and target.getUsesActionPoints() then target.setActionPoints(@actionPoints)
+      if @actionPointsSpentThisTurn? and target.getUsesActionPoints?() and target.getUsesActionPoints() then target.setHasSpentActionPointThisTurn(@actionPointsSpentThisTurn)
 
 module.exports = SetExhaustionAction

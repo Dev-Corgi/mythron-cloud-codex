@@ -24,14 +24,16 @@ class ModifierFirstBlood extends Modifier
 
   onActivate: ()  ->
     super()
+    card = @getCard()
     # if rush is applied on the turn that the unit was summoned
-    if @getGameSession().wasActionExecutedDuringTurn(@getCard().getAppliedToBoardByAction(), @getGameSession().getCurrentTurn()) and @getGameSession().getCanCardBeScheduledForRemoval(@getCard())
+    if @getGameSession().wasActionExecutedDuringTurn(card.getAppliedToBoardByAction(), @getGameSession().getCurrentTurn()) and @getGameSession().getCanCardBeScheduledForRemoval(card)
       # immediately activate the unit IF it has not already moved and / or attacked this turn (do not re-activate units that already had rush)
-      if @getCard().getMovesMade() == 0 and @getCard().getAttacksMade() == 0
+      hasNotActed = if card.getUsesActionPoints?() and card.getUsesActionPoints() then !card.getHasSpentActionPointThisTurn() else card.getMovesMade() == 0 and card.getAttacksMade() == 0
+      if hasNotActed
         refreshExhaustionAction = @getGameSession().createActionForType(RefreshExhaustionAction.type)
-        refreshExhaustionAction.setSource(@getCard())
-        refreshExhaustionAction.setTarget(@getCard())
-        @getCard().getGameSession().executeAction(refreshExhaustionAction)
+        refreshExhaustionAction.setSource(card)
+        refreshExhaustionAction.setTarget(card)
+        card.getGameSession().executeAction(refreshExhaustionAction)
 
   deactivateRushIfNeeded: ()  ->
     # if rush is dispelled, deactivated, or removed on the turn that the unit was summoned

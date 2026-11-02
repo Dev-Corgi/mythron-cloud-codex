@@ -28,7 +28,7 @@ class ModifierEnemyStunWatchTransformThis extends ModifierEnemyStunWatch
       @getGameSession().executeAction(removeOriginalEntityAction)
 
       @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
-      @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
+      @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn()))
       spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), entity.getPosition(), @cardDataOrIndexToSpawn)
       @getGameSession().executeAction(spawnEntityAction)
 

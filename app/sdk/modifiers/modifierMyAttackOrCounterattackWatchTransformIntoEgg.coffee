@@ -17,7 +17,7 @@ class ModifierMyAttackOrCounterattackWatchTransformIntoEgg extends ModifierMyAtt
     egg = {id: Cards.Faction5.Egg}
     egg.additionalInherentModifiersContextObjects ?= []
     egg.additionalInherentModifiersContextObjects.push(ModifierEgg.createContextObject(entity.createNewCardData(), entity.getName()))
-    egg.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
+    egg.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn()))
 
     removeEntityAction = new RemoveAction(@getGameSession())
     removeEntityAction.setOwnerId(@getCard().getOwnerId())

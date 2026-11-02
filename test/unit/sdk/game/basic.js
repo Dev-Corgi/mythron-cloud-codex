@@ -100,6 +100,175 @@ describe('basic', () => {
     expect(replayAttacker.getDamage()).to.equal(1);
   });
 
+  it('allows two explicit version 2 moves from the shared action-point budget', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const unit = gameSession.getGeneralForPlayer1();
+    unit.setPosition({ q: 3, r: 2 });
+    unit.setSpeed(1);
+    unit.refreshExhaustion();
+
+    const rejectedMove = unit.actionMove({ q: 9, r: 9 });
+    gameSession.executeAction(rejectedMove);
+    expect(rejectedMove.getIsValid()).to.equal(false);
+    expect(unit.getActionPoints()).to.equal(2);
+
+    let move = unit.actionMove({ q: 4, r: 2 });
+    gameSession.executeAction(move);
+    expect(move.getIsValid()).to.equal(true);
+    expect(unit.getActionPoints()).to.equal(1);
+
+    move = unit.actionMove({ q: 5, r: 2 });
+    gameSession.executeAction(move);
+    expect(move.getIsValid()).to.equal(true);
+    expect(unit.getActionPoints()).to.equal(0);
+    expect(unit.getIsExhausted()).to.equal(true);
+
+    const thirdMove = unit.actionMove({ q: 4, r: 2 });
+    gameSession.validateAction(thirdMove, false);
+    expect(thirdMove.getIsValid()).to.equal(false);
+  });
+
+  it('allows two explicit version 2 attacks', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const attacker = gameSession.getGeneralForPlayer1();
+    attacker.setPosition({ q: 3, r: 2 });
+    attacker.refreshExhaustion();
+    const targets = [{ q: 4, r: 2 }, { q: 3, r: 3 }].map((position) => {
+      const target = gameSession.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+      target.setOwnerId(gameSession.getPlayer2Id());
+      target.setPosition(position);
+      target.setIsPlayed(true);
+      target.setIsRemoved(false);
+      gameSession.getBoard().addCard(target);
+      return target;
+    });
+
+    for (const target of targets) {
+      const attack = attacker.actionAttack(target);
+      gameSession.executeAction(attack);
+      expect(attack.getIsValid()).to.equal(true);
+    }
+    expect(attacker.getActionPoints()).to.equal(0);
+    expect(attacker.getAttacksMade()).to.equal(2);
+    expect(attacker.getIsExhausted()).to.equal(true);
+  });
+
+  it('charges one point for a version 2 area attack regardless of implicit victims', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const board = gameSession.getBoard();
+    const attacker = gameSession.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(2);
+    attacker.setAttackType('area');
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+    const targets = [{ q: 5, r: 0 }, { q: 5, r: 1 }].map((position) => {
+      const target = gameSession.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+      target.setOwnerId(gameSession.getPlayer2Id());
+      target.setPosition(position);
+      target.setIsPlayed(true);
+      target.setIsRemoved(false);
+      board.addCard(target);
+      return target;
+    });
+
+    const attack = attacker.actionAttack(targets[0]);
+    gameSession.executeAction(attack);
+
+    expect(attack.getIsValid()).to.equal(true);
+    expect(targets[0].getDamage()).to.equal(2);
+    expect(targets[1].getDamage()).to.equal(2);
+    expect(attacker.getActionPoints()).to.equal(1);
+    expect(attacker.getAttacksMade()).to.equal(1);
+  });
+
+  it('rejects an automatic explicit attack when a version 2 unit has no points', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const attacker = gameSession.getGeneralForPlayer1();
+    attacker.setPosition({ q: 3, r: 2 });
+    attacker.refreshExhaustion();
+    attacker.spendActionPoint();
+    attacker.spendActionPoint();
+    const target = gameSession.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    target.setOwnerId(gameSession.getPlayer2Id());
+    target.setPosition({ q: 4, r: 2 });
+    target.setIsPlayed(true);
+    target.setIsRemoved(false);
+    gameSession.getBoard().addCard(target);
+
+    const attack = attacker.actionAttack(target);
+    attack.setIsAutomatic(true);
+    gameSession.executeAction(attack);
+
+    expect(attack.getIsValid()).to.equal(false);
+    expect(attacker.getActionPoints()).to.equal(0);
+    expect(target.getDamage()).to.equal(0);
+
+    const move = attacker.actionMove({ q: 2, r: 2 });
+    move.setIsAutomatic(true);
+    gameSession.executeAction(move);
+    expect(move.getIsValid()).to.equal(false);
+    expect(attacker.getActionPoints()).to.equal(0);
+  });
+
+  it('retains legacy move and attack allowances in version 1', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 1);
+    const attacker = gameSession.getGeneralForPlayer1();
+    attacker.setPosition({ q: 3, r: 2 });
+    attacker.setSpeed(1);
+    attacker.refreshExhaustion();
+    const target = gameSession.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    target.setOwnerId(gameSession.getPlayer2Id());
+    target.setPosition({ q: 4, r: 2 });
+    target.setIsPlayed(true);
+    target.setIsRemoved(false);
+    gameSession.getBoard().addCard(target);
+
+    const attack = attacker.actionAttack(target);
+    gameSession.executeAction(attack);
+    expect(attack.getIsValid()).to.equal(true);
+    expect(attacker.getAttacksMade()).to.equal(1);
+    expect(attacker.getActionPoints()).to.equal(0);
+
+    const move = attacker.actionMove({ q: 2, r: 2 });
+    gameSession.executeAction(move);
+    expect(move.getIsValid()).to.equal(false);
+    expect(attacker.getMovesMade()).to.equal(1);
+  });
+
+  it('allows an attack followed by a move in version 2', () => {
+    const gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const attacker = gameSession.getGeneralForPlayer1();
+    attacker.setPosition({ q: 3, r: 2 });
+    attacker.setSpeed(1);
+    attacker.refreshExhaustion();
+    const target = gameSession.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    target.setOwnerId(gameSession.getPlayer2Id());
+    target.setPosition({ q: 4, r: 2 });
+    target.setIsPlayed(true);
+    target.setIsRemoved(false);
+    gameSession.getBoard().addCard(target);
+
+    const attack = attacker.actionAttack(target);
+    gameSession.executeAction(attack);
+    expect(attack.getIsValid()).to.equal(true);
+    expect(attacker.getActionPoints()).to.equal(1);
+
+    const move = attacker.actionMove({ q: 2, r: 2 });
+    gameSession.executeAction(move);
+    expect(move.getIsValid()).to.equal(true);
+    expect(attacker.getActionPoints()).to.equal(0);
+  });
+
   it('preserves hex blast damage without a strikeback from its implicit attack', () => {
     const gameSession = SDK.GameSession.getInstance();
     gameSession.setRuleset('practice-sandbox-hex', 1);

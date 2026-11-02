@@ -61,7 +61,10 @@ class AttackAction extends DamageAction
           areaAttack = attacker.actionAttack(victim)
           areaAttack.setParentAction(@)
           attacker.getGameSession().executeAction(areaAttack)
-      if !@getIsImplicit() then attacker.setAttacksMade(attacker.getAttacksMade() + 1)
+      if !@getIsImplicit()
+        if attacker.getUsesActionPoints?() and attacker.getUsesActionPoints()
+          attacker.spendActionPoint()
+        attacker.setAttacksMade(attacker.getAttacksMade() + 1)
 
   _isVersion2StatDrivenAreaAttack: (attacker) ->
     session = attacker?.getGameSession?()
