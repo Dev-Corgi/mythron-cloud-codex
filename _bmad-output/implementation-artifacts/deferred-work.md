@@ -29,3 +29,6 @@
 - source_spec: `_bmad-output/specs/spec-unit-stats-active-abilities/stories/6-wire-unit-and-ability-card-ui-into-the-hand.md`
   summary: Reuse existing hand overlay nodes across repeated usability refreshes.
   evidence: Review found the bounded hand renderer recreates overlay sprites and labels on cache/usability refresh; this is correct but could be optimized if profiling shows hand-update churn.
+- source_spec: `spec-correct-phobies-card-surfaces.md`
+  summary: Add focused rendering assertions for the collection card face and V2 in-game unit inspect face, including Planar Scout's Phoenix Fire icon and Lockdown/Cooldown counters.
+  evidence: Existing collection visual tests cover card classification and stat mappings but do not exercise rendered DOM layering; the GameLayer inspect test verifies the paired effect card but does not assert the new face output.

@@ -1,0 +1,98 @@
+---
+title: 'Complete Phobies card visuals and Planar Scout ability detail'
+type: 'bugfix'
+created: '2026-11-02'
+status: 'done'
+route: 'dispatch'
+baseline_commit: '57e8000271f622eecfd6e899f80e0ebe7a6e0afd'
+submodule_baseline_commit: '031f8b19918b8f08c0834cbbf0089bb2cf9db25f'
+review_loop_iteration: 0
+context:
+  - '{project-root}/CARD_UI_HANDOFF.md'
+  - '{project-root}/_bmad-output/specs/spec-unit-stats-active-abilities/SPEC.md'
+  - '{project-root}/_bmad-output/specs/spec-unit-stats-active-abilities/active-ability-rules.md'
+  - '{project-root}/_bmad-output/implementation-artifacts/spec-fix-card-frame-target.md'
+---
+
+<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
+
+## Intent
+
+**Problem:** The approved Phobies unit frame is not used in the in-game inspect card. In collection cards the frame covers the existing animated unit sprite, and the movement/attack icons and values are positioned opposite the approved preview. Planar Scout's Phoenix Fire assignment is gated to a live v2 session, so the collection detail shown by the user has no visible active-ability entry.
+
+**Approach:** Apply the approved unit face to v2 in-game inspect cards only, restore the animated sprite above the collection frame, and position each stat icon at the ring's left edge with its numeric value inside the ring as shown in `preview_astral_crusader_geometry_v4.png`. Keep Planar Scout's Phoenix Fire definition available as card metadata in every context, while retaining v2-only active state and gameplay; show that assignment in collection details.
+
+## Boundaries & Constraints
+
+**Always:** Use the approved layered assets and `card-layout.json`; preserve the original animated unit sprite and interactions; use live SDK stats; show Planar Scout's Phoenix Fire (Lockdown 1, Cooldown 1) in collection details; keep ability state/use and paired in-game ability inspection restricted to Practice/Sandbox v2; retain ordinary references and legacy visuals.
+
+**Never:** Change the sprite-only game hand, board unit presentation, fixed slots, deck/crafting views, gameplay rules, other card assignments, or unrelated collection behavior. Do not flatten previews into runtime assets.
+
+## I/O & Edge-Case Matrix
+
+| Scenario | Input / State | Expected Output / Behavior | Error Handling |
+|----------|--------------|---------------------------|----------------|
+| Collection unit | Any unit card in list or selected-card view | Approved frame, animated sprite, icons left of rings, values centered inside rings | Missing optional icon falls back to existing stat mapping |
+| V2 game inspect | Unit inspected in Practice/Sandbox v2 | Approved unit frame and live unit art/stats; hand and board renderers remain unchanged | Non-unit inspect keeps its current view |
+| Planar Scout detail | Collection detail or v2 inspect | Phoenix Fire is identified as the active ability with its 1/1 counters; v2 inspect retains the paired effect card | Invalid/missing effect definition omits only the ability detail |
+| Legacy session | Card inspected or deployed outside v2 | Existing legacy card face and no active ability state/use | No state is initialized from card metadata |
+
+</frozen-after-approval>
+
+## Code Map
+
+- `duelyst/app/ui/views2/collection/PhobiesCollectionCardVisual.js` -- collection frame composition; it currently adds the frame but does not place the existing `.card-sprite` inside that opaque face. It also centers stat icons and puts values 48 layout units below.
+- `duelyst/app/ui/styles/common/cards.scss` -- collection-only frame and sprite stacking; keep changes scoped to `.card.collection-card.phobies-unit`.
+- `duelyst/app/view/nodes/cards/CardNode.js` -- Cocos inspect card background, animated art, labels, and live stats. Add the unit face only when explicitly enabled by its inspect caller; leave normal CardNode users untouched.
+- `duelyst/app/view/layers/game/GameLayer.js` -- owns the dedicated primary and related inspect nodes; enable the new unit face only for the v2 inspect nodes.
+- `duelyst/app/sdk/cards/factory/core/neutral.coffee` -- Planar Scout definition; keep its effect metadata on the card, while `Unit.initializeActiveAbility()` and player/inspect ruleset gates keep behavior v2-only.
+- `duelyst/app/ui/views2/collection/selected_card.js` and `templates/selected_card.hbs` -- build the selected-card information panel; expose the card's effect name and counters here.
+- `duelyst/test/unit/view/phobies_collection_card_visual.js`, `test/unit/view/inspect_card_resolver.js`, and `test/unit/sdk/game/active_abilities.js` -- existing coverage points for layout mapping and v2-only runtime state.
+
+## Tasks & Acceptance
+
+**Execution:**
+- [x] `PhobiesCollectionCardVisual.js` and `cards.scss` -- put the live sprite above the new frame and reproduce the approved icon/value positions.
+- [x] `CardNode.js` and `GameLayer.js` -- use the approved unit face only in v2 inspect nodes; show the unit sprite, level, all four live stats, rarity, and description in their approved regions.
+- [x] `neutral.coffee`, `selected_card.js`, and `selected_card.hbs` -- retain Phoenix Fire as Planar Scout metadata, keep state/use restricted to v2, and expose Phoenix Fire plus 1/1 in collection details.
+- [x] Existing focused coverage -- update assertions for the new metadata contract and verify legacy active state remains disabled.
+
+**Acceptance Criteria:**
+- Given a unit in collection or selected detail, when its card is rendered, then its animation is visible above the new frame and each stat icon overlaps the ring's left edge while the value is centered inside the ring, matching the approved preview.
+- Given a unit is inspected in Practice/Sandbox v2, when the inspect card opens, then it uses the approved frame and live unit art/stats without changing the game hand or board sprite.
+- Given Planar Scout is opened in collection details, when its information is shown, then Phoenix Fire and Lockdown 1/Cooldown 1 are visible; in a v2 match, the existing related inspect card still resolves to Phoenix Fire.
+- Given the same card is deployed in a legacy ruleset, when it initializes, then no active ability state is created and it cannot be used.
+
+## Implementation Notes
+
+- Collection cards keep the original animated `.card-sprite` inside the layered face, between the frame and the name/stat overlays. Stat values use the JSON ring centers; icons use each ring's left edge. Planar Scout's Phoenix Fire atlas frame appears in the approved skill slot with its Lockdown/Cooldown values.
+- V2 inspect nodes opt into the approved unit frame, live sprite and stats through `GameLayer`; other `CardNode` uses retain their current visual path. The V2 face displays Phoenix Fire and its Lockdown/Cooldown counters for assigned units.
+- Planar Scout carries Phoenix Fire metadata in every context. Existing entity, player, and related-card gates still restrict active state, ability use, and paired gameplay inspection to Practice/Sandbox v2. Collection cards and details show Phoenix Fire; the detail and V2 inspect face show its Lockdown 1 / Cooldown 1 counters.
+- The active-ability assertion for the legacy ruleset now checks that metadata remains present while instance state stays null. No test suite was run per the active workflow instruction.
+
+## Verification
+
+**Commands:**
+- Targeted ESLint for changed JavaScript files -- passed.
+- English, German, and Traditional Chinese collection locale JSON files parse successfully.
+- CoffeeScript compile check for `neutral.coffee` -- passed. Coffeelint was also attempted but reports the file's existing CRLF line endings on every line (it requires Unix endings).
+- `gulp css` -- stylesheet generated successfully; the tool reported existing Sass deprecation/autoprefixer warnings and a non-fatal Windows notification error.
+- `npm run build:app` with the existing local Firebase URL -- a post-review rerun did not complete: Babel cache permission was bypassed, but the app JS build stalled after starting; it was stopped. A prior implementation build passed before the review fixes.
+- Focused test suites were not run per the active workflow instruction.
+
+**Manual checks:**
+- Visually inspected `preview_astral_crusader_geometry_v4.png` and confirmed the approved stat-ring geometry. Collection list/detail and in-game Practice/Sandbox inspection were not manually opened in the client; sprite-only hand and legacy visual preservation are not manually verified.
+
+## Design Notes
+
+`card-layout.json` stores the four circular stat centers at `(77,136)`, `(77,214)`, `(77,292)`, and `(77,370)` in 2x top-left coordinates. The approved preview places each icon center at the ring's left edge offset and the number at the ring center; it does not place the icon in the ring center or the number below the ring. The sprite is a separate live animation layer above the frame fill and below card labels/stat overlays.
+
+## Review Triage Log
+
+- **high — patch (reviewed and fixed):** The V2 in-game inspect face rendered live stats and frame but omitted Phoenix Fire's icon and Lockdown/Cooldown counters. `CardNode` now renders those in the approved skill slot for units carrying Phoenix Fire metadata.
+- **medium — patch (reviewed and fixed):** `GameLayer.showInspectCard` now invokes `SDK.Unit` and the inspect node's opt-in method, but its focused test stub supplied neither; the existing related-card test would throw before its assertions. The stub now models a unit and the new opt-in method.
+- **medium — defer (verification gap):** The collection DOM composition and V2 face's new skill slot still lack assertions for the rendered sprite/stat/icon/counter output. Existing visual-helper tests check classification and stat mappings only; checking the browser/client output would settle these behaviors. Defer a focused rendering-test pass to avoid expanding this requested visual correction into a new test harness.
+- **low — patch (reviewed and fixed):** The selected-card template initially hardcoded Active Ability, Lockdown, and Cooldown while neighboring labels use localization keys. The three labels now use locale entries for English, German, and Traditional Chinese.
+- **false:** The attack/movement fallback maps omit valid types. SDK's validated types are covered by the explicit maps, including `lobbed` and `phase`.
+- **false:** The level label is stale after `updateStats`. Unit level is fixed card-definition data and is initialized whenever the inspected SDK card changes; `updateStats` only refreshes mutable battle stats.
+- **false:** Hiding the card type label removes required type text. The approved unit-face design replaces it with the unit name and level and contains no type label.
