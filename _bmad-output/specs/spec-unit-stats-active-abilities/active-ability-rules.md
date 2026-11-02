@@ -18,7 +18,7 @@ Each ability instance has `lockdown` and `cooldown` counters (integers ≥ 0) an
 1. Unit card sits in slot N. Playing it empties slot N (fixed-slot rule).
 2. While the unit is alive on the field, slot N displays the ability card.
 3. Ability unusable while either counter > 0; usable like a spell otherwise, constrained to that ability's own target range.
-4. Unit death empties slot N. Silence disables the ability (shown but unusable); silence removal re-enables it.
+4. Unit death empties slot N. Silence disables the ability (shown but unusable); silence removal re-enables it. While silenced, Lockdown and Cooldown do not decrease at turn end; they resume from the same values when silence ends.
 
 ## Counter display
 
