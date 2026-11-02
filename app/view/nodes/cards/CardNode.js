@@ -9,6 +9,7 @@ const SDK = require('app/sdk');
 const RSX = require('app/data/resources');
 const PKGS = require('app/data/packages');
 const UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
+const ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const RenderPass = require('app/view/fx/RenderPass');
@@ -95,6 +96,9 @@ var CardNode = SdkNode.extend({
   _staticContainerNodeFront: null, // container for all the card's non-animated parts
   _unitShadow: null,
   _phobiesUnitFaceEnabled: false,
+  _phobiesAbilityFaceEnabled: false,
+  _phobiesAbilityFaceData: null,
+  _phobiesAbilityFaceNodes: null,
   _phobiesUnitFaceNodes: null,
   _phobiesMovementValueLabel: null,
   _phobiesRangeValueLabel: null,
@@ -404,6 +408,11 @@ var CardNode = SdkNode.extend({
     // the cached request; only the explicit v2 inspect flag changes rendering.
     return resources.concat([
       RSX.collection_card_unit_frame,
+      RSX.collection_card_ability_frame,
+      RSX.collection_card_ability_lockdown_ring,
+      RSX.collection_card_ability_lockdown_icon,
+      RSX.collection_card_ability_cooldown_ring,
+      RSX.collection_card_ability_cooldown_icon,
       RSX.collection_card_attack_melee,
       RSX.collection_card_attack_ranged,
       RSX.collection_card_attack_arc,
@@ -413,8 +422,6 @@ var CardNode = SdkNode.extend({
       RSX.collection_card_move_phase,
       RSX.collection_card_health,
       RSX.collection_card_range,
-      RSX.collection_card_cooldown_hourglass,
-      RSX.icon_f2_phoenixfire,
       RSX.collection_card_rarity_common,
       RSX.collection_card_rarity_rare,
       RSX.collection_card_rarity_epic,
@@ -427,6 +434,18 @@ var CardNode = SdkNode.extend({
     const next = !!enabled;
     if (next === this._phobiesUnitFaceEnabled) return;
     this._phobiesUnitFaceEnabled = next;
+    if (this.sdkCard != null) {
+      const sdkCard = this.sdkCard;
+      this.setSdkCard(null);
+      this.setSdkCard(sdkCard);
+    }
+  },
+
+  setPhobiesAbilityFaceEnabled(abilityData) {
+    const next = abilityData || null;
+    if (next === this._phobiesAbilityFaceData) return;
+    this._phobiesAbilityFaceData = next;
+    this._phobiesAbilityFaceEnabled = next != null;
     if (this.sdkCard != null) {
       const sdkCard = this.sdkCard;
       this.setSdkCard(null);
@@ -502,8 +521,9 @@ var CardNode = SdkNode.extend({
   },
 
   _clearPhobiesUnitFace() {
-    (this._phobiesUnitFaceNodes || []).forEach((node) => node.removeFromParent(true));
+    (this._phobiesUnitFaceNodes || []).concat(this._phobiesAbilityFaceNodes || []).forEach((node) => node.removeFromParent(true));
     this._phobiesUnitFaceNodes = null;
+    this._phobiesAbilityFaceNodes = null;
     this._phobiesMovementValueLabel = null;
     this._phobiesRangeValueLabel = null;
     this._phobiesLevelLabel = null;
@@ -516,6 +536,7 @@ var CardNode = SdkNode.extend({
     }
     if (this.cardBackgroundSprite != null) this.cardBackgroundSprite.setVisible(true);
     if (this.cardTypeLabel != null) this.cardTypeLabel.setVisible(true);
+    if (this.cardNameLabel != null) this.cardNameLabel.setVisible(true);
     if (this.factionNameLabel != null) this.factionNameLabel.setVisible(false);
     if (this.cardNameLabel != null) this.cardNameLabel.setPosition(0, 21);
     if (this.cardTypeLabel != null) this.cardTypeLabel.setPosition(0, 4);
@@ -603,16 +624,6 @@ var CardNode = SdkNode.extend({
     this._phobiesMovementValueLabel.setPosition(this._phobiesPosition(positions.stats[2]));
     this._phobiesRangeValueLabel.setPosition(this._phobiesPosition(positions.stats[3]));
 
-    const activeAbility = sdkCard.activeAbility;
-    if (activeAbility && activeAbility.effectCardId === SDK.Cards.Spell.PhoenixFire) {
-      const skillArt = addSprite(RSX.icon_f2_phoenixfire, this._phobiesPosition(positions.skillIcon.center), 5 / 6);
-      // Use the Phoenix Fire frame from the approved card layout's atlas coordinates.
-      skillArt.setTextureRect(cc.rect(49, 98, 48, 48));
-      addSprite(RSX.collection_card_cooldown_hourglass, this._phobiesPosition([positions.cooldown.center[0] - 13, positions.cooldown.center[1]]), 0.5);
-      const skillCounters = addValue(7, cc.color(155, 206, 216));
-      skillCounters.setString(`L${activeAbility.lockdown || 0}/C${activeAbility.cooldown || 1}`, true);
-      skillCounters.setPosition(this._phobiesPosition([positions.cooldown.center[0] + 12, positions.cooldown.center[1]]));
-    }
     this.atkLabel.setFontFillColor(cc.color.WHITE);
     this.hpLabel.setFontFillColor(cc.color.WHITE);
 
@@ -638,6 +649,75 @@ var CardNode = SdkNode.extend({
       this.cardSprite.setPosition(this._phobiesPosition(positions.unitSprite.center));
     }
     this._phobiesUnitFaceNodes = nodes;
+  },
+
+  _setupPhobiesAbilityFace(sdkCard) {
+    if (!this._phobiesAbilityFaceEnabled || !(sdkCard instanceof SDK.Card)) return;
+
+    const nodes = [];
+    const addSprite = (resource, position, scale) => {
+      const sprite = BaseSprite.create(resource.img);
+      sprite.setPosition(position);
+      if (scale != null) sprite.setScale(scale);
+      this._staticContainerNodeFront.addChild(sprite, 1);
+      nodes.push(sprite);
+      return sprite;
+    };
+    const addValue = (fontSize, color, width, height) => {
+      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(width || 150, height || 28), cc.TEXT_ALIGNMENT_CENTER);
+      label.setFontFillColor(color || cc.color.WHITE);
+      label.setAnchorPoint(0.5, 0.5);
+      this._staticContainerNodeFront.addChild(label, 2);
+      nodes.push(label);
+      return label;
+    };
+
+    const frame = BaseSprite.create(RSX.collection_card_ability_frame.img);
+    frame.setPosition(0, 0);
+    frame.setScaleX(ABILITY_LAYOUT.canvas.normal[0] / frame.getContentSize().width);
+    frame.setScaleY(ABILITY_LAYOUT.canvas.normal[1] / frame.getContentSize().height);
+    this._staticContainerNodeFront.addChild(frame, 0);
+    nodes.push(frame);
+
+    const artPosition = this._phobiesPosition(ABILITY_LAYOUT.art.center);
+    if (this.cardSprite != null) {
+      this.cardSprite.removeFromParent(false);
+      this._staticContainerNodeFront.addChild(this.cardSprite, 1);
+      this.cardSprite.setAnchorPoint(cc.p(0.5, 0.5));
+      this.cardSprite.setPosition(artPosition);
+      this.cardSprite.setScale(0.8);
+    }
+
+    const lockdown = ABILITY_LAYOUT.counters.lockdown;
+    const cooldown = ABILITY_LAYOUT.counters.cooldown;
+    addSprite(RSX.collection_card_ability_lockdown_ring, this._phobiesPosition(lockdown.center), 0.25);
+    addSprite(RSX.collection_card_ability_lockdown_icon, this._phobiesPosition(lockdown.iconCenter), 0.25);
+    addSprite(RSX.collection_card_ability_cooldown_ring, this._phobiesPosition(cooldown.center), 0.25);
+    addSprite(RSX.collection_card_ability_cooldown_icon, this._phobiesPosition(cooldown.iconCenter), 0.25);
+
+    const activeAbility = this._phobiesAbilityFaceData;
+    const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);
+    lockdownValue.setString(`${activeAbility.lockdown || 0}`, true);
+    lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
+    const cooldownValue = addValue(18, cc.color(123, 230, 245), 44, 44);
+    cooldownValue.setString(`${activeAbility.cooldown || 1}`, true);
+    cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
+
+    const name = addValue(14, cc.color.WHITE, this.getCardBackgroundContentSize().width - 20, 24);
+    name.setString(sdkCard.getName().toUpperCase(), true);
+    name.setPosition(this._phobiesPosition(ABILITY_LAYOUT.name.center));
+    const level = addValue(9, cc.color(155, 206, 216), this.getCardBackgroundContentSize().width - 20, 18);
+    level.setString(`LEVEL ${sdkCard.getLevel ? sdkCard.getLevel() : 1}`, true);
+    level.setPosition(this._phobiesPosition(ABILITY_LAYOUT.level.center));
+
+    this.cardBackgroundSprite.setVisible(false);
+    this.cardNameLabel.setVisible(false);
+    this.cardTypeLabel.setVisible(false);
+    this.factionNameLabel.setVisible(false);
+    this.cardDescriptionLabel.setPosition(this._phobiesPosition(ABILITY_LAYOUT.effect.center));
+    this.cardDescriptionLabel.setDimensions(cc.size(ABILITY_LAYOUT.effect.maxWidth / 2, 72));
+    this.cardDescriptionLabel.setFontSize(10);
+    this._phobiesAbilityFaceNodes = nodes;
   },
 
   setSdkCard(sdkCard, showBaseState, actionToShowStateFor, actionEventTypeToShowStateFor) {
@@ -743,6 +823,7 @@ var CardNode = SdkNode.extend({
             this.cardSprite.setPosition(cardSpritePosition);
 
             this._setupPhobiesUnitFace(sdkCard);
+            this._setupPhobiesAbilityFace(sdkCard);
 
             // shadow
             if (!(sdkCard instanceof SDK.Tile)) {

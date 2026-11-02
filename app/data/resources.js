@@ -44,6 +44,10 @@ const _ = require('underscore');
 const RSX = {
   collection_card_unit_frame: { name: 'collection_card_unit_frame', img: 'resources/card_ui/phobies_unit/unit_card_frame.png' },
   collection_card_ability_frame: { name: 'collection_card_ability_frame', img: 'resources/card_ui/phobies_ability/ability_card_frame.png' },
+  collection_card_ability_lockdown_ring: { name: 'collection_card_ability_lockdown_ring', img: 'resources/card_ui/phobies_ability/components/lockdown_ring@2x.png', noScale: true },
+  collection_card_ability_lockdown_icon: { name: 'collection_card_ability_lockdown_icon', img: 'resources/card_ui/phobies_ability/components/lockdown_icon@2x.png', noScale: true },
+  collection_card_ability_cooldown_ring: { name: 'collection_card_ability_cooldown_ring', img: 'resources/card_ui/phobies_ability/components/cooldown_ring@2x.png', noScale: true },
+  collection_card_ability_cooldown_icon: { name: 'collection_card_ability_cooldown_icon', img: 'resources/card_ui/phobies_ability/components/cooldown_icon@2x.png', noScale: true },
   collection_card_attack_melee: { name: 'collection_card_attack_melee', img: 'resources/card_ui/phobies_unit/icons/attack_melee.png' },
   collection_card_attack_ranged: { name: 'collection_card_attack_ranged', img: 'resources/card_ui/phobies_unit/icons/attack_ranged.png' },
   collection_card_attack_arc: { name: 'collection_card_attack_arc', img: 'resources/card_ui/phobies_unit/icons/attack_arc.png' },

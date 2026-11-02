@@ -5306,6 +5306,7 @@ var GameLayer = FXCompositeLayer.extend({
           && gameSession.getRulesetVersion() === 2;
         this._inspectCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && sdkCard instanceof SDK.Unit);
         this._referencedCardNode.setPhobiesUnitFaceEnabled(false);
+        this._referencedCardNode.setPhobiesAbilityFaceEnabled(null);
 
         // show inspect
         // inspect triggers rebuild so it must be done before using content size
@@ -5316,6 +5317,9 @@ var GameLayer = FXCompositeLayer.extend({
           if (referencedCard != null) {
             referencedCard.setOwner(sdkCard.getOwner());
             this._referencedCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && referencedCard instanceof SDK.Unit);
+            const activeAbility = usePhobiesUnitFace && sdkCard.activeAbility
+              && sdkCard.activeAbility.effectCardId === relatedCardId ? sdkCard.activeAbility : null;
+            this._referencedCardNode.setPhobiesAbilityFaceEnabled(activeAbility);
             this._referencedCardNode.showInspect(referencedCard, true, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
           }
         }
@@ -5405,11 +5409,26 @@ var GameLayer = FXCompositeLayer.extend({
         // set final inspect position
         this._inspectCardNode.setPosition(inspectX, inspectY);
 
-        const spacing = this._inspectCardNode.getCardContentSize().width * 1.5;
-        if (inspectX + spacing < UtilsEngine.getGSIWinRight()) {
-          this._referencedCardNode.setPosition(inspectX + spacing, inspectY);
+        const activeAbilityIsShownBelow = usePhobiesUnitFace && sdkCard.activeAbility != null
+          && relatedCardId === sdkCard.activeAbility.effectCardId;
+        if (activeAbilityIsShownBelow) {
+          const abilityCardY = inspectY - cardContentSize.height * 1.05;
+          const lowestVisibleCardCenter = UtilsEngine.getGSIWinBottom() + cardContentSize.height * 0.5;
+          const highestVisibleUnitCenter = UtilsEngine.getGSIWinTop() - cardContentSize.height * 0.5;
+          const verticalShift = Math.min(
+            Math.max(0, lowestVisibleCardCenter - abilityCardY),
+            Math.max(0, highestVisibleUnitCenter - inspectY),
+          );
+          inspectY += verticalShift;
+          this._inspectCardNode.setPosition(inspectX, inspectY);
+          this._referencedCardNode.setPosition(inspectX, inspectY - cardContentSize.height * 1.05);
         } else {
-          this._referencedCardNode.setPosition(inspectX - spacing, inspectY);
+          const spacing = this._inspectCardNode.getCardContentSize().width * 1.5;
+          if (inspectX + spacing < UtilsEngine.getGSIWinRight()) {
+            this._referencedCardNode.setPosition(inspectX + spacing, inspectY);
+          } else {
+            this._referencedCardNode.setPosition(inspectX - spacing, inspectY);
+          }
         }
 
         this.getEventBus().trigger(EVENTS.inspect_card_start, { type: EVENTS.inspect_card_start, card: sdkCard });

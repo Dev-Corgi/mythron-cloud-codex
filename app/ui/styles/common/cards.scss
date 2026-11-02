@@ -944,29 +944,119 @@
 		width: 3rem;
 		height: 1.3rem;
 	}
-	.phobies-card-skill-art {
-		position: absolute;
-		z-index: 2;
-		width: 4rem;
-		height: 4rem;
-		transform: translate(-50%, -50%);
-		background-repeat: no-repeat;
-		image-rendering: pixelated;
-	}
-	.phobies-card-skill-cooldown-icon {
-		width: 1.15rem;
-		height: 1.15rem;
-	}
 	.phobies-card-stat-value {
 		color: #fff;
 		font-size: 1.15rem;
 		line-height: 1.2rem;
 	}
-	.phobies-card-skill-counters {
-		width: 2.3rem;
+	.inventory-count {
+		z-index: 6;
+		bottom: -0.1rem;
+		color: #b5dce3;
+	}
+	.is-unread-block {
+		z-index: 6;
+	}
+	.glow {
+		z-index: 5;
+	}
+}
+
+.card.collection-card.phobies-unit {
+	.phobies-card-effect {
+		width: 82%;
+		max-height: 5.2rem;
+		overflow: hidden;
 		color: #9bced8;
-		font-size: 0.62rem;
-		line-height: 0.8rem;
+		font-size: 0.9rem;
+		line-height: 1.05rem;
+		white-space: normal;
+		&.is-long {
+			font-size: 0.76rem;
+			line-height: 0.9rem;
+		}
+	}
+}
+
+.card.collection-card.phobies-ability {
+	.bg,
+	.card-caption,
+	.card-description,
+	.prismatic-gradient {
+		display: none;
+	}
+	.card-sprite {
+		position: absolute;
+		z-index: 1;
+		width: 16.8rem;
+		height: 16.8rem;
+		left: 60.2%;
+		top: 36.5%;
+		margin: 0;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-collection-face {
+		position: absolute;
+		left: 50%;
+		top: 0;
+		width: 22.6rem;
+		height: 29.6rem;
+		transform: translateX(-50%);
+		z-index: 3;
+		pointer-events: none;
+	}
+	.phobies-card-frame {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 0;
+	}
+	.phobies-card-name,
+	.phobies-card-level,
+	.phobies-card-stat-value,
+	.phobies-card-effect {
+		position: absolute;
+		z-index: 2;
+		transform: translate(-50%, -50%);
+		text-align: center;
+		text-shadow: 0 0 0.3rem #061323, 0 0 0.6rem #061323;
+		white-space: nowrap;
+	}
+	.phobies-card-name {
+		width: 54%;
+		color: #fff;
+		font-size: 1.25rem;
+		line-height: 1.35rem;
+		&.is-long {
+			font-size: 0.95rem;
+			line-height: 1.05rem;
+		}
+	}
+	.phobies-card-level {
+		color: #9bced8;
+		font-size: 0.9rem;
+		line-height: 1rem;
+	}
+	.card-header .mana-cost {
+		z-index: 6;
+	}
+	.phobies-card-stat-icon,
+	.phobies-card-rarity {
+		position: absolute;
+		z-index: 2;
+		width: 1.8rem;
+		height: 1.8rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-card-rarity {
+		width: 3rem;
+		height: 1.3rem;
+	}
+	.phobies-card-stat-value {
+		color: #fff;
+		font-size: 1.15rem;
+		line-height: 1.2rem;
 	}
 	.inventory-count {
 		z-index: 6;

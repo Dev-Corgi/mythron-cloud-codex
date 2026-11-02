@@ -39,6 +39,14 @@ var SelectedCardLayout = Backbone.Marionette.LayoutView.extend({
     var data = model.toJSON.apply(model, _.rest(arguments));
     var card = model.get('card');
     data.activeAbility = PhobiesCollectionCardVisual.getAbilityDetail(card);
+    if (data.activeAbility) {
+      data.activeAbility.frame = RSX.collection_card_ability_frame.img;
+      data.activeAbility.art = RSX.icon_f2_phoenixfire.img;
+      data.activeAbility.lockdownRing = RSX.collection_card_ability_lockdown_ring.img;
+      data.activeAbility.lockdownIcon = RSX.collection_card_ability_lockdown_icon.img;
+      data.activeAbility.cooldownRing = RSX.collection_card_ability_cooldown_ring.img;
+      data.activeAbility.cooldownIcon = RSX.collection_card_ability_cooldown_icon.img;
+    }
 
     // get lore for card id
     var baseCardId = this.model.get('baseCardId');

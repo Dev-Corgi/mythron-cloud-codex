@@ -4,6 +4,7 @@
 
 var RSX = require('app/data/resources');
 var SDK = require('app/sdk');
+var CONFIG = require('app/common/config');
 var UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
 var ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 
@@ -42,22 +43,6 @@ function addImage($container, className, assetPath, x, y) {
   centerAt($image, x, y);
   $container.append($image);
   return $image;
-}
-
-function addSkillArt($container, x, y) {
-  var frame = ABILITY_LAYOUT.art.frame;
-  var displayScale = 40 / frame[2];
-  var $art = $('<span>').addClass('phobies-card-skill-art').attr({
-    role: 'img',
-    'aria-label': 'Phoenix Fire',
-  }).css({
-    backgroundImage: `url("${RSX.icon_f2_phoenixfire.img}")`,
-    backgroundSize: `${128 * displayScale}px ${256 * displayScale}px`,
-    backgroundPosition: `${-frame[0] * displayScale}px ${-frame[1] * displayScale}px`,
-  });
-  centerAt($art, x, y);
-  $container.append($art);
-  return $art;
 }
 
 function getAbilityDetail(card) {
@@ -120,20 +105,11 @@ function createFace($, cardModel) {
     var rarityIcon = RARITY_ICONS[cardModel.get('rarityDevName')];
     if (rarityIcon) addImage($face, 'rarity', rarityIcon, positions.rarity.center[0], positions.rarity.center[1]);
 
-    var abilityDetail = getAbilityDetail(card);
-    if (abilityDetail) {
-      addSkillArt($face, positions.skillIcon.center[0], positions.skillIcon.center[1]);
-      var cooldownIcon = addImage(
-        $face,
-        'skill-cooldown-icon',
-        RSX.collection_card_cooldown_hourglass.img,
-        positions.cooldown.center[0] - 13,
-        positions.cooldown.center[1],
-      );
-      cooldownIcon.attr('aria-hidden', 'true');
-      var $skillCounters = addLabel($face, 'skill-counters', `L${abilityDetail.lockdown}/C${abilityDetail.cooldown}`, positions.cooldown.center[0] + 12, positions.cooldown.center[1]);
-      $skillCounters.attr('aria-label', `Lockdown ${abilityDetail.lockdown}, Cooldown ${abilityDetail.cooldown}`);
-    }
+    var $unitEffect = $('<div>').addClass('phobies-card-effect').html(card.getDescription(CONFIG.FORMATTING_ENGINE) || '');
+    $unitEffect.attr('aria-label', $unitEffect.text() || '');
+    if (($unitEffect.text() || '').length > 100) $unitEffect.addClass('is-long');
+    centerAt($unitEffect, positions.effect.center[0], positions.effect.center[1]);
+    $face.append($unitEffect);
 
     positions.stats.forEach(function (position, index) {
       // The stat ring is centered at position. Its left edge is one ring

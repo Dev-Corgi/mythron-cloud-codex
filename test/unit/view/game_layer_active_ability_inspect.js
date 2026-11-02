@@ -73,6 +73,7 @@ describe('GameLayer active ability inspect card', () => {
       getKeywordsShowing: () => false,
       getHasKeywords: () => false,
       setPhobiesUnitFaceEnabled() {},
+      setPhobiesAbilityFaceEnabled() {},
       setPosition() {},
     });
     const gameLayer = {

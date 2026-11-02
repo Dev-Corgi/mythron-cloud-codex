@@ -605,6 +605,104 @@ $selectedCardTextColorAlt: #b5b5b5;
 			}
 		}
 	}
+	.card-preview-stack {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 0 0 22.6rem;
+	}
+	.phobies-active-ability-preview {
+		position: relative;
+		width: 22.6rem;
+		height: 29.6rem;
+		flex: 0 0 29.6rem;
+		color: #fff;
+		text-shadow: 0 0 0.25rem #061323, 0 0 0.5rem #061323;
+		pointer-events: none;
+	}
+	.phobies-active-ability-frame {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+	.phobies-active-ability-art,
+	.phobies-active-ability-name,
+	.phobies-active-ability-level,
+	.phobies-active-ability-effect,
+	.phobies-active-ability-lockdown-value,
+	.phobies-active-ability-cooldown-value {
+		position: absolute;
+		z-index: 1;
+		transform: translate(-50%, -50%);
+		text-align: center;
+	}
+	.phobies-active-ability-art {
+		left: 50%;
+		top: 26.35%;
+		width: 9.6rem;
+		height: 9.6rem;
+		background-repeat: no-repeat;
+		background-size: 25.6rem 51.2rem;
+		background-position: -9.8rem -19.6rem;
+		image-rendering: pixelated;
+	}
+	.phobies-active-ability-name {
+		left: 50%;
+		top: 44.25%;
+		width: 90%;
+		font-size: 1.25rem;
+	}
+	.phobies-active-ability-level {
+		left: 50%;
+		top: 49.15%;
+		color: #9bced8;
+		font-size: 0.9rem;
+	}
+	.phobies-active-ability-lockdown-ring,
+	.phobies-active-ability-cooldown-ring {
+		position: absolute;
+		z-index: 1;
+		top: 60.8%;
+		width: 4.4rem;
+		height: 4.4rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-active-ability-lockdown-ring,
+	.phobies-active-ability-lockdown-icon,
+	.phobies-active-ability-lockdown-value { left: 23%; }
+	.phobies-active-ability-cooldown-ring,
+	.phobies-active-ability-cooldown-icon,
+	.phobies-active-ability-cooldown-value { left: 77%; }
+	.phobies-active-ability-lockdown-icon,
+	.phobies-active-ability-cooldown-icon {
+		position: absolute;
+		z-index: 2;
+		top: 60.8%;
+		width: 1.6rem;
+		height: 2.08rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-active-ability-lockdown-value,
+	.phobies-active-ability-cooldown-value {
+		top: 60.8%;
+		width: 3rem;
+		font-size: 1.8rem;
+	}
+	.phobies-active-ability-lockdown-value { color: #e8b9ff; }
+	.phobies-active-ability-cooldown-value { color: #7be6f5; }
+	.phobies-active-ability-effect {
+		left: 50%;
+		top: 82.77%;
+		width: 82%;
+		max-height: 5rem;
+		overflow: hidden;
+		color: #9bced8;
+		font-size: 1rem;
+		line-height: 1.25rem;
+	}
 
 	.shine {
 		width: 100%;
