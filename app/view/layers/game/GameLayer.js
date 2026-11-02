@@ -64,6 +64,7 @@ const Player2Layer = require('./Player2Layer');
 const Player1Layer = require('./Player1Layer');
 const BottomDeckLayer = require('./BottomDeckLayer');
 const TileLayer = require('./TileLayer');
+const InspectCardResolver = require('./InspectCardResolver');
 
 function getBoardPositionXY(position) {
   if (!position) return { x: null, y: null };
@@ -5303,10 +5304,14 @@ var GameLayer = FXCompositeLayer.extend({
         // show inspect
         // inspect triggers rebuild so it must be done before using content size
         this._inspectCardNode.showInspect(sdkCard, showBaseState, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
-        if (sdkCard.getReferencedCardData()) {
-          referencedCard = SDK.GameSession.getInstance().createCardForIdentifier(sdkCard.getReferencedCardData().id);
-          referencedCard.setOwner(sdkCard.getOwner());
-          this._referencedCardNode.showInspect(referencedCard, true, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
+        const gameSession = SDK.GameSession.getInstance();
+        const relatedCardId = InspectCardResolver.getRelatedInspectCardId(sdkCard, gameSession.getRulesetId(), gameSession.getRulesetVersion());
+        if (relatedCardId != null) {
+          const referencedCard = gameSession.createCardForIdentifier(relatedCardId);
+          if (referencedCard != null) {
+            referencedCard.setOwner(sdkCard.getOwner());
+            this._referencedCardNode.showInspect(referencedCard, true, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
+          }
         }
 
         const cardContentSize = this._inspectCardNode.getCardContentSize();
