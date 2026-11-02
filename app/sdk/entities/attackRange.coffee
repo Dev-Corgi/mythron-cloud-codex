@@ -82,7 +82,7 @@ class AttackRange extends Range
     return null
 
   getValidTargets: (board, entity, fromPositions) ->
-    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+    if @_isVersion2Ruleset(entity)
       targets = []
       seenPositions = {}
       for candidate in board.getEntities()
@@ -106,7 +106,7 @@ class AttackRange extends Range
     return attackAtlas.getValidTargets()
 
   getIsValidTarget: (board, entity, targetEntity) ->
-    if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+    if @_isVersion2Ruleset(entity)
       return !!targetEntity and targetEntity is @getTargetAtPosition(board, entity, targetEntity.getPosition()) and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
       return !!targetEntity and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
@@ -141,7 +141,11 @@ class AttackRange extends Range
 
   _isV2RangedAttack: (entity) ->
     session = entity?.getGameSession?()
-    return !!(session? and session.getRulesetId() is 'practice-sandbox-hex' and session.getRulesetVersion() is 2 and entity.isRanged?() and entity.isRanged())
+    return !!(@_isVersion2Ruleset(entity) and entity.getAttackType?() is 'ranged')
+
+  _isVersion2Ruleset: (entity) ->
+    session = entity?.getGameSession?()
+    return !!(session? and session.getRulesetId() is 'practice-sandbox-hex' and session.getRulesetVersion() is 2)
 
   _isLegalV2RangedLine: (board, entity, fromPosition, targetPosition) ->
     return false unless HexTopology.isOnHexAxis(fromPosition, targetPosition)

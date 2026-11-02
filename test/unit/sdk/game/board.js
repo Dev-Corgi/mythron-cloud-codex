@@ -164,7 +164,8 @@ describe('board', () => {
     const board = session.getBoard();
     const attacker = board.getUnits().find((unit) => unit.getOwnerId() === session.getPlayer1Id());
     attacker.setPosition({ q: 4, r: 0 });
-    attacker.setReach(CONFIG.REACH_RANGED);
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
     const enemy = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
     enemy.setOwnerId(session.getPlayer2Id());
     enemy.setPosition({ q: 7, r: 0 });
@@ -172,6 +173,13 @@ describe('board', () => {
     enemy.setIsRemoved(false);
     board.addCard(enemy);
     expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(true);
+    const beyondReach = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    beyondReach.setOwnerId(session.getPlayer2Id());
+    beyondReach.setPosition({ q: 8, r: 0 });
+    beyondReach.setIsPlayed(true);
+    beyondReach.setIsRemoved(false);
+    board.addCard(beyondReach);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, beyondReach)).to.equal(false);
 
     const offAxis = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
     offAxis.setOwnerId(session.getPlayer2Id());
@@ -205,6 +213,230 @@ describe('board', () => {
     enemy.setPosition({ q: 6, r: 1 });
     attacker.getAttackRange().flushCachedState();
     expect(attacker.getAttackRange().getIsValidTarget(board, attacker, enemy)).to.equal(true);
+  });
+
+  it('lets v2 lobbed attacks target in-range tiles through units and Walls', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const attacker = session.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(3);
+    attacker.setAttackType('lobbed');
+    const adjacent = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    adjacent.setOwnerId(session.getPlayer2Id());
+    adjacent.setPosition({ q: 5, r: 0 });
+    adjacent.setIsPlayed(true);
+    adjacent.setIsRemoved(false);
+    board.addCard(adjacent);
+    const blocked = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    blocked.setOwnerId(session.getPlayer2Id());
+    blocked.setPosition({ q: 7, r: 0 });
+    blocked.setIsPlayed(true);
+    blocked.setIsRemoved(false);
+    board.addCard(blocked);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, 6, 0);
+
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, adjacent)).to.equal(true);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, blocked)).to.equal(true);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, wall)).to.equal(true);
+    wall.setIsRemoved(true);
+    const blocker = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    blocker.setOwnerId(session.getPlayer1Id());
+    blocker.setPosition({ q: 6, r: 0 });
+    blocker.setIsPlayed(true);
+    blocker.setIsRemoved(false);
+    board.addCard(blocker);
+    attacker.getAttackRange().flushCachedState();
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, blocked)).to.equal(true);
+  });
+
+  it('resolves v2 stat-driven area attacks per victim with radius and Wall obstruction', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const attacker = session.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+    const addUnit = (ownerId, position) => {
+      const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+      unit.setOwnerId(ownerId);
+      unit.setPosition(position);
+      unit.setIsPlayed(true);
+      unit.setIsRemoved(false);
+      board.addCard(unit);
+      return unit;
+    };
+    const initiator = addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const wallOccupant = addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
+    const blockedEnemy = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const distantEnemy = addUnit(session.getPlayer2Id(), { q: 8, r: 0 });
+    const offAxisEnemy = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    const ally = addUnit(session.getPlayer1Id(), { q: 5, r: 1 });
+    const neutralUnit = addUnit(null, { q: 4, r: 2 });
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition({ q: 6, r: 0 });
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    const hpBefore = [initiator.getHP(), wallOccupant.getHP(), blockedEnemy.getHP(), ally.getHP(), wall.getHP()];
+
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, initiator)).to.equal(true);
+    const action = attacker.actionAttack(initiator);
+    session.executeAction(action);
+
+    expect(initiator.getHP()).to.equal(Math.max(hpBefore[0] - 2, 0));
+    expect(wallOccupant.getHP()).to.equal(Math.max(hpBefore[1] - 2, 0));
+    expect(wall.getHP()).to.equal(hpBefore[4] - 2);
+    expect(blockedEnemy.getHP()).to.equal(hpBefore[2]);
+    expect(ally.getHP()).to.equal(hpBefore[3]);
+    expect(neutralUnit.getHP()).to.equal(neutralUnit.getMaxHP());
+    expect(distantEnemy.getHP()).to.equal(distantEnemy.getMaxHP());
+    expect(offAxisEnemy.getHP()).to.equal(Math.max(offAxisEnemy.getMaxHP() - 2, 0));
+    expect(attacker.getAttacksMade()).to.equal(1);
+  });
+
+  it('allows a neutral Wall to initiate a v2 area attack', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const attacker = session.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(2);
+    attacker.setAttackType('area');
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+    const enemy = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    enemy.setOwnerId(session.getPlayer2Id());
+    enemy.setPosition({ q: 5, r: 0 });
+    enemy.setIsPlayed(true);
+    enemy.setIsRemoved(false);
+    board.addCard(enemy);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition({ q: 6, r: 0 });
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    const enemyHp = enemy.getHP();
+    const wallHp = wall.getHP();
+
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, wall)).to.equal(true);
+    session.executeAction(attacker.actionAttack(wall));
+
+    expect(enemy.getHP()).to.equal(Math.max(enemyHp - 2, 0));
+    expect(wall.getHP()).to.equal(wallHp - 2);
+    expect(attacker.getAttacksMade()).to.equal(1);
+  });
+
+  it('does not let a boundary-only Wall contact block an area victim', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const topology = SDK.HexTopology;
+    const origin = { q: 2, r: 1 };
+    const targetPosition = { q: 6, r: 1 };
+    const boundaryWallPosition = { q: 4, r: 0 };
+    expect(topology.segmentEntersHexInterior(origin, targetPosition, boundaryWallPosition)).to.equal(false);
+    const attacker = session.getGeneralForPlayer1();
+    attacker.setPosition(origin);
+    attacker.setReach(4);
+    attacker.setAttackType('area');
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+    const target = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    target.setOwnerId(session.getPlayer2Id());
+    target.setPosition(targetPosition);
+    target.setIsPlayed(true);
+    target.setIsRemoved(false);
+    board.addCard(target);
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition(boundaryWallPosition);
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    const targetHp = target.getHP();
+
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, target)).to.equal(true);
+    session.executeAction(attacker.actionAttack(target));
+
+    expect(target.getHP()).to.equal(Math.max(targetHp - 2, 0));
+  });
+
+  it('preserves v1 single-target behavior for explicitly configured area stats', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 1);
+    const board = session.getBoard();
+    const attacker = session.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+    const addEnemy = (position) => {
+      const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+      unit.setOwnerId(session.getPlayer2Id());
+      unit.setPosition(position);
+      unit.setIsPlayed(true);
+      unit.setIsRemoved(false);
+      board.addCard(unit);
+      return unit;
+    };
+    const target = addEnemy({ q: 5, r: 0 });
+    const otherEnemy = addEnemy({ q: 6, r: 0 });
+    const targetHp = target.getHP();
+    const otherHp = otherEnemy.getHP();
+
+    session.executeAction(attacker.actionAttack(target));
+
+    expect(target.getHP()).to.equal(Math.max(targetHp - 2, 0));
+    expect(otherEnemy.getHP()).to.equal(otherHp);
+  });
+
+  it('preserves legacy Blast line collateral without treating it as stat-driven area', () => {
+    const session = SDK.GameSession.getInstance();
+    const board = session.getBoard();
+    for (const unit of board.getUnits()) unit.setIsRemoved(true);
+    const attacker = UtilsSDK.applyCardToBoard(
+      { id: SDK.Cards.Faction3.Pyromancer }, 4, 0, session.getPlayer1Id());
+    const addEnemy = (position) => {
+      const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+      unit.setOwnerId(session.getPlayer2Id());
+      unit.setPosition(position);
+      unit.setIsPlayed(true);
+      unit.setIsRemoved(false);
+      board.addCard(unit);
+      return unit;
+    };
+    attacker.setReach(3);
+    attacker.refreshExhaustion();
+    const primary = addEnemy({ x: 5, y: 0 });
+    const lineCollateral = addEnemy({ x: 6, y: 0 });
+    const offAxis = addEnemy({ x: 5, y: 1 });
+    const hpBefore = [primary.getHP(), lineCollateral.getHP(), offAxis.getHP()];
+
+    expect(attacker.getAttackType()).to.equal('area');
+    expect(attacker.hasOwnProperty('attackType')).to.equal(false);
+    session.executeAction(attacker.actionAttack(primary));
+
+    expect(primary.getHP()).to.equal(Math.max(hpBefore[0] - attacker.getATK(), 0));
+    expect(lineCollateral.getHP()).to.equal(Math.max(hpBefore[1] - attacker.getATK(), 0));
+    expect(offAxis.getHP()).to.equal(hpBefore[2]);
   });
 
   it('resolves Maw follow-up damage to an adjacent enemy Unit sharing a Wall', () => {
