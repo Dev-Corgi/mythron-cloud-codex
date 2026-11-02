@@ -9153,6 +9153,7 @@ const FX = {
     ModifierMyMinionOrGeneralDamagedWatch: {},
     ModifierOpeningGambit: {},
     ModifierOpponentSummonWatch: {},
+    ModifierPhasing: {},
     ModifierPortal: {},
     ModifierProvoke: {
       ModifierFX: [
