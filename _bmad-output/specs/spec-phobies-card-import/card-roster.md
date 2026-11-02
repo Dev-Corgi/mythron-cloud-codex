@@ -108,7 +108,7 @@ Effect text: **Lifegain** — Whenever this minion deals damage, restore Health 
 
 ## Active ability FX
 
-Using an active shows its ability card as a spell does: card back, then the reveal animation, then the effects below. Sound follows the sfx the original game plays with the same effects. "Default hit" means the standard hit effect a unit shows when attacked by that unit. Names refer to the existing Duelyst FX; reuse them and add no new assets. Divine Bond is replaced by War Surge and Circle of Life by Aperion's Claim, with those spells' own effects.
+When the opponent uses an active, its ability card is shown as an opponent's spell is: card back, then the reveal animation, then the effects below. When the player uses their own, there is no reveal and the effects play directly. Sound follows the sfx the original game plays with the same effects. "Default hit" means the standard hit effect a unit shows when attacked by that unit. Names refer to the existing Duelyst FX; reuse them and add no new assets. Divine Bond is replaced by War Surge and Circle of Life by Aperion's Claim, with those spells' own effects.
 
 | Skill icon | Used by | Caster side | Target side |
 |---|---|---|---|
