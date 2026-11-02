@@ -45,3 +45,54 @@
   description: >-
     In the existing card-plus-related-card inspect view, show the ability card where a spell such as Phoenix Fire
     appears for Lantern Fox (CAP-5). Read SPEC.md and active-ability-rules.md first.
+- id: "8"
+  title: Move the General's Bloodbound ability onto its entity
+  description: >-
+    Retire Player.signatureAbilityState and the parallel signature branches in PlaySignatureCardAction and
+    ValidatorPlayCard (AD-7). Give each General an activeAbility definition (effect = its Bloodbound Spell,
+    Lockdown 2, Cooldown 2, no mana) and a per-entity activeAbilityState that is initialized explicitly when
+    the General enters play, never in a getter. The ability keeps its dedicated Bloodbound slot, identified
+    separately from hand indices, and uses UseActiveAbilityAction. Saved version 2 matches that carry
+    player-level signature state must still load and replay, so add a migration or a reconstruction path.
+    Version 1 and legacy behavior are unchanged. Read SPEC.md, active-ability-rules.md, and
+    ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-7) first.
+- id: "9"
+  title: Pause ability counters while a unit is silenced
+  description: >-
+    In version 2, Lockdown and Cooldown do not decrease at the owner's turn end while the unit is silenced, and
+    resume from the same values when silence ends; this applies to units and Generals alike (AD-7, active-ability-rules.md).
+    Depends on Story 8 so the General uses the same counter path. Read SPEC.md, active-ability-rules.md, and
+    ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-7) first.
+- id: "10"
+  title: Route action-point checks through Entity accessors only
+  description: >-
+    Remove the action-point branches from ModifierFirstBlood, ModifierPseudoRush, ModifierBuilding,
+    ModifierTransformed, SetExhaustionAction, and the move and attack actions and validators, so that only Entity
+    accessors decide whether a unit can move or attack and any version check goes through the AD-1 helper (AD-6).
+    In version 2 a unit is exhausted exactly when it has zero action points, and refresh runs through the entity
+    refresh path at the owner's turn start. Behavior in version 1 and legacy must be identical, and the existing
+    tests must pass unchanged. Read SPEC.md and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-6) first.
+- id: "11"
+  title: Resolve ranged, lobbed, and area geometry in one shared resolver
+  description: >-
+    Wall obstruction and target selection are copied across attackRange, spell, and AttackAction._hasAreaDelivery.
+    Create one shared SDK resolver for ranged, lobbed, and area target selection, Wall obstruction, the
+    target-supporting-Wall exception, and occupant priority, and make attack ranges, spell area effects, area-attack
+    units, and AI targeting call it (AD-8). AttackAction must not compute geometry itself; define how
+    ModifierBlastAttack units coexist. No gameplay change is intended, so add characterization tests first.
+    Read SPEC.md, the map spec, map-layout.md, and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-8) first.
+- id: "12"
+  title: Make Phase a keyworded modifier in the style of Flying
+  description: >-
+    ModifierPhasing duplicates ModifierFlying and lacks the keyword fields (isKeyworded, modifierName,
+    keywordDefinition, fx resource, i18n). Rebuild it as a Flying-style keyworded modifier that differs only by
+    passing through enemy units (AD-6, CAP-1). Version 2 only. Read SPEC.md and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-6) first.
+- id: "13"
+  title: Clean up redundant stat accessors and duplicated card-data keys
+  description: >-
+    Remove alias getters (getMovementDistance, getAttackRangeValue, getAttackRangeStat) that only forward to
+    getSpeed or getReach, replace the fragile hasOwnProperty attackType checks with one stat accessor, define the
+    Entity card-data key list once for createCardData and getCardDataKeysForCopy, move the inline require in
+    Player.actionUseActiveAbility to the top by resolving the cardEligibility cycle, and drop the
+    attackRange._isVersion2Ruleset wrapper in favor of the AD-1 helper. Behavior must not change. Read SPEC.md and
+    ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md first.
