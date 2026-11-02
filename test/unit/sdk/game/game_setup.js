@@ -61,7 +61,7 @@ describe('game setup', () => {
     });
 
     it('selects Practice rules only from the server-side single-player entry', () => {
-      expect(Rulesets.getServerRulesetForGameType(SDK.GameType.SinglePlayer)).to.deep.equal({ id: 'practice-sandbox-hex', version: 1 });
+      expect(Rulesets.getServerRulesetForGameType(SDK.GameType.SinglePlayer)).to.deep.equal({ id: 'practice-sandbox-hex', version: 2 });
       expect(Rulesets.getServerRulesetForGameType(SDK.GameType.BossBattle)).to.deep.equal({ id: 'legacy', version: 1 });
       expect(Rulesets.getRuleset('practice-sandbox-hex', 2)).to.deep.equal({ id: 'practice-sandbox-hex', version: 2 });
     });
@@ -71,7 +71,7 @@ describe('game setup', () => {
       Rulesets.assignServerRulesetToSession(practiceSession, SDK.GameType.SinglePlayer);
       const practiceSnapshot = JSON.parse(practiceSession.serializeToJSON(practiceSession));
       expect(practiceSnapshot.rulesetId).to.equal('practice-sandbox-hex');
-      expect(practiceSnapshot.rulesetVersion).to.equal(1);
+      expect(practiceSnapshot.rulesetVersion).to.equal(2);
 
       const bossBattleSession = SDK.GameSession.create();
       Rulesets.assignServerRulesetToSession(bossBattleSession, SDK.GameType.BossBattle);
@@ -111,7 +111,7 @@ describe('game setup', () => {
         null,
       ).then(() => {
         expect(savedSnapshot.rulesetId).to.equal('practice-sandbox-hex');
-        expect(savedSnapshot.rulesetVersion).to.equal(1);
+        expect(savedSnapshot.rulesetVersion).to.equal(2);
       }).finally(() => {
         GameManager.generateGameId = originalGenerateGameId;
         GameManager.saveGameSession = originalSaveGameSession;
@@ -123,7 +123,7 @@ describe('game setup', () => {
       const session = SDK.GameSession.create();
       new SDK.Sandbox().setupSessionModes(session);
       expect(session.getRulesetId()).to.equal('practice-sandbox-hex');
-      expect(session.getRulesetVersion()).to.equal(1);
+      expect(session.getRulesetVersion()).to.equal(2);
 
       const developerSession = SDK.GameSession.create();
       new SDK.SandboxDeveloper().setupSessionModes(developerSession);

@@ -1,5 +1,6 @@
 const path = require('path');
 require('app-module-path').addPath(path.join(__dirname, '../../../'));
+require('coffeescript/register');
 const { expect } = require('chai');
 const PhobiesCollectionCardVisual = require('../../../app/ui/views2/collection/PhobiesCollectionCardVisual');
 

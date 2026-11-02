@@ -5,7 +5,10 @@ UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
 
-NEUTRAL_CARD_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206, 10019]
+# Practice bot deck: one general plus exactly these eight cards (CONFIG.MAX_NEW_RULES_DECK_SIZE).
+BOT_ROSTER_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206]
+# Deck-eligible neutrals: the bot roster plus Planar Scout, the active ability dev placeholder.
+NEUTRAL_CARD_IDS = BOT_ROSTER_IDS.concat([10019])
 GENERAL_SIGNATURE_IDS =
   1: 20174
   23: 20175
@@ -23,7 +26,7 @@ CardEligibility =
     return gameSession?.getRulesetId?() is PRACTICE_SANDBOX_HEX
 
   getPracticeBotRoster: () ->
-    return NEUTRAL_CARD_IDS.slice()
+    return BOT_ROSTER_IDS.slice()
 
   getPracticeGeneralIds: () ->
     return (parseInt(generalId, 10) for generalId of GENERAL_SIGNATURE_IDS)

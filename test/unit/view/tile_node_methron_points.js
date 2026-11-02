@@ -44,6 +44,7 @@ describe('Methron Point tile view', () => {
       }
       if (parent && parent.filename.endsWith(`${path.sep}TileNode.js`)) {
         if (request === './EntityNode') return EntityNode;
+        if (request === './UnitNode') return { prototype: {} };
         if (request === './EntitySprite' || request === '../BaseSprite') return {};
         if (request === '../../../audio/audio_engine') return {};
       }
