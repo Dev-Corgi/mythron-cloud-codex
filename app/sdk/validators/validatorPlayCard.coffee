@@ -1,7 +1,9 @@
 Validator = require("./validator")
 Player = require("app/sdk/player")
+CardType = require("app/sdk/cards/cardType")
 PlayCardFromHandAction = require("app/sdk/actions/playCardFromHandAction")
 PlaySignatureCardAction = require("app/sdk/actions/playSignatureCardAction")
+UseActiveAbilityAction = require("app/sdk/actions/useActiveAbilityAction")
 DamageAction = require("app/sdk/actions/damageAction")
 _ = require("underscore")
 i18next = require("i18next")
@@ -15,7 +17,25 @@ class ValidatorPlayCard extends Validator
     super(event)
     gameSession = @getGameSession()
     action = event.action
-    if action? and action.getIsValid() and !action.getIsImplicit() and (action instanceof PlayCardFromHandAction or action instanceof PlaySignatureCardAction)
+    if action? and action.getIsValid() and !action.getIsImplicit() and action instanceof PlaySignatureCardAction and gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+      general = gameSession.getGeneralForPlayerId(action.getOwnerId())
+      state = action.getOwner()?.getSignatureAbilityState?()
+      card = action.getCard()
+      targetPosition = action.getTargetPosition()
+      if !general? or action.getOwnerId() isnt general.getOwnerId() or !state? or !general.getIsActive() or general.getIsSilenced() or general.getActionPoints() < 1 or state.lockdown > 0 or state.cooldown > 0
+        @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
+      else if !card? or !CardType.getIsSpellCardType(card.getType()) or !card.getIsPositionValidTarget(targetPosition)
+        @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))
+    else if action? and action.getIsValid() and !action.getIsImplicit() and action instanceof UseActiveAbilityAction
+      sourceUnit = gameSession.getCardByIndex(action.sourceUnitIndex)
+      state = sourceUnit?.getActiveAbilityState?()
+      card = action.getCard()
+      targetPosition = action.getTargetPosition()
+      if !sourceUnit? or !state? or action.getOwnerId() isnt sourceUnit.getOwnerId() or !sourceUnit.getIsActive() or sourceUnit.getIsSilenced() or state.lockdown > 0 or state.cooldown > 0 or sourceUnit.getActionPoints() < 1
+        @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
+      else if !card? or !CardType.getIsSpellCardType(card.getType()) or !card.getIsPositionValidTarget(targetPosition)
+        @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))
+    else if action? and action.getIsValid() and !action.getIsImplicit() and (action instanceof PlayCardFromHandAction or action instanceof PlaySignatureCardAction)
       card = action.getCard()
       targetPosition = action.getTargetPosition()
       owner = action.getOwner()

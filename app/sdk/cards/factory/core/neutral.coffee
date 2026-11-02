@@ -172,6 +172,8 @@ class CardFactory_CoreSet_Neutral
 
     if (identifier == Cards.Neutral.PlanarScout)
       card = new Unit(gameSession)
+      if gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+        card.activeAbility = {effectCardId: Cards.Spell.PhoenixFire, lockdown: 1, cooldown: 1}
       card.factionId = Factions.Neutral
       card.name = i18next.t("cards.neutral_planar_scout_name")
       card.setDescription(i18next.t("cards.neutral_planar_scout_desc"))

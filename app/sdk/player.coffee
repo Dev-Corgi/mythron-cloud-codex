@@ -38,6 +38,7 @@ class Player extends SDKObject
   reserveMana: 0
   signatureCardIndices: null
   signatureCardActive: false # signature card can only be cast when it is active
+  signatureAbilityState: null # Practice/Sandbox v2 Bloodbound active ability counters
   startingMana: null
   totalDamageDealt: 0
   totalDamageDealtToGeneral: 0
@@ -324,7 +325,23 @@ class Player extends SDKObject
    ###
   getSignatureCardData: () ->
     general = @getGameSession().getGeneralForPlayerId(@getPlayerId())
-    return general?.getSignatureCardData()
+    sourceData = general?.getSignatureCardData()
+    data = if sourceData? then _.extend({}, sourceData) else sourceData
+    session = @getGameSession()
+    if data? and session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+      data.activeAbility = _.extend({}, data.activeAbility or {effectCardId: data.id, lockdown: 2, cooldown: 2})
+      data.manaCost = 0
+    return data
+
+  # Resolve the living unit whose active ability occupies a fixed hand slot.
+  getActiveAbilityForHandSlot: (slotIndex) ->
+    session = @getGameSession()
+    return null unless session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+    for entity in session.getBoard().getEntities(allowUntargetable=true)
+      state = entity.getActiveAbilityState?()
+      if entity.getOwnerId() is @getPlayerId() and state? and state.handSlotIndex is slotIndex
+        return {unit: entity, definition: entity.activeAbility, state: state, silenced: entity.getIsSilenced()}
+    return null
 
   ###*
    * Get reference card for signature from the player's General.
@@ -339,7 +356,17 @@ class Player extends SDKObject
     return @_private.cachedReferenceSignatureCard
 
   getIsSignatureCardActive: () ->
+    if @getGameSession()?.getRulesetId?() is "practice-sandbox-hex" and @getGameSession().getRulesetVersion() is 2
+      state = @getSignatureAbilityState()
+      return state.lockdown is 0 and state.cooldown is 0
     return @signatureCardActive or @getIsSignatureCardAlwaysReady()
+
+  getSignatureAbilityState: () ->
+    session = @getGameSession()
+    return null unless session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+    unless @signatureAbilityState?
+      @signatureAbilityState = {lockdown: 2, cooldown: 0, baseLockdown: 2, baseCooldown: 2}
+    return @signatureAbilityState
 
   setIsSignatureCardActive: (isActive) ->
     @signatureCardActive = isActive
@@ -444,6 +471,10 @@ class Player extends SDKObject
       else
         playCardAction = new PlaySignatureCardAction(@getGameSession(), @getPlayerId(), tileX, tileY, signatureCard.getIndex())
       return playCardAction
+
+  actionUseActiveAbility: (unitIndex, targetPosition) ->
+    return null unless @getGameSession().getRulesetId() is "practice-sandbox-hex" and @getGameSession().getRulesetVersion() is 2
+    return new (require 'app/sdk/actions/useActiveAbilityAction')(@getGameSession(), @getPlayerId(), unitIndex, targetPosition)
 
   actionPlayFollowup: (followupCard, tileX, tileY) ->
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'

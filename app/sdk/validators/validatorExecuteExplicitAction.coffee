@@ -6,6 +6,7 @@ MoveAction = require("app/sdk/actions/moveAction")
 AttackAction = require("app/sdk/actions/attackAction")
 PlayCardFromHandAction = require("app/sdk/actions/playCardFromHandAction")
 PlaySignatureCardAction = require("app/sdk/actions/playSignatureCardAction")
+UseActiveAbilityAction = require("app/sdk/actions/useActiveAbilityAction")
 ApplyCardToBoardAction = require("app/sdk/actions/applyCardToBoardAction")
 ReplaceCardFromHandAction = require("app/sdk/actions/replaceCardFromHandAction")
 ResignAction = require("app/sdk/actions/resignAction")
@@ -52,7 +53,7 @@ class ValidatorExecuteExplicitAction extends Validator
           else if owner.getRemainingMana() < action.getManaCost()
             # player doesn't have enough mana to execute this explicit action
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.not_enough_mana_message"))
-          else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
+        else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == UseActiveAbilityAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
             # player is attempting to execute an explicit action that is not one of the allowed types
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.cannot_do_that_message"))
         else

@@ -47,6 +47,7 @@ class Entity extends Card
   attacksMade: 0 # number of attacks this entity has made this turn
   actionPoints: 0 # remaining explicit actions in Practice/Sandbox ruleset v2
   actionPointsSpentThisTurn: false # distinguishes a fresh summon at 0 AP from a unit that spent both points
+  activeAbilityState: null # per-instance Lockdown/Cooldown and fixed source hand slot
   damage: 0 # current damage
   exhausted: true # whether an entity is exhausted regardless of how many moves/attacks it has made
   isGeneral: false # whether entity is a general
@@ -92,7 +93,7 @@ class Entity extends Card
 
     cardData.damage = @damage
     # Preserve explicit unit stats when cards are cloned or reconstructed.
-    for key in ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn"]
+    for key in ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"]
       if @[key]?
         cardData[key] = @[key]
 
@@ -100,8 +101,27 @@ class Entity extends Card
 
   getCardDataKeysForCopy: () ->
     keys = super()
-    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn"])
+    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"])
     return keys
+
+  initializeActiveAbility: (handSlotIndex) ->
+    definition = @activeAbility
+    session = @getGameSession()
+    return unless definition? and session? and session.getRulesetId() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+    lockdown = Math.max(0, Math.floor(definition.lockdown or 0))
+    cooldown = Math.max(1, Math.floor(definition.cooldown or 1))
+    @activeAbilityState = { lockdown: lockdown, cooldown: 0, baseLockdown: lockdown, baseCooldown: cooldown, handSlotIndex: handSlotIndex }
+
+  getActiveAbilityState: () ->
+    return @activeAbilityState
+
+  decrementActiveAbilityCounters: () ->
+    return unless @activeAbilityState?
+    @activeAbilityState.lockdown = Math.max(0, (@activeAbilityState.lockdown or 0) - 1)
+    @activeAbilityState.cooldown = Math.max(0, (@activeAbilityState.cooldown or 0) - 1)
+
+  clearActiveAbility: () ->
+    @activeAbilityState = null
 
   onRemoveFromBoard: (board, x, y, sourceAction) ->
     super(board, x, y, sourceAction)

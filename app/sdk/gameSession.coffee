@@ -880,6 +880,9 @@ class _GameSession extends SDKObject
     throw new Error("Unsupported ruleset #{rulesetId} version #{rulesetVersion}") unless ruleset?
     @rulesetId = ruleset.id
     @rulesetVersion = ruleset.version
+    if @rulesetId is "practice-sandbox-hex" and @rulesetVersion is 2
+      for player in (@players or [])
+        player.getSignatureAbilityState?()
 
   getRulesetId: () ->
     return @rulesetId ? Rulesets.defaultRuleset.id
@@ -1335,6 +1338,16 @@ class _GameSession extends SDKObject
     if @isActive() and !@getCurrentTurn().getEnded()
       Logger.module("SDK").debug("[G:#{@.gameId}]", "GS.p_endTurn -> turn count: #{@getNumberOfTurns()}")
       currentPlayer = @getCurrentPlayer()
+
+      # Active ability counters advance only at the end of their owner's turn.
+      if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+        for entity in @board.getEntities(allowUntargetable=true)
+          if entity.getOwnerId() is currentPlayer.getPlayerId() and entity.decrementActiveAbilityCounters?
+            entity.decrementActiveAbilityCounters()
+        signatureState = currentPlayer.getSignatureAbilityState?()
+        if signatureState?
+          signatureState.lockdown = Math.max(0, signatureState.lockdown - 1)
+          signatureState.cooldown = Math.max(0, signatureState.cooldown - 1)
 
       if @getRulesetId() is "practice-sandbox-hex"
         transferredMana = Math.min(3, currentPlayer.getReserveMana())

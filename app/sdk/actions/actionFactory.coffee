@@ -11,6 +11,7 @@ PlayCardSilentlyAction = require './playCardSilentlyAction'
 PlayCardAsTransformAction = require './playCardAsTransformAction'
 PlayCardFromHandAction = require './playCardFromHandAction'
 PlaySignatureCardAction = require './playSignatureCardAction'
+UseActiveAbilityAction = require './useActiveAbilityAction'
 CloneEntityAction = require './cloneEntityAction'
 CloneEntityAsTransformAction = require './cloneEntityAsTransformAction'
 ReplaceCardFromHandAction = require './replaceCardFromHandAction'
@@ -92,6 +93,8 @@ class ActionFactory
       return new PlayCardFromHandAction(gameSession)
     if (actionType == PlaySignatureCardAction.type)
       return new PlaySignatureCardAction(gameSession)
+    if (actionType == UseActiveAbilityAction.type)
+      return new UseActiveAbilityAction(gameSession)
     if (actionType == PlayCardSilentlyAction.type)
       return new PlayCardSilentlyAction(gameSession)
     if (actionType == PlayCardAsTransformAction.type)

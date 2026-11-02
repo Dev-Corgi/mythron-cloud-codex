@@ -26,6 +26,9 @@ class Unit extends Entity
   onApplyToBoard: (board,x,y,sourceAction) ->
     super(board, x, y, sourceAction)
 
+    handSlotIndex = sourceAction.getIndexOfCardInHand() if sourceAction?.getIndexOfCardInHand?
+    @initializeActiveAbility(handSlotIndex)
+
     # spawn units as exhausted
     @applyExhaustion()
 
@@ -48,5 +51,9 @@ class Unit extends Entity
 
     # apply card specific modifiers
     super()
+
+  onRemoveFromBoard: (board, x, y, sourceAction) ->
+    super(board, x, y, sourceAction)
+    @clearActiveAbility()
 
 module.exports = Unit

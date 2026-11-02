@@ -1,10 +1,11 @@
 Rulesets = require './rulesetsLookup'
 CONFIG = require 'app/common/config'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
+UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
 
-NEUTRAL_CARD_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206]
+NEUTRAL_CARD_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206, 10019]
 GENERAL_SIGNATURE_IDS =
   1: 20174
   23: 20175
@@ -52,6 +53,9 @@ CardEligibility =
       return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
     if cardId is Cards.Tile.MethronPoint
       return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
+    if sourceAction instanceof UseActiveAbilityAction
+      sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
+      return sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and sourceUnit.activeAbility?.effectCardId is cardId
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId)
     return false unless @isGeneratedDependencyId(cardId)
 
