@@ -26,3 +26,6 @@
 - source_spec: spec-restore-resource-package-completeness.md
   summary: Normalize Windows separators in the resource generator's factory exclusion filter.
   evidence: The scanner returns native backslash paths but the factory/ exclusion accepts forward slash only; this over-includes SDK resources and does not cause the missing shared packages fixed here.
+- source_spec: `_bmad-output/specs/spec-unit-stats-active-abilities/stories/6-wire-unit-and-ability-card-ui-into-the-hand.md`
+  summary: Reuse existing hand overlay nodes across repeated usability refreshes.
+  evidence: Review found the bounded hand renderer recreates overlay sprites and labels on cache/usability refresh; this is correct but could be optimized if profiling shows hand-update churn.
