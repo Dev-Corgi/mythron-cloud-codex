@@ -1,6 +1,6 @@
 Modifier = require './modifier'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 CardType = require 'app/sdk/cards/cardType'
 Stringifiers = require 'app/sdk/helpers/stringifiers'
 
@@ -25,7 +25,7 @@ class ModifierSpellWatch extends Modifier
     action = e.action
 
     # watch for a spell (but not a followup) being cast by player who owns this entity
-    if (action instanceof PlayCardFromHandAction or action instanceof PlaySignatureCardAction) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
+    if (action instanceof PlayCardFromHandAction or SignaturePlay.matches(action)) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
       @onSpellWatch(action)
 
   onSpellWatch: (action) ->

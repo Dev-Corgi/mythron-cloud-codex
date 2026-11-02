@@ -2,7 +2,7 @@ ModifierFate = require './modifierFate'
 CardType = require 'app/sdk/cards/cardType'
 DieAction = require 'app/sdk/actions/dieAction'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 ModifierQuestStatusAbyssian = require './modifierQuestStatusAbyssian'
 _ = require 'underscore'
 
@@ -49,7 +49,7 @@ class ModifierFateAbyssianDyingQuest extends ModifierFate
     if action.getOwnerId() == @getOwnerId()
       target = action.getTarget()
       if target? and action instanceof DieAction and target.getType() is CardType.Unit and target.getOwnerId() == @getCard().getOwnerId()
-        if (action.getRootAction() instanceof PlayCardFromHandAction or action.getRootAction() instanceof PlaySignatureCardAction) and action.getRootAction().getCard()?.type is CardType.Spell
+        if (action.getRootAction() instanceof PlayCardFromHandAction or SignaturePlay.matches(action.getRootAction())) and action.getRootAction().getCard()?.type is CardType.Spell
           return true
     return false
 

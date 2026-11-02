@@ -1,6 +1,6 @@
 ModifierCannot = require './modifierCannot'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 CardType = require 'app/sdk/cards/cardType'
 
 class ModifierCannotCastSpellsByCost extends ModifierCannot
@@ -24,7 +24,7 @@ class ModifierCannotCastSpellsByCost extends ModifierCannot
     a = actionEvent.action
 
     # minion prevents players from casting spells at certain mana costs
-    if ((a instanceof PlayCardFromHandAction) or (a instanceof PlaySignatureCardAction)) and a.getIsValid() and !a.getIsImplicit() and a.getCard()?.getType() is CardType.Spell and a.getManaCost() <= @manaCostPrevented
+    if ((a instanceof PlayCardFromHandAction) or (SignaturePlay.matches(a))) and a.getIsValid() and !a.getIsImplicit() and a.getCard()?.getType() is CardType.Spell and a.getManaCost() <= @manaCostPrevented
       @invalidateAction(a, @getCard().getPosition(), "You can't cast that!")
 
 module.exports = ModifierCannotCastSpellsByCost

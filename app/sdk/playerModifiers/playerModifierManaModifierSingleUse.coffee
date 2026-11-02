@@ -1,7 +1,7 @@
 PlayerModifierManaModifier = require 'app/sdk/playerModifiers/playerModifierManaModifier'
 ModifierManaCostChange = require 'app/sdk/modifiers/modifierManaCostChange'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 
 class PlayerModifierManaModifierSingleUse extends PlayerModifierManaModifier
 
@@ -15,7 +15,7 @@ class PlayerModifierManaModifierSingleUse extends PlayerModifierManaModifier
 
       # when a card was played from hand
       action = event.action
-      if ((action instanceof PlayCardFromHandAction and @auraIncludeHand) or (action instanceof PlaySignatureCardAction and @auraIncludeSignatureCards)) and action.getOwnerId() == @getPlayerId()
+      if ((action instanceof PlayCardFromHandAction and @auraIncludeHand) or (SignaturePlay.matches(action) and @auraIncludeSignatureCards)) and action.getOwnerId() == @getPlayerId()
         if action.overrideCardData
           card = action._private.originalCard
         else

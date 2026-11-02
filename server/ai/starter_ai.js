@@ -275,7 +275,10 @@ StarterAI.prototype = {
           } else {
             // remember action to prevent roping
             this._lastInvalidAction = nextAction;
-            if (nextAction instanceof SDK.ApplyCardToBoardAction) {
+            if (nextAction instanceof SDK.UseActiveAbilityAction && nextAction.getIsGeneralAbility()) {
+              // version 2 Bloodbound: remember the signature card, as its action creates a separate effect card
+              UtilsJavascript.arrayCautiousAdd(this._invalidPlayedCards, this.getMyPlayer().getCurrentSignatureCard());
+            } else if (nextAction instanceof SDK.ApplyCardToBoardAction) {
               const card = nextAction.getCard();
               if (card != null) {
                 UtilsJavascript.arrayCautiousAdd(this._invalidPlayedCards, card);
@@ -702,6 +705,14 @@ StarterAI.prototype = {
     return true;
   },
 
+  // Version 2: Bloodbound is the General's active ability and also needs an action point.
+  _getCanUseGeneralAbility(player) {
+    const gameSession = this.getGameSession();
+    if (!gameSession.getIsPracticeSandboxV2()) return true;
+    const general = gameSession.getGeneralForPlayerId(player.getPlayerId());
+    return general != null && !general.getIsSilenced() && general.getCanUseActiveAbility();
+  },
+
   _getCanUseSignatureCard() {
     return this._difficulty >= 0.5;
   },
@@ -709,7 +720,7 @@ StarterAI.prototype = {
   _getCardsInHandAndSignatureSpell() {
     const myPlayer = this.getMyPlayer();
     const cards = myPlayer.getDeck().getCardsInHand().slice(0);
-    if (myPlayer.getIsSignatureCardActive()) {
+    if (myPlayer.getIsSignatureCardActive() && this._getCanUseGeneralAbility(myPlayer)) {
       cards.push(myPlayer.getCurrentSignatureCard());
     }
     return cards;

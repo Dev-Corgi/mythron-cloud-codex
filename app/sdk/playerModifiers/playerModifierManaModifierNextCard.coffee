@@ -1,7 +1,7 @@
 PlayerModifierManaModifier = require 'app/sdk/playerModifiers/playerModifierManaModifier'
 ModifierManaCostChange = require 'app/sdk/modifiers/modifierManaCostChange'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 
 class PlayerModifierManaModifierNextCard extends PlayerModifierManaModifier
 
@@ -16,7 +16,7 @@ class PlayerModifierManaModifierNextCard extends PlayerModifierManaModifier
 
     # when a card is played from hand AFTER this modifier is applied
     action = event.action
-    if (action.getIndex() > @getAppliedByActionIndex()) and ((action instanceof PlayCardFromHandAction and @auraIncludeHand) or (action instanceof PlaySignatureCardAction and @auraIncludeSignatureCards)) and action.getOwnerId() == @getPlayerId()
+    if (action.getIndex() > @getAppliedByActionIndex()) and ((action instanceof PlayCardFromHandAction and @auraIncludeHand) or (SignaturePlay.matches(action) and @auraIncludeSignatureCards)) and action.getOwnerId() == @getPlayerId()
       card = action.getCard()
       if card?
         if action instanceof PlayCardFromHandAction

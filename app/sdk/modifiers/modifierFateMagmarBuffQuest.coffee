@@ -2,7 +2,7 @@ ModifierFate = require './modifierFate'
 CardType = require 'app/sdk/cards/cardType'
 DieAction = require 'app/sdk/actions/dieAction'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 ApplyModifierAction = require 'app/sdk/actions/applyModifierAction'
 ModifierQuestStatusMagmar = require './modifierQuestStatusMagmar'
 _ = require 'underscore'
@@ -49,7 +49,7 @@ class ModifierFateMagmarBuffQuest extends ModifierFate
 
   getIsActionRelevant: (action) ->
     if action.getOwnerId() == @getOwnerId()
-      if (action.getRootAction() instanceof PlayCardFromHandAction or action.getRootAction() instanceof PlaySignatureCardAction) and action.getRootAction().getCard()?.type is CardType.Spell
+      if (action.getRootAction() instanceof PlayCardFromHandAction or SignaturePlay.matches(action.getRootAction())) and action.getRootAction().getCard()?.type is CardType.Spell
         if action instanceof ApplyModifierAction and action.getModifier().getBuffsAttribute("atk") and !action.getTarget().getIsGeneral?()
           modifier = action.getModifier()
           if modifier.getBuffsAttribute("atk") and modifier.attributeBuffs["atk"] > 0 and !modifier.getRebasesAttribute("atk") and !modifier.getBuffsAttributeAbsolutely("atk")

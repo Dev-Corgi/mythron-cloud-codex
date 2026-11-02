@@ -1,7 +1,7 @@
 Modifier = require './modifier'
 ModifierManaCostChange = require './modifierManaCostChange'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 CardType = require 'app/sdk/cards/cardType'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
 
@@ -39,7 +39,7 @@ class ModifierPantheran extends Modifier
 
   checkForScionsWishes: (action) ->
     # we're watching for a spell (but not a followup) being cast by this modifier's owner
-    if (action instanceof PlayCardFromHandAction or action instanceof PlaySignatureCardAction) and action.getOwnerId() is @getCard().getOwnerId()
+    if (action instanceof PlayCardFromHandAction or SignaturePlay.matches(action)) and action.getOwnerId() is @getCard().getOwnerId()
       card = action.getCard()
       if card?.type is CardType.Spell
         baseCardId = card.getBaseCardId()

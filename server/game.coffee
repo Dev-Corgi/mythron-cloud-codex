@@ -1353,7 +1353,7 @@ afterGameOver = (gameId, gameSession, mouseAndUIEvents) ->
               meaningfulActionCount += 2
             else
               meaningfulActionCount += 1
-          if a instanceof SDK.PlayCardFromHandAction or a instanceof SDK.PlaySignatureCardAction
+          if a instanceof SDK.PlayCardFromHandAction or SDK.SignaturePlay.matches(a)
             meaningfulActionCount += 1
           if a instanceof SDK.BonusManaAction
             meaningfulActionCount += 2

@@ -58,7 +58,7 @@ CardEligibility =
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
-      return sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and sourceUnit.activeAbility?.effectCardId is cardId
+      return sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId)
     return false unless @isGeneratedDependencyId(cardId)
 

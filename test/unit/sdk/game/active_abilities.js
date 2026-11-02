@@ -22,6 +22,14 @@ describe('active ability state', () => {
 
   afterEach(() => SDK.GameSession.reset());
 
+  // the Lyonar Bloodbound spell needs a friendly unit to target
+  const addAlly = () => {
+    const ally = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    ally.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(ally, 3, 0, null, null);
+    return ally;
+  };
+
   it('defines Planar Scout Phoenix Fire and initializes per-instance Lockdown/Cooldown', () => {
     const scout = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
     expect(scout.activeAbility).to.deep.equal({ effectCardId: SDK.Cards.Spell.PhoenixFire, lockdown: 1, cooldown: 1 });
@@ -42,19 +50,238 @@ describe('active ability state', () => {
     expect(copy.getActiveAbilityState()).to.deep.equal({ lockdown: 1, cooldown: 0, baseLockdown: 1, baseCooldown: 1 });
   });
 
-  it('does not let the generic ability action use the General as its source', () => {
+  it('lets UseActiveAbilityAction use the General, resolving the effect from its signature data', () => {
+    const player = gameSession.getPlayer1();
     const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    addAlly();
     general.getActiveAbilityState().lockdown = 0;
+    general.setActionPoints(2);
     general.getActiveAbilityState().cooldown = 0;
-    const before = JSON.stringify(general.getActiveAbilityState());
+    const previousSignature = player.getCurrentSignatureCard();
+    const target = previousSignature.getValidTargetPositions()[0];
+    const mana = player.getRemainingMana();
     const actionPoints = general.getActionPoints();
-    const action = gameSession.getPlayer1().actionUseActiveAbility(general.getIndex(), { q: 4, r: 0 });
+    const action = player.actionUseActiveAbility(general.getIndex(), target);
+    expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
     gameSession.executeAction(action);
-    expect(action.getIsValid()).to.equal(false);
-    expect(general.getActionPoints()).to.equal(actionPoints);
-    expect(JSON.stringify(general.getActiveAbilityState())).to.equal(before);
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(action.getCard().getId()).to.equal(previousSignature.getId());
+    expect(general.getActionPoints()).to.equal(actionPoints - 1);
+    expect(player.getRemainingMana()).to.equal(mana);
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 2 });
+    expect(player.signatureCardActive).to.equal(false);
+    const nextSignature = player.getCurrentSignatureCard();
+    expect(nextSignature).to.not.equal(undefined);
+    expect(nextSignature.getIndex()).to.not.equal(previousSignature.getIndex());
+    expect(nextSignature.getId()).to.equal(previousSignature.getId());
   });
 
+  it('rejects the General ability while Lockdown or Cooldown is above 0, silenced, out of points, or on a bad target', () => {
+    const ModifierSilence = require('../../../../app/sdk/modifiers/modifierSilence.coffee');
+    const player = gameSession.getPlayer1();
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    addAlly();
+    const state = general.getActiveAbilityState();
+    const target = player.getCurrentSignatureCard().getValidTargetPositions()[0];
+    const tryUse = (position) => {
+      const action = player.actionUseActiveAbility(general.getIndex(), position);
+      gameSession.executeAction(action);
+      return action;
+    };
+    state.lockdown = 1;
+    expect(tryUse(target).getIsValid()).to.equal(false);
+    state.lockdown = 0;
+    state.cooldown = 1;
+    expect(tryUse(target).getIsValid()).to.equal(false);
+    state.cooldown = 0;
+    expect(tryUse({ q: 99, r: 99 }).getIsValid()).to.equal(false);
+    gameSession.applyModifierContextObject(ModifierSilence.createContextObject(), general);
+    expect(tryUse(target).getIsValid()).to.equal(false);
+    gameSession.removeModifierFromCardByClass(ModifierSilence, general);
+    general.setActionPoints(0);
+    expect(tryUse(target).getIsValid()).to.equal(false);
+    expect(state).to.include({ lockdown: 0, cooldown: 0 });
+    general.setActionPoints(2);
+    const ok = tryUse(target);
+    expect(ok.getIsValid(), ok.getValidationMessage()).to.equal(true);
+  });
+
+  it('rejects PlaySignatureCardAction in version 2', () => {
+    const player = gameSession.getPlayer1();
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    addAlly();
+    general.getActiveAbilityState().lockdown = 0;
+    general.setActionPoints(2);
+    const signature = player.getCurrentSignatureCard();
+    const target = signature.getValidTargetPositions()[0];
+    const old = new SDK.PlaySignatureCardAction(gameSession, player.getPlayerId(), target, signature.getIndex());
+    gameSession.executeAction(old);
+    expect(old.getIsValid()).to.equal(false);
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 0 });
+    expect(general.getActionPoints()).to.equal(2);
+  });
+
+  it('returns a UseActiveAbilityAction from Player.actionPlaySignatureCard in version 2 only', () => {
+    const player = gameSession.getPlayer1();
+    const action = player.actionPlaySignatureCard({ q: 4, r: 1 });
+    expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
+    expect(action.sourceUnitIndex).to.equal(gameSession.getGeneralForPlayer1().getIndex());
+    gameSession.setRuleset('practice-sandbox-hex', 1);
+    expect(player.actionPlaySignatureCard({ q: 4, r: 1 })).to.be.instanceOf(SDK.PlaySignatureCardAction);
+  });
+
+  it('resolves the effect of a prismatic General from its prismatic signature spell', () => {
+    SDK.GameSession.reset();
+    const prismaticGeneral = SDK.Cards.getPrismaticCardId(SDK.Cards.Faction1.General);
+    UtilsSDK.setupSession([{ id: prismaticGeneral }], [{ id: SDK.Cards.Faction2.General }], true, true);
+    gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const player = gameSession.getPlayer1();
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    addAlly();
+    general.getActiveAbilityState().lockdown = 0;
+    general.setActionPoints(2);
+    const signatureId = player.getSignatureCardData().id;
+    expect(SDK.Cards.getIsPrismaticCardId(signatureId)).to.equal(true);
+    const target = player.getCurrentSignatureCard().getValidTargetPositions()[0];
+    const action = player.actionPlaySignatureCard(target);
+    gameSession.executeAction(action);
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(action.getCard().getId()).to.equal(signatureId);
+    expect(general.getActiveAbilityState().cooldown).to.equal(2);
+  });
+
+  it('uses the signature spell changed by PlayerModifierChangeSignatureCard', () => {
+    const PlayerModifierChangeSignatureCard = require('../../../../app/sdk/playerModifiers/playerModifierChangeSignatureCard.coffee');
+    const player = gameSession.getPlayer1();
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    addAlly();
+    general.getActiveAbilityState().lockdown = 0;
+    general.setActionPoints(2);
+    const originalId = player.getSignatureCardData().id;
+    expect(SDK.Cards.Spell.PhoenixFire).to.not.equal(originalId);
+    gameSession.applyModifierContextObject(PlayerModifierChangeSignatureCard.createContextObject({ id: SDK.Cards.Spell.PhoenixFire }), general);
+    expect(player.getSignatureCardData().id).to.equal(SDK.Cards.Spell.PhoenixFire);
+    // the changed spell is the effect (the signature card itself stays as generated)
+    const action = player.actionPlaySignatureCard({ q: 4, r: 4 });
+    gameSession.executeAction(action);
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(action.getCard().getId()).to.equal(SDK.Cards.Spell.PhoenixFire);
+    expect(general.getActiveAbilityState().cooldown).to.equal(2);
+  });
+
+  it('still fires spell watchers and the signature-play matcher on the General ability use', () => {
+    const ModifierSpellWatch = require('../../../../app/sdk/modifiers/modifierSpellWatch.coffee');
+    const SignaturePlay = require('../../../../app/sdk/actions/signaturePlay.coffee');
+    const player = gameSession.getPlayer1();
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    general.getActiveAbilityState().lockdown = 0;
+    general.setActionPoints(2);
+    const ally = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    ally.setOwnerId(player.getPlayerId());
+    gameSession.applyCardToBoard(ally, 3, 0, null, null);
+    gameSession.applyModifierContextObject(ModifierSpellWatch.createContextObject(), ally);
+    const original = ModifierSpellWatch.prototype.onSpellWatch;
+    const seen = [];
+    ModifierSpellWatch.prototype.onSpellWatch = function (action) { seen.push(action); };
+    try {
+      const target = player.getCurrentSignatureCard().getValidTargetPositions()[0];
+      const action = player.actionPlaySignatureCard(target);
+      gameSession.executeAction(action);
+      expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+      expect(seen).to.include(action);
+      expect(SignaturePlay.matches(action)).to.equal(true);
+    } finally {
+      ModifierSpellWatch.prototype.onSpellWatch = original;
+    }
+  });
+
+  describe('modifiers that react to a signature play', () => {
+    let player;
+    let general;
+
+    beforeEach(() => {
+      player = gameSession.getPlayer1();
+      general = gameSession.getGeneralForPlayer1();
+      general.setPosition({ q: 4, r: 0 });
+      gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+      general.getActiveAbilityState().lockdown = 0;
+      general.setActionPoints(2);
+    });
+
+    const addUnit = (ownerId, q, r) => {
+      const unit = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+      unit.setOwnerId(ownerId);
+      gameSession.applyCardToBoard(unit, q, r, null, null);
+      return unit;
+    };
+    const useAbility = () => {
+      const target = player.getCurrentSignatureCard().getValidTargetPositions()[0];
+      const action = player.actionPlaySignatureCard(target);
+      gameSession.executeAction(action);
+      return action;
+    };
+
+    it('triggers Synergize once on the General ability use', () => {
+      const ModifierSynergizeBuffSelf = require('../../../../app/sdk/modifiers/modifierSynergizeBuffSelf.coffee');
+      const Modifier = require('../../../../app/sdk/modifiers/modifier.coffee');
+      const ally = addUnit(player.getPlayerId(), 3, 0);
+      gameSession.applyModifierContextObject(
+        ModifierSynergizeBuffSelf.createContextObject([Modifier.createContextObjectWithAttributeBuffs(2, 0)]), ally);
+      const original = ModifierSynergizeBuffSelf.prototype.onSynergize;
+      const seen = [];
+      ModifierSynergizeBuffSelf.prototype.onSynergize = function (action) { seen.push(action); };
+      try {
+        const action = useAbility();
+        expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+        expect(seen).to.deep.equal([action]);
+      } finally {
+        ModifierSynergizeBuffSelf.prototype.onSynergize = original;
+      }
+    });
+
+    it('lets ModifierCannotCastBBS block the owner and ModifierEnemyCannotCastBBS block the opponent', () => {
+      const ModifierCannotCastBBS = require('../../../../app/sdk/modifiers/modifierCannotCastBBS.coffee');
+      const ModifierEnemyCannotCastBBS = require('../../../../app/sdk/modifiers/modifierEnemyCannotCastBBS.coffee');
+
+      const ownBlocker = addUnit(player.getPlayerId(), 3, 0);
+      gameSession.applyModifierContextObject(ModifierCannotCastBBS.createContextObject(), ownBlocker);
+      const blocked = useAbility();
+      expect(blocked.getIsValid()).to.equal(false);
+      expect(general.getActiveAbilityState().cooldown).to.equal(0);
+      gameSession.removeModifierFromCardByClass(ModifierCannotCastBBS, ownBlocker);
+
+      const enemyBlocker = addUnit(gameSession.getPlayer2Id(), 5, 4);
+      gameSession.applyModifierContextObject(ModifierEnemyCannotCastBBS.createContextObject(), enemyBlocker);
+      const blockedByEnemy = useAbility();
+      expect(blockedByEnemy.getIsValid()).to.equal(false);
+      gameSession.removeModifierFromCardByClass(ModifierEnemyCannotCastBBS, enemyBlocker);
+
+      const allowed = useAbility();
+      expect(allowed.getIsValid(), allowed.getValidationMessage()).to.equal(true);
+    });
+  });
+
+  it('does not treat a unit hand-slot ability as a signature play', () => {
+    const SignaturePlay = require('../../../../app/sdk/actions/signaturePlay.coffee');
+    const scout = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
+    scout.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(scout, 0, 1, scout.createNewCardData(), null);
+    const action = gameSession.getPlayer1().actionUseActiveAbility(scout.getIndex(), { q: 4, r: 1 });
+    expect(SignaturePlay.matches(action)).to.equal(false);
+  });
   it('freezes unit counters while silenced and resumes them from the same values', () => {
     const ModifierSilence = require('../../../../app/sdk/modifiers/modifierSilence.coffee');
     const scout = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
@@ -236,6 +463,7 @@ describe('active ability state', () => {
     const targetPosition = signature.getValidTargetPositions()[0];
     const manaBefore = player.getRemainingMana();
     const use = player.actionPlaySignatureCard(targetPosition);
+    expect(use).to.be.instanceOf(SDK.UseActiveAbilityAction);
     gameSession.executeAction(use);
 
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);

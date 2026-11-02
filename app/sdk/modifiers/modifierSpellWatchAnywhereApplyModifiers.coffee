@@ -1,6 +1,6 @@
 Modifier = require './modifier'
 PlayCardFromHandAction = require 'app/sdk/actions/playCardFromHandAction'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 CardType = require 'app/sdk/cards/cardType'
 
 class ModifierSpellWatchAnywhereApplyModifiers extends Modifier
@@ -30,7 +30,7 @@ class ModifierSpellWatchAnywhereApplyModifiers extends Modifier
       @onSpellWatch(action)
 
   getIsActionRelevant: (action) ->
-    return (action instanceof PlayCardFromHandAction or action instanceof PlaySignatureCardAction) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
+    return (action instanceof PlayCardFromHandAction or SignaturePlay.matches(action)) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
 
   onSpellWatch: (action) ->
     @applyManagedModifiersFromModifiersContextObjects(@modifiersContextObjects, @getCard())

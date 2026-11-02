@@ -1270,6 +1270,7 @@ var ai_getScoreForAction = function (card, target, actionType, gameSession) {
   case SDK.PlayCardAction.type:
   case SDK.PlayCardFromHandAction.type:
   case SDK.PlaySignatureCardAction.type:
+  case SDK.UseActiveAbilityAction.type: // version 2 General Bloodbound ability
     score = ai_getScoreForPlayCardAction(card, target, gameSession);
     break;
   }
@@ -1895,6 +1896,7 @@ var generatePseudoActionFromAction = function (action) {
   case SDK.PlayCardAction.type:
     return new PlayFollowupPseudoAction(action);
   case SDK.PlaySignatureCardAction.type:
+  case SDK.UseActiveAbilityAction.type: // version 2 General Bloodbound ability
     return new PlaySignatureCardPseudoAction(action);
   case SDK.DrawStartingHandAction.type:
     return new DrawStartingHandPseudoAction(action);
@@ -1918,6 +1920,7 @@ var generateActionFromPseudoAction = function (gameSession, pseudoAction) {
     var { targetPosition } = pseudoAction;
     return player.actionPlayCardFromHand(pseudoAction.handIndex, ...actionPositionArgs(targetPosition));
   case SDK.PlaySignatureCardAction.type:
+  case SDK.UseActiveAbilityAction.type: // version 2 General Bloodbound ability
     var player = gameSession.getPlayerById(pseudoAction.playerId);
     var { targetPosition } = pseudoAction;
     return player.actionPlaySignatureCard(...actionPositionArgs(targetPosition));
@@ -2015,7 +2018,7 @@ var _findPlayCardProtoActions = function (gameSession) {
         if (card.getIsFollowup()) {
           protoAction.actionType = SDK.PlayCardAction.type;
         } else if (cardIsSignatureSpell) {
-          protoAction.actionType = SDK.PlaySignatureCardAction.type;
+          protoAction.actionType = gameSession.getIsPracticeSandboxV2() ? SDK.UseActiveAbilityAction.type : SDK.PlaySignatureCardAction.type;
         } else {
           protoAction.actionType = SDK.PlayCardFromHandAction.type;
         }
@@ -2122,7 +2125,7 @@ var _buildActionsAndBranchFromProtoAction = function (gameSession, protoAction, 
       // reconstruct followup data in cloned gamesession
       const followupParentCardIndex = card.getParentCardIndex();
       gameSessionBranched = injectFollowupIntoGameSession(gameSessionBranched, followupParentCardIndex);
-    } else if (protoAction.actionType == SDK.PlaySignatureCardAction.type) {
+    } else if (protoAction.actionType == SDK.PlaySignatureCardAction.type || protoAction.actionType == SDK.UseActiveAbilityAction.type) {
       // do nothing
     } else {
       var cardInBranchedSession = gameSessionBranched.getCardByIndex(card.getIndex());
@@ -2149,6 +2152,7 @@ var _buildActionsAndBranchFromProtoAction = function (gameSession, protoAction, 
       actions.push(myPlayerBranched.actionPlayFollowup(cardInBranchedSession, ...actionPositionArgs(position)));
       break;
     case SDK.PlaySignatureCardAction.type:
+    case SDK.UseActiveAbilityAction.type: // version 2 General Bloodbound ability
       var myPlayerBranched = gameSessionBranched.getCurrentPlayer();
       // Logger.module("AI").debug("[G:" + gameSessionBranched.gameId + "] _buildActionsAndBranchFromProtoAction() => building actionPlayFollowup for followupcard " + cardInBranchedSession.getLogName() + " to " + position.x + ", " + position.y);
       actions.push(myPlayerBranched.actionPlaySignatureCard(...actionPositionArgs(position)));

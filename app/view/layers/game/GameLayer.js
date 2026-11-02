@@ -1045,7 +1045,7 @@ var GameLayer = FXCompositeLayer.extend({
       if (!playerActor.getHasCardsWithFollowup()) {
         if (action instanceof SDK.PlayCardFromHandAction || action instanceof SDK.ReplaceCardFromHandAction) {
           this.bottomDeckLayer.bindHand();
-        } else if (action instanceof SDK.PlaySignatureCardAction) {
+        } else if (SDK.SignaturePlay.matches(action)) {
           this.getMyPlayerLayer().bindAndResetSignatureCard();
         }
       }
@@ -1128,7 +1128,7 @@ var GameLayer = FXCompositeLayer.extend({
     } else if (myAction && (action instanceof SDK.PlayCardFromHandAction || action instanceof SDK.ReplaceCardFromHandAction)) {
       // remove card played or replaced from hand
       this.bottomDeckLayer.unbindCardNodeAtIndex(action.getIndexOfCardInHand());
-    } else if (action instanceof SDK.PlaySignatureCardAction) {
+    } else if (SDK.SignaturePlay.matches(action)) {
       // rebind signature card played
       this.getPlayerLayerByPlayerId(action.getOwnerId()).bindAndResetSignatureCard();
     }
@@ -1211,7 +1211,7 @@ var GameLayer = FXCompositeLayer.extend({
         // show my played card when step is done loading
         // but not if in spectate mode, as the played card will be instead shown in sequence
         if (!SDK.GameSession.getInstance().getIsSpectateMode()
-          && (action instanceof SDK.PlayCardFromHandAction || action instanceof SDK.PlaySignatureCardAction)
+          && (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action))
           && action.getCard().getHasFollowups()) {
           sdkStepInterface.loadPromise.then(() => {
             this.showPlayCard(action, CONFIG.MY_PLAYED_CARD_TRANSITION_DURATION, CONFIG.MY_PLAYED_CARD_SHOW_DURATION, true);
@@ -2206,7 +2206,7 @@ var GameLayer = FXCompositeLayer.extend({
           if (currentAction instanceof SDK.ApplyCardToBoardAction && !currentAction.getIsImplicit()) {
             const owner = this.getPlayerById(currentAction.getOwnerId());
             const playerActor = SDK.GameSession.getInstance().getIsSpectateMode() ? this._altPlayer : this._player;
-            if ((owner === this._player && !playerActor.getHasCardsWithFollowup()) || (owner === this._opponent && (currentAction instanceof SDK.PlayCardFromHandAction || currentAction instanceof SDK.PlaySignatureCardAction))) {
+            if ((owner === this._player && !playerActor.getHasCardsWithFollowup()) || (owner === this._opponent && (currentAction instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(currentAction)))) {
               const general = SDK.GameSession.getInstance().getGeneralForPlayerId(currentAction.getOwnerId());
               const generalNode = general && this.getNodeForSdkCard(general);
               if (generalNode != null) {
@@ -2939,7 +2939,7 @@ var GameLayer = FXCompositeLayer.extend({
     // ensure if first action is play card from hand that next action is root of new sequence
     const firstActionInterface = actionInterfaceSequence[0];
     const firstAction = firstActionInterface.getSdkAction();
-    if (firstAction instanceof SDK.PlayCardFromHandAction || firstAction instanceof SDK.PlaySignatureCardAction) {
+    if (firstAction instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(firstAction)) {
       const secondActionInterface = actionInterfaceSequence[1];
       if (secondActionInterface != null && !secondActionInterface.isSequenceRoot) {
         secondActionInterface.isSequenceRoot = true;
@@ -3221,7 +3221,7 @@ var GameLayer = FXCompositeLayer.extend({
 
       // show explicit play card and delay showing of action
       if (!action.getIsImplicit()
-        && (action instanceof SDK.PlayCardFromHandAction || action instanceof SDK.PlaySignatureCardAction)
+        && (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action))
         && (SDK.GameSession.getInstance().getIsSpectateMode() || !myAction)) {
         let animateDuration;
         let showDuration;
@@ -4041,7 +4041,7 @@ var GameLayer = FXCompositeLayer.extend({
 
   _showActionAutoFX(action) {
     let showDuration = 0.0;
-    if (action instanceof SDK.PlayCardFromHandAction || action instanceof SDK.PlaySignatureCardAction) {
+    if (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action)) {
       const card = action.getCard();
 
       // get applied effect positions
@@ -6484,7 +6484,7 @@ var GameLayer = FXCompositeLayer.extend({
               if (actionToExecute instanceof SDK.PlayCardFromHandAction || actionToExecute instanceof SDK.ReplaceCardFromHandAction) {
                 // client prediction: unbind ui for played/replaced card from hand
                 this.bottomDeckLayer.unbindCardNodeAtIndex(actionToExecute.getIndexOfCardInHand());
-              } else if (actionToExecute instanceof SDK.PlaySignatureCardAction) {
+              } else if (SDK.SignaturePlay.matches(actionToExecute)) {
                 // client prediction: rebind ui for played signature card
                 this.getMyPlayerLayer().bindAndResetSignatureCard();
               }

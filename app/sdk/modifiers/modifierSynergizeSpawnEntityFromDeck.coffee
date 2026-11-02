@@ -3,7 +3,7 @@ Modifier = require './modifier'
 UtilsGameSession = require 'app/common/utils/utils_game_session'
 PlayCardSilentlyAction = require 'app/sdk/actions/playCardSilentlyAction'
 CardType = require 'app/sdk/cards/cardType'
-PlaySignatureCardAction = require 'app/sdk/actions/playSignatureCardAction'
+SignaturePlay = require 'app/sdk/actions/signaturePlay'
 
 class ModifierSynergizeSpawnEntityFromDeck extends Modifier
 
@@ -30,7 +30,7 @@ class ModifierSynergizeSpawnEntityFromDeck extends Modifier
     action = e.action
 
     # watch for a spell being cast from Signature Card slot by player who owns this entity
-    if (action instanceof PlaySignatureCardAction) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
+    if (SignaturePlay.matches(action)) and action.getOwnerId() is @getCard().getOwnerId() and action.getCard()?.type is CardType.Spell
       @onSynergize(action)
 
   onSynergize: (action) ->

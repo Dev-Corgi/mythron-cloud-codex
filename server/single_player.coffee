@@ -1353,7 +1353,7 @@ afterGameOver = (gameId, gameSession, mouseAndUIEvents) ->
                 meaningfulActionCount += 2
               else
                 meaningfulActionCount += 1
-            if a instanceof SDK.PlayCardFromHandAction or a instanceof SDK.PlaySignatureCardAction
+            if a instanceof SDK.PlayCardFromHandAction or SDK.SignaturePlay.matches(a)
               meaningfulActionCount += 1
             if a instanceof SDK.BonusManaAction
               meaningfulActionCount += 2
@@ -1790,7 +1790,7 @@ ai_isValidActionForUI = (gameId, action) ->
   return (games[gameId].session.getIsFollowupActive() and !(action instanceof SDK.EndFollowupAction)) or
     action instanceof SDK.ReplaceCardFromHandAction or
     action instanceof SDK.PlayCardFromHandAction or
-    action instanceof SDK.PlaySignatureCardAction or
+    SDK.SignaturePlay.matches(action) or
     action instanceof SDK.MoveAction or
     action instanceof SDK.AttackAction
 
@@ -1847,7 +1847,7 @@ ai_showUIForAction = (gameId, action, actionDelayTime) ->
         handIndex = selectEventData.handIndex = action.getIndexOfCardInHand()
         selectPosition = { x: Math.round((handIndex + 0.5) * (CONFIG.BOARDCOL / maxHandSize)), y: -1 }
         targetPosition = action.getTargetPosition()
-      else if action instanceof SDK.PlaySignatureCardAction
+      else if SDK.SignaturePlay.matches(action)
         intent = selectEventData.intentType = SDK.IntentType.DeckIntent
         isSignatureCard = true
         if action.getCard().isOwnedByPlayer2()
@@ -2091,7 +2091,7 @@ ai_emoteForLastStep = (gameId) ->
             numTauntingActions += 1
           else if !isMyAction and searchAction.getTarget()?.getOwnerId() != aiPlayerId
             numAngryActions += 1
-        else if searchAction instanceof SDK.PlayCardFromHandAction or searchAction instanceof SDK.PlaySignatureCardAction
+        else if searchAction instanceof SDK.PlayCardFromHandAction or SDK.SignaturePlay.matches(searchAction)
           if isMyAction and searchAction.getCard() instanceof SDK.Unit
             numHappyActions += 1
 

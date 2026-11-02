@@ -42,6 +42,71 @@ describe('hex agent action positions', () => {
   });
 });
 
+describe('starter ai Bloodbound in practice version 2', () => {
+  let session;
+  let ai;
+  let general;
+  let player;
+
+  beforeEach(() => {
+    UtilsSDK.setupSession(
+      [{ id: SDK.Cards.Faction1.General }, { id: SDK.Cards.Neutral.GolemMetallurgist }],
+      [{ id: SDK.Cards.Faction2.General }], true, true);
+    session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    player = session.getPlayer1();
+    general = session.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    session.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    const ally = session.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    ally.setOwnerId(player.getPlayerId());
+    session.applyCardToBoard(ally, 3, 0, null, null);
+    general.getActiveAbilityState().lockdown = 0;
+    general.getActiveAbilityState().cooldown = 0;
+    general.setActionPoints(2);
+    ai = new StarterAI(session, player.getPlayerId(), 1.0);
+  });
+
+  afterEach(() => SDK.GameSession.reset());
+
+  it('offers the signature spell only while the General can use Bloodbound', () => {
+    expect(ai._getCardsInHandAndSignatureSpell()).to.include(player.getCurrentSignatureCard());
+    general.setActionPoints(0);
+    expect(ai._getCardsInHandAndSignatureSpell()).to.not.include(player.getCurrentSignatureCard());
+    general.setActionPoints(2);
+    general.getActiveAbilityState().cooldown = 1;
+    expect(ai._getCardsInHandAndSignatureSpell()).to.not.include(player.getCurrentSignatureCard());
+  });
+
+  it('uses Bloodbound through UseActiveAbilityAction and the action resolves', () => {
+    const signature = player.getCurrentSignatureCard();
+    ai._nextActions = [];
+    ai._findPlayCardActionsForCard(signature, signature.getValidTargetPositions()[0]);
+    expect(ai._nextActions.length).to.equal(1);
+    const action = ai._nextActions[0];
+    expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
+    expect(action.getIsGeneralAbility()).to.equal(true);
+    session.executeAction(action);
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(general.getActiveAbilityState().cooldown).to.equal(2);
+  });
+
+  it('marks the signature card as invalid for the turn when its Bloodbound action is rejected', () => {
+    general.getActiveAbilityState().cooldown = 1; // makes the action invalid at validation time
+    const signature = player.getCurrentSignatureCard();
+    ai._invalidPlayedCards = [];
+    ai._nextActions = [];
+    ai._findPlayCardActionsForCard(signature, signature.getValidTargetPositions()[0]);
+    ai._lastInvalidAction = null;
+    const queued = ai._nextActions[0];
+    expect(queued).to.be.instanceOf(SDK.UseActiveAbilityAction);
+    ai._findNextActions = () => {};
+    const next = ai.nextActionForActiveGame();
+    expect(next).to.not.equal(queued);
+    expect(ai._invalidPlayedCards).to.include(signature);
+  });
+});
+
 describe('starter ai', () => {
   describe('behavior', () => {
     beforeEach(() => {

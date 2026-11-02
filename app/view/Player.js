@@ -806,7 +806,7 @@ const Player = cc.Class.extend({
           SDK.NetworkManager.getInstance().broadcastGameEvent({
             type: EVENTS.network_game_select, timestamp: Date.now(), handIndex: playedByAction.getIndexOfCardInHand(), intentType: this.getIntentType(),
           });
-        } else if (playedByAction instanceof SDK.PlaySignatureCardAction) {
+        } else if (SDK.SignaturePlay.matches(playedByAction)) {
           const selectEventData = {
             type: EVENTS.network_game_select,
             timestamp: Date.now(),

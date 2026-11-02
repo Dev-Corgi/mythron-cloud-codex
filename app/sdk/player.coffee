@@ -459,6 +459,11 @@ class Player extends SDKObject
   actionPlaySignatureCard: (tileX,tileY) ->
     signatureCard = @getCurrentSignatureCard()
     if signatureCard?
+      if @getGameSession().getIsPracticeSandboxV2()
+        # version 2 uses the active ability action with the General as the source
+        general = @getGameSession().getGeneralForPlayerId(@getPlayerId())
+        return @actionUseActiveAbility(general.getIndex(), tileX) if general?
+        return
       if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'
         playCardAction = new PlaySignatureCardAction(@getGameSession(), @getPlayerId(), tileX, signatureCard.getIndex())
       else
