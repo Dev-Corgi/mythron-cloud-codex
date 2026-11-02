@@ -1,7 +1,6 @@
 UtilsPosition = require 'app/common/utils/utils_position'
 HexTopology = require 'app/sdk/rulesets/hexTopology'
-Cards = require 'app/sdk/cards/cardsLookupComplete'
-CardType = require 'app/sdk/cards/cardType'
+HexAttackGeometry = require 'app/sdk/rulesets/hexAttackGeometry'
 Range = require './range'
 _ = require 'underscore'
 
@@ -26,7 +25,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(fromPosition)
         for position in board.getHexPositionsInRange(fromPosition, entity.getReach())
           continue if board.positionsEqual(fromPosition, position)
-          continue if @_isV2RangedAttack(entity) and !@_isLegalV2RangedLine(board, entity, fromPosition, position)
+          continue if @_isVersion2Ruleset(entity) and !HexAttackGeometry.canDeliver(board, entity, fromPosition, position)
           continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, fromPosition, position)
           key = "#{position.q},#{position.r}"
           unless positionsByKey[key]
@@ -45,7 +44,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(origin)
         distance = board.getHexDistance(origin, position)
         continue if distance is 0 or distance > entity.getReach()
-        continue if @_isV2RangedAttack(entity) and !@_isLegalV2RangedLine(board, entity, origin, position)
+        continue if @_isVersion2Ruleset(entity) and !HexAttackGeometry.canDeliver(board, entity, origin, position)
         continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, origin, position)
         return position
       return null
@@ -121,15 +120,7 @@ class AttackRange extends Range
   # Direct attacks resolve one canonical entity per position. An enemy Unit has
   # priority; otherwise a neutral Wall can be attacked beneath an allied Unit.
   getTargetAtPosition: (board, entity, position) ->
-    return null unless board and position?
-    return null unless entity.getGameSession().getIsPracticeSandboxV2()
-    unit = board.getUnitAtPosition(position, true)
-    tile = board.getTileAtPosition(position)
-    if unit? and unit.getIsActive() and !entity.getIsSameTeamAs(unit)
-      return unit
-    if tile? and tile.getIsActive() and tile.getIsTargetable() and !entity.getIsSameTeamAs(tile)
-      return tile
-    return null
+    return HexAttackGeometry.getTargetAtPosition(board, entity, position)
 
   _hasHexLineOfSight: (board, entity, fromPosition, targetPosition) ->
     for cell in HexTopology.getLine(fromPosition, targetPosition)
@@ -139,24 +130,9 @@ class AttackRange extends Range
       return false if obstruction and !entity.getIsSameTeamAs(obstruction) and obstruction.getIsObstructing()
     return true
 
-  _isV2RangedAttack: (entity) ->
-    session = entity?.getGameSession?()
-    return !!(@_isVersion2Ruleset(entity) and entity.getAttackType?() is 'ranged')
-
   _isVersion2Ruleset: (entity) ->
     session = entity?.getGameSession?()
     return !!(session? and session.getIsPracticeSandboxV2())
-
-  _isLegalV2RangedLine: (board, entity, fromPosition, targetPosition) ->
-    return false unless HexTopology.isOnHexAxis(fromPosition, targetPosition)
-    for obstruction in board.getEntities()
-      continue unless obstruction.getIsActive?() and obstruction.getIsActive()
-      continue unless obstruction.getType?() is CardType.Tile and obstruction.getId?() is Cards.Tile.Wall
-      continue unless obstruction.getIsObstructing?() and obstruction.getIsObstructing()
-      wallPosition = obstruction.getPosition()
-      continue if board.positionsEqual(wallPosition, fromPosition) or board.positionsEqual(wallPosition, targetPosition)
-      return false if HexTopology.segmentEntersHexInterior(fromPosition, targetPosition, wallPosition)
-    return true
 
   getAttackAtlas: (board, entity, fromPositions) ->
     if !@_attackAtlasesByIndex? then @_attackAtlasesByIndex = {}

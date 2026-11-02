@@ -1,0 +1,282 @@
+const path = require('path');
+require('app-module-path').addPath(path.join(__dirname, '../../../../'));
+require('coffeescript/register');
+const { expect } = require('chai');
+const Logger = require('../../../../app/common/logger.coffee');
+const SDK = require('../../../../app/sdk.coffee');
+const UtilsSDK = require('../../../utils/utils_sdk');
+const Spell = require('../../../../app/sdk/spells/spell.coffee');
+
+Logger.enabled = false;
+
+describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
+  let session;
+  let board;
+  let attacker;
+
+  const addUnit = (ownerId, position) => {
+    const unit = session.createCardForIdentifier(SDK.Cards.Faction4.Wraithling);
+    unit.setOwnerId(ownerId);
+    unit.setPosition(position);
+    unit.setIsPlayed(true);
+    unit.setIsRemoved(false);
+    board.addCard(unit);
+    return unit;
+  };
+  const addWall = (position) => {
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition(position);
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    return wall;
+  };
+  const flush = () => attacker.getAttackRange().flushCachedState();
+  const valid = (target) => attacker.getAttackRange().getIsValidTarget(board, attacker, target);
+  const key = (entity) => `${entity.getPosition().q},${entity.getPosition().r}`;
+
+  beforeEach(() => {
+    SDK.GameSession.reset();
+    UtilsSDK.setupSession([{ id: SDK.Cards.Faction1.General }], [{ id: SDK.Cards.Faction4.General }], true, true);
+    session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    board = session.getBoard();
+    attacker = session.getGeneralForPlayer1();
+    attacker.setPosition({ q: 4, r: 0 });
+    attacker.atk = 2;
+    attacker.refreshExhaustion();
+    for (const unit of board.getUnits()) {
+      if (unit !== attacker) unit.setIsRemoved(true);
+    }
+  });
+
+  afterEach(() => {
+    SDK.GameSession.reset();
+  });
+
+  it('RANGED_BLOCKED: a Wall strictly between on an axis invalidates the target', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    expect(valid(enemy)).to.equal(true);
+    addWall({ q: 6, r: 0 });
+    flush();
+    expect(valid(enemy)).to.equal(false);
+    expect(attacker.getAttackRange().getValidTargets(board, attacker)).not.to.include(enemy);
+  });
+
+  it('RANGED_ENDPOINT_WALL: Walls on the origin or target cell do not block', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
+    addWall({ q: 6, r: 0 });
+    addWall({ q: 4, r: 0 });
+    flush();
+    expect(valid(enemy)).to.equal(true);
+  });
+
+  it('RANGED: off-axis in-range targets are invalid', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const offAxis = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    expect(valid(offAxis)).to.equal(false);
+  });
+
+  it('LOBBED: Walls and Units between do not block any in-reach target', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('lobbed');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const wall = addWall({ q: 6, r: 0 });
+    addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const offAxis = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    flush();
+    expect(valid(enemy)).to.equal(true);
+    expect(valid(wall)).to.equal(true);
+    expect(valid(offAxis)).to.equal(true);
+    const far = addUnit(session.getPlayer2Id(), { q: 8, r: 0 });
+    expect(valid(far)).to.equal(false);
+  });
+
+  it('LOBBED: an enemy Wall covered by an allied Unit stays targetable', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('lobbed');
+    const wall = addWall({ q: 6, r: 0 });
+    const ally = addUnit(session.getPlayer1Id(), { q: 6, r: 0 });
+    flush();
+    expect(valid(ally)).to.equal(false);
+    expect(valid(wall)).to.equal(true);
+    expect(attacker.getAttackRange().getTargetAtPosition(board, attacker, { q: 6, r: 0 })).to.equal(wall);
+  });
+
+  it('SHARED_CELL: an enemy Unit on a Wall has priority and the validator rejects the Wall', () => {
+    attacker.setReach(2);
+    attacker.setAttackType('lobbed');
+    const wall = addWall({ q: 6, r: 0 });
+    const enemy = addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
+    flush();
+    expect(attacker.getAttackRange().getTargetAtPosition(board, attacker, { q: 6, r: 0 })).to.equal(enemy);
+    expect(valid(enemy)).to.equal(true);
+    expect(valid(wall)).to.equal(false);
+    const targets = attacker.getAttackRange().getValidTargets(board, attacker);
+    expect(targets).to.include(enemy);
+    expect(targets).not.to.include(wall);
+    const wallAttack = attacker.actionAttack(wall);
+    session.validateAction(wallAttack, false);
+    expect(wallAttack.getIsValid()).to.equal(false);
+  });
+
+  it('getValidTargets and getIsValidTarget agree for ranged attackers', () => {
+    attacker.setReach(4);
+    attacker.setAttackType('ranged');
+    const enemies = [
+      addUnit(session.getPlayer2Id(), { q: 6, r: 0 }),
+      addUnit(session.getPlayer2Id(), { q: 4, r: 2 }),
+      addUnit(session.getPlayer2Id(), { q: 5, r: 2 }),
+    ];
+    const walls = [addWall({ q: 5, r: 0 }), addWall({ q: 4, r: 1 })];
+    flush();
+    const targets = attacker.getAttackRange().getValidTargets(board, attacker);
+    for (const candidate of [...enemies, ...walls]) {
+      expect(targets.includes(candidate), `candidate ${key(candidate)}`).to.equal(valid(candidate));
+    }
+    expect(targets).not.to.include(enemies[0]);
+  });
+
+  it('AREA_PER_VICTIM and BOUNDARY_CONTACT: only unblocked enemy Units and Walls take damage', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    const initiator = addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const blocked = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const ally = addUnit(session.getPlayer1Id(), { q: 5, r: 1 });
+    const offAxis = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    const blockerWall = addWall({ q: 6, r: 0 });
+    const boundaryWall = addWall({ q: 4, r: 2 });
+    const before = [blocked, ally, blockerWall, boundaryWall].map((e) => e.getHP());
+    flush();
+    session.executeAction(attacker.actionAttack(initiator));
+    expect(initiator.getHP()).to.be.below(initiator.getMaxHP());
+    expect(offAxis.getHP()).to.be.below(offAxis.getMaxHP());
+    expect(blocked.getHP()).to.equal(before[0]);
+    expect(ally.getHP()).to.equal(before[1]);
+    expect(blockerWall.getHP()).to.equal(before[2] - 2);
+    expect(boundaryWall.getHP()).to.equal(before[3] - 2);
+  });
+
+  it('AREA: a Wall beneath an enemy victim does not shield it, and allied cover is excluded', () => {
+    attacker.setReach(2);
+    attacker.setAttackType('area');
+    const wall = addWall({ q: 6, r: 0 });
+    const enemy = addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
+    const wall2 = addWall({ q: 4, r: 2 });
+    const ally = addUnit(session.getPlayer1Id(), { q: 4, r: 2 });
+    const wallHp = wall.getHP();
+    const wall2Hp = wall2.getHP();
+    const allyHp = ally.getHP();
+    flush();
+    session.executeAction(attacker.actionAttack(enemy));
+    expect(enemy.getHP()).to.be.below(enemy.getMaxHP());
+    expect(wall.getHP()).to.equal(wallHp - 2);
+    expect(wall2.getHP()).to.equal(wall2Hp - 2);
+    expect(ally.getHP()).to.equal(allyHp);
+  });
+
+  it('SPELL_AREA: a spell radius yields the same candidate set as the equivalent area attack', () => {
+    addWall({ q: 6, r: 0 });
+    addWall({ q: 5, r: 2 });
+    const center = { q: 4, r: 0 };
+    const spell = new Spell(session);
+    spell.radius = 3;
+    const spellKeys = spell._findApplyEffectPositions(center, null).map((p) => `${p.q},${p.r}`);
+
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    attacker.atk = 1;
+    const victims = [];
+    for (const p of board.getHexPositionsInRange(center, 3)) {
+      if (p.q === center.q && p.r === center.r) continue;
+      victims.push(addUnit(session.getPlayer2Id(), p));
+    }
+    flush();
+    const hpBefore = victims.map((v) => v.getHP());
+    const target = victims.find((v) => key(v) === '5,0');
+    session.executeAction(attacker.actionAttack(target));
+    const hitKeys = victims.filter((v, i) => v.getHP() < hpBefore[i]).map(key);
+    for (const victim of victims) {
+      expect(spellKeys.includes(key(victim)), `victim ${key(victim)}`).to.equal(hitKeys.includes(key(victim)));
+    }
+    expect(hitKeys.length).to.be.greaterThan(0);
+    expect(spellKeys).to.include('5,0');
+    expect(spellKeys).to.include('6,0');
+    expect(spellKeys).not.to.include('7,0');
+  });
+
+  it('AREA_RESOLUTION_ORDER: a Wall destroyed by the same area attack still shields victims behind it', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    const initiator = addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const frontWall = addWall({ q: 6, r: 0 });
+    const backWall = addWall({ q: 7, r: 0 });
+    frontWall.setDamage(frontWall.getMaxHP() - 2);
+    const backHp = backWall.getHP();
+    flush();
+    session.executeAction(attacker.actionAttack(initiator));
+    expect(frontWall.getHP()).to.be.at.most(0);
+    expect(backWall.getHP()).to.equal(backHp);
+  });
+
+  it('AREA_RESOLUTION_ORDER: an intact front Wall keeps shielding the Wall behind it', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    const initiator = addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const frontWall = addWall({ q: 6, r: 0 });
+    const backWall = addWall({ q: 7, r: 0 });
+    const backHp = backWall.getHP();
+    flush();
+    session.executeAction(attacker.actionAttack(initiator));
+    expect(frontWall.getHP()).to.be.below(frontWall.getMaxHP());
+    expect(backWall.getHP()).to.equal(backHp);
+  });
+
+  it('RANGED: Units between attacker and target never block a ranged shot', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    addUnit(session.getPlayer1Id(), { q: 5, r: 0 });
+    addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
+    const far = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    flush();
+    expect(valid(far)).to.equal(true);
+  });
+
+  it('RANGED: a Wall no longer on the board stops blocking', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const wall = addWall({ q: 6, r: 0 });
+    flush();
+    expect(valid(enemy)).to.equal(false);
+    wall.setIsRemoved(true);
+    flush();
+    expect(valid(enemy)).to.equal(true);
+  });
+
+  it('NON_V2: version 1 ranged attackers are not restricted to hex axes', () => {
+    session.setRuleset('practice-sandbox-hex', 1);
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const offAxis = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    flush();
+    expect(valid(offAxis)).to.equal(true);
+  });
+
+  it('NON_V2: version 1 keeps the single-target area stat behaviour', () => {
+    session.setRuleset('practice-sandbox-hex', 1);
+    attacker.setReach(3);
+    attacker.setAttackType('area');
+    const a = addUnit(session.getPlayer2Id(), { q: 5, r: 0 });
+    const b = addUnit(session.getPlayer2Id(), { q: 5, r: 1 });
+    const bHp = b.getHP();
+    flush();
+    session.executeAction(attacker.actionAttack(a));
+    expect(b.getHP()).to.equal(bHp);
+  });
+});
