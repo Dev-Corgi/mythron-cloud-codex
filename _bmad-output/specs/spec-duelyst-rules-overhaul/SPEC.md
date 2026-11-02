@@ -16,8 +16,8 @@ Replace Duelyst's square-board combat and escalating, expiring mana economy with
 ## Capabilities
 
 - **CAP-1**
-  - **intent:** Players can move and attack on a staggered 9-column, 5-row battlefield of 45 pointy-top hex tiles where movement, range, and adjacency use six neighboring directions.
-  - **success:** The battlefield contains 45 pointy-top hex tiles with vertically staggered columns; generals start at axial addresses `(-2,4)` and `(2,4)`, the leftmost and rightmost center cells; every legal move, range check, and adjacency result agrees with six-neighbor geometry, without square-grid-only paths or diagonals.
+  - **intent:** Players can move and attack on a staggered battlefield of five horizontal pointy-top rows of 9, 8, 9, 8, and 9 hex tiles (43 positions) where movement, range, and adjacency use six neighboring directions.
+  - **success:** The battlefield contains 43 pointy-top hex positions in five rows with odd rows shifted half a tile right; generals start at axial addresses `(-1,2)` and `(7,2)`, the leftmost and rightmost cells of the center row; every legal move, range check, and adjacency result agrees with six-neighbor geometry, without square-grid-only paths or diagonals.
 - **CAP-2**
   - **intent:** A player can summon units only onto available tiles adjacent to that player's general.
   - **success:** A summon beside the general is legal when the destination is otherwise valid; a tile adjacent only to another allied unit is illegal.
