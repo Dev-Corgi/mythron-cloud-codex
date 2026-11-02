@@ -141,6 +141,7 @@ gulp.task('source', gulp.series(
   'js',
 ));
 gulp.task('build', gulp.series(
+  validateFirebase,
   'clean:all',
   'source',
   'rsx:copy',
@@ -148,6 +149,7 @@ gulp.task('build', gulp.series(
   // 'autowatch',
 ));
 gulp.task('build:withallrsx', gulp.series(
+  validateFirebase,
   'clean:all',
   'source',
   'rsx:copy:all',
@@ -169,8 +171,9 @@ gulp.task('build:web', gulp.series(
 ));
 
 // register standalone page
-gulp.task('source:register', gulp.series(gulp.parallel('vendor', 'css', 'html:register'), 'localization:copy', 'rsx:packages', 'js:register'));
+gulp.task('source:register', gulp.series(validateFirebase, gulp.parallel('vendor', 'css', 'html:register'), 'localization:copy', 'rsx:packages', 'js:register'));
 gulp.task('build:register', gulp.series(
+  validateFirebase,
   'clean:all',
   'source:register',
   'rsx:copy',
@@ -183,12 +186,17 @@ gulp.task('default', gulp.series('build'));
 const ciTargets = ['staging', 'production'];
 
 function validateFirebase(cb) {
-  // Ensure FIREBASE_URL is set and valid when building the app.
+  // Ensure FIREBASE_URL is set and valid when building the app. The localhost
+  // placeholder is a syntactically valid Firebase URL but cannot authenticate.
   if (process.env.FIREBASE_URL === undefined) {
     return cb(new Error('FIREBASE_URL must be set'));
   }
   if (!process.env.FIREBASE_URL.endsWith('firebaseio.com/')) {
     return cb(new Error('FIREBASE_URL must end in firebaseio.com/'));
+  }
+  const firebaseHost = require('url').parse(process.env.FIREBASE_URL).hostname;
+  if (firebaseHost === 'localhost.firebaseio.com' || firebaseHost === 'localhost') {
+    return cb(new Error('FIREBASE_URL must point to a configured Firebase project, not localhost'));
   }
   return cb();
 }
@@ -204,6 +212,7 @@ function validateConfig(cb) {
 
 gulp.task('build:release', gulp.series(
   validateConfig,
+  validateFirebase,
   'clean:all',
   'source',
   'source:register',
@@ -220,6 +229,7 @@ gulp.task('cdn:upload:release', gulp.series(
 ));
 gulp.task('build:release:versioned', gulp.series(
   validateConfig,
+  validateFirebase,
   'clean:all',
   'source',
   'source:register',
