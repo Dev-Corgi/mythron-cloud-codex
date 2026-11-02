@@ -3,6 +3,7 @@
 'use strict';
 
 var RSX = require('app/data/resources');
+var SDK = require('app/sdk');
 var UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
 var ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 
@@ -43,6 +44,40 @@ function addImage($container, className, assetPath, x, y) {
   return $image;
 }
 
+function addSkillArt($container, x, y) {
+  var frame = ABILITY_LAYOUT.art.frame;
+  var displayScale = 40 / frame[2];
+  var $art = $('<span>').addClass('phobies-card-skill-art').attr({
+    role: 'img',
+    'aria-label': 'Phoenix Fire',
+  }).css({
+    backgroundImage: `url("${RSX.icon_f2_phoenixfire.img}")`,
+    backgroundSize: `${128 * displayScale}px ${256 * displayScale}px`,
+    backgroundPosition: `${-frame[0] * displayScale}px ${-frame[1] * displayScale}px`,
+  });
+  centerAt($art, x, y);
+  $container.append($art);
+  return $art;
+}
+
+function getAbilityDetail(card) {
+  var ability = card && card.activeAbility;
+  if (!ability || ability.effectCardId !== SDK.Cards.Spell.PhoenixFire) return null;
+  var effect;
+  try {
+    effect = SDK.CardFactory.cardForIdentifier(ability.effectCardId, card.getGameSession && card.getGameSession());
+  } catch (error) {
+    return null;
+  }
+  if (!effect) return null;
+  return {
+    name: effect.getName(),
+    description: effect.getDescription(),
+    lockdown: Math.max(0, Math.floor(ability.lockdown || 0)),
+    cooldown: Math.max(1, Math.floor(ability.cooldown || 1)),
+  };
+}
+
 function getCardFaceType(cardModel) {
   if (!cardModel || !cardModel.get('card')) return null;
   if (cardModel.get('isUnit')) return 'unit';
@@ -57,6 +92,10 @@ function getUnitStatData(card) {
     { label: 'Movement', value: card.getMovementDistance(), icon: MOVEMENT_ICONS[card.getMovementType()] || MOVEMENT_ICONS.walk },
     { label: 'Range', value: card.getAttackRangeValue(), icon: RSX.collection_card_range.img },
   ];
+}
+
+function getStatPositions(position) {
+  return { icon: [position[0] - 36, position[1]], value: [position[0], position[1]] };
 }
 
 function createFace($, cardModel) {
@@ -81,9 +120,27 @@ function createFace($, cardModel) {
     var rarityIcon = RARITY_ICONS[cardModel.get('rarityDevName')];
     if (rarityIcon) addImage($face, 'rarity', rarityIcon, positions.rarity.center[0], positions.rarity.center[1]);
 
+    var abilityDetail = getAbilityDetail(card);
+    if (abilityDetail) {
+      addSkillArt($face, positions.skillIcon.center[0], positions.skillIcon.center[1]);
+      var cooldownIcon = addImage(
+        $face,
+        'skill-cooldown-icon',
+        RSX.collection_card_cooldown_hourglass.img,
+        positions.cooldown.center[0] - 13,
+        positions.cooldown.center[1],
+      );
+      cooldownIcon.attr('aria-hidden', 'true');
+      var $skillCounters = addLabel($face, 'skill-counters', `L${abilityDetail.lockdown}/C${abilityDetail.cooldown}`, positions.cooldown.center[0] + 12, positions.cooldown.center[1]);
+      $skillCounters.attr('aria-label', `Lockdown ${abilityDetail.lockdown}, Cooldown ${abilityDetail.cooldown}`);
+    }
+
     positions.stats.forEach(function (position, index) {
-      addImage($face, 'stat-icon', statData[index].icon, position[0], position[1]);
-      addLabel($face, 'stat-value', statData[index].value, position[0], position[1] + 48)
+      // The stat ring is centered at position. Its left edge is one ring
+      // radius (36 design units) to the left; values stay centered in it.
+      var statPositions = getStatPositions(position);
+      addImage($face, 'stat-icon', statData[index].icon, statPositions.icon[0], statPositions.icon[1]);
+      addLabel($face, 'stat-value', statData[index].value, statPositions.value[0], statPositions.value[1])
         .attr('aria-label', `${statData[index].label}: ${statData[index].value}`);
     });
   } else {
@@ -105,9 +162,17 @@ function createFace($, cardModel) {
 
 function render($, cardModel, $cardElement) {
   var $face = createFace($, cardModel);
+  var $sprite = $cardElement.find('.card-sprite').first().detach();
   $cardElement.removeClass('phobies-unit phobies-ability');
   $cardElement.find('.phobies-collection-face').remove();
-  if (!$face) return null;
+  if (!$face) {
+    if ($sprite.length) $cardElement.append($sprite);
+    return null;
+  }
+
+  // Keep the original animated unit art as a live layer between the frame
+  // fill and the text/stat overlays.
+  if ($sprite.length) $face.append($sprite);
 
   var isUnit = cardModel.get('isUnit');
   $cardElement.addClass(isUnit ? 'phobies-unit' : 'phobies-ability');
@@ -118,6 +183,8 @@ function render($, cardModel, $cardElement) {
 module.exports = {
   createFace: createFace,
   getCardFaceType: getCardFaceType,
+  getAbilityDetail: getAbilityDetail,
+  getStatPositions: getStatPositions,
   getUnitStatData: getUnitStatData,
   render: render,
 };

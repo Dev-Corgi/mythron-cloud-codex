@@ -63,5 +63,8 @@
 	"general_desc": "Generals command your minions and cast your spells. Each general has a unique Bloodbound Spell that may be reused throughout a battle. Destroy the enemy general to win the game!",
 	"minion_desc": "Minions may be played to the battle field nearby any other friendly minion. Minions begin their first turn exhausted, but may move and attack at least once on each subsequent turn, and remain active until killed.",
 	"spell_desc": "Spells may be played to the battle field to activate the spell's text. Spells do not remain active after activation.",
-	"copies_label": "Copies: "
+	"copies_label": "Copies: ",
+	"active_ability_label": "主動技能",
+	"lockdown_label": "鎖定",
+	"cooldown_label": "冷卻"
 }

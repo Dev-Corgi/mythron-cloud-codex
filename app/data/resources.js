@@ -50,6 +50,7 @@ const RSX = {
   collection_card_attack_area: { name: 'collection_card_attack_area', img: 'resources/card_ui/phobies_unit/icons/attack_area.png' },
   collection_card_health: { name: 'collection_card_health', img: 'resources/card_ui/phobies_unit/icons/health@2x.png', noScale: true },
   collection_card_range: { name: 'collection_card_range', img: 'resources/card_ui/phobies_unit/icons/range@2x.png', noScale: true },
+  collection_card_cooldown_hourglass: { name: 'collection_card_cooldown_hourglass', img: 'resources/card_ui/phobies_unit/icons/hourglass@2x.png', noScale: true },
   collection_card_move_walk: { name: 'collection_card_move_walk', img: 'resources/card_ui/phobies_unit/icons/move_walk@2x.png', noScale: true },
   collection_card_move_fly: { name: 'collection_card_move_fly', img: 'resources/card_ui/phobies_unit/icons/move_fly@2x.png', noScale: true },
   collection_card_move_phase: { name: 'collection_card_move_phase', img: 'resources/card_ui/phobies_unit/icons/move_phase@2x.png', noScale: true },

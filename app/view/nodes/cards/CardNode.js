@@ -8,6 +8,7 @@ const EventBus = require('app/common/eventbus');
 const SDK = require('app/sdk');
 const RSX = require('app/data/resources');
 const PKGS = require('app/data/packages');
+const UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const RenderPass = require('app/view/fx/RenderPass');
@@ -93,6 +94,12 @@ var CardNode = SdkNode.extend({
   _snapshotSprite: null, // sprite used to display card snapshot
   _staticContainerNodeFront: null, // container for all the card's non-animated parts
   _unitShadow: null,
+  _phobiesUnitFaceEnabled: false,
+  _phobiesUnitFaceNodes: null,
+  _phobiesMovementValueLabel: null,
+  _phobiesRangeValueLabel: null,
+  _phobiesLevelLabel: null,
+  _phobiesStatIconSprites: null,
   _voronoiEffectSprite: null,
 
   // used for booster opening to prevent mouse over until reveal is done
@@ -391,7 +398,40 @@ var CardNode = SdkNode.extend({
   },
 
   getRequiredResources() {
-    return SdkNode.prototype.getRequiredResources.call(this).concat(PKGS.getPkgForIdentifier('card'));
+    const resources = SdkNode.prototype.getRequiredResources.call(this).concat(PKGS.getPkgForIdentifier('card'));
+    // CardNode caches required resources during construction, before the
+    // inspect caller can opt into this face. Keep its small layered assets in
+    // the cached request; only the explicit v2 inspect flag changes rendering.
+    return resources.concat([
+      RSX.collection_card_unit_frame,
+      RSX.collection_card_attack_melee,
+      RSX.collection_card_attack_ranged,
+      RSX.collection_card_attack_arc,
+      RSX.collection_card_attack_area,
+      RSX.collection_card_move_walk,
+      RSX.collection_card_move_fly,
+      RSX.collection_card_move_phase,
+      RSX.collection_card_health,
+      RSX.collection_card_range,
+      RSX.collection_card_cooldown_hourglass,
+      RSX.icon_f2_phoenixfire,
+      RSX.collection_card_rarity_common,
+      RSX.collection_card_rarity_rare,
+      RSX.collection_card_rarity_epic,
+      RSX.collection_card_rarity_legendary,
+      RSX.collection_card_rarity_mythron,
+    ]);
+  },
+
+  setPhobiesUnitFaceEnabled(enabled) {
+    const next = !!enabled;
+    if (next === this._phobiesUnitFaceEnabled) return;
+    this._phobiesUnitFaceEnabled = next;
+    if (this.sdkCard != null) {
+      const sdkCard = this.sdkCard;
+      this.setSdkCard(null);
+      this.setSdkCard(sdkCard);
+    }
   },
 
   _createRenderCmd() {
@@ -457,11 +497,155 @@ var CardNode = SdkNode.extend({
    * @param {Action} [actionToShowStateFor=null]
    * @param {String} [actionEventTypeToShowStateFor=null]
    */
+  _phobiesPosition(position) {
+    return cc.p(position[0] / 2 - 113, 148 - position[1] / 2);
+  },
+
+  _clearPhobiesUnitFace() {
+    (this._phobiesUnitFaceNodes || []).forEach((node) => node.removeFromParent(true));
+    this._phobiesUnitFaceNodes = null;
+    this._phobiesMovementValueLabel = null;
+    this._phobiesRangeValueLabel = null;
+    this._phobiesLevelLabel = null;
+    this._phobiesStatIconSprites = null;
+    if (this.cardSprite != null && this.cardSprite.getParent() === this._staticContainerNodeFront) {
+      this.cardSprite.removeFromParent(false);
+      this._containerNodeFront.addChild(this.cardSprite, 0);
+      this.cardSprite.setAnchorPoint(cc.p(0.5, 0));
+      this.cardSprite.setPosition(0, 8);
+    }
+    if (this.cardBackgroundSprite != null) this.cardBackgroundSprite.setVisible(true);
+    if (this.cardTypeLabel != null) this.cardTypeLabel.setVisible(true);
+    if (this.factionNameLabel != null) this.factionNameLabel.setVisible(false);
+    if (this.cardNameLabel != null) this.cardNameLabel.setPosition(0, 21);
+    if (this.cardTypeLabel != null) this.cardTypeLabel.setPosition(0, 4);
+    if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setPosition(0, -90);
+    if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setDimensions(cc.size(this.getCardBackgroundContentSize().width - 20, 0));
+    if (this.atkLabel != null) this.atkLabel.setPosition(-61, -32);
+    if (this.hpLabel != null) this.hpLabel.setPosition(59, -32);
+    if (this.atkLabel != null) this.atkLabel.setFontFillColor(CONFIG.ATK_COLOR);
+    if (this.hpLabel != null) this.hpLabel.setFontFillColor(CONFIG.HP_COLOR);
+    if (this._manaGemSprite != null) this._manaGemSprite.setPosition(-100, 128);
+    if (this.manaLabel != null) this.manaLabel.setPosition(-100, 131);
+  },
+
+  _setupPhobiesUnitFace(sdkCard) {
+    this._clearPhobiesUnitFace();
+    if (!this._phobiesUnitFaceEnabled || !(sdkCard instanceof SDK.Unit)) return;
+
+    const nodes = [];
+    const addSprite = (resource, position, scale) => {
+      const sprite = BaseSprite.create(resource.img);
+      sprite.setPosition(position);
+      if (scale != null) sprite.setScale(scale);
+      this._staticContainerNodeFront.addChild(sprite, 0);
+      nodes.push(sprite);
+      return sprite;
+    };
+    const addValue = (fontSize, color) => {
+      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(44, 28), cc.TEXT_ALIGNMENT_CENTER);
+      label.setFontFillColor(color || cc.color.WHITE);
+      label.setAnchorPoint(0.5, 0.5);
+      this._staticContainerNodeFront.addChild(label, 2);
+      nodes.push(label);
+      return label;
+    };
+
+    const frame = BaseSprite.create(RSX.collection_card_unit_frame.img);
+    frame.setPosition(0, 0);
+    frame.setScaleX(UNIT_LAYOUT.canvas.displayWidth / frame.getContentSize().width);
+    frame.setScaleY(UNIT_LAYOUT.canvas.displayHeight / frame.getContentSize().height);
+    this._staticContainerNodeFront.addChild(frame, 0);
+    nodes.push(frame);
+
+    const positions = UNIT_LAYOUT.positions;
+    this._phobiesLevelLabel = addValue(9, cc.color(155, 206, 216));
+    this._phobiesLevelLabel.setString(`LEVEL ${sdkCard.getLevel()}`, true);
+    this._phobiesLevelLabel.setPosition(this._phobiesPosition(positions.level));
+
+    const rarityResources = {
+      [SDK.Rarity.Common]: RSX.collection_card_rarity_common,
+      [SDK.Rarity.Rare]: RSX.collection_card_rarity_rare,
+      [SDK.Rarity.Epic]: RSX.collection_card_rarity_epic,
+      [SDK.Rarity.Legendary]: RSX.collection_card_rarity_legendary,
+      [SDK.Rarity.Mythron]: RSX.collection_card_rarity_mythron,
+    };
+    const rarity = rarityResources[sdkCard.rarityId];
+    if (rarity) addSprite(rarity, this._phobiesPosition(positions.rarity.center), 0.5);
+
+    const attackResources = {
+      melee: RSX.collection_card_attack_melee,
+      ranged: RSX.collection_card_attack_ranged,
+      lobbed: RSX.collection_card_attack_arc,
+      area: RSX.collection_card_attack_area,
+    };
+    const movementResources = {
+      walk: RSX.collection_card_move_walk,
+      fly: RSX.collection_card_move_fly,
+      phase: RSX.collection_card_move_phase,
+    };
+    const statResources = [
+      attackResources[sdkCard.getAttackType()] || attackResources.melee,
+      RSX.collection_card_health,
+      movementResources[sdkCard.getMovementType()] || movementResources.walk,
+      RSX.collection_card_range,
+    ];
+    this._phobiesStatIconSprites = [];
+    positions.stats.forEach((position, index) => {
+      const iconPosition = this._phobiesPosition([position[0] - 36, position[1]]);
+      this._phobiesStatIconSprites[index] = addSprite(statResources[index], iconPosition, 0.5);
+    });
+
+    this._phobiesMovementValueLabel = addValue(14);
+    this._phobiesRangeValueLabel = addValue(14);
+    this.atkLabel.setPosition(this._phobiesPosition(positions.stats[0]));
+    this.hpLabel.setPosition(this._phobiesPosition(positions.stats[1]));
+    this._phobiesMovementValueLabel.setPosition(this._phobiesPosition(positions.stats[2]));
+    this._phobiesRangeValueLabel.setPosition(this._phobiesPosition(positions.stats[3]));
+
+    const activeAbility = sdkCard.activeAbility;
+    if (activeAbility && activeAbility.effectCardId === SDK.Cards.Spell.PhoenixFire) {
+      const skillArt = addSprite(RSX.icon_f2_phoenixfire, this._phobiesPosition(positions.skillIcon.center), 5 / 6);
+      // Use the Phoenix Fire frame from the approved card layout's atlas coordinates.
+      skillArt.setTextureRect(cc.rect(49, 98, 48, 48));
+      addSprite(RSX.collection_card_cooldown_hourglass, this._phobiesPosition([positions.cooldown.center[0] - 13, positions.cooldown.center[1]]), 0.5);
+      const skillCounters = addValue(7, cc.color(155, 206, 216));
+      skillCounters.setString(`L${activeAbility.lockdown || 0}/C${activeAbility.cooldown || 1}`, true);
+      skillCounters.setPosition(this._phobiesPosition([positions.cooldown.center[0] + 12, positions.cooldown.center[1]]));
+    }
+    this.atkLabel.setFontFillColor(cc.color.WHITE);
+    this.hpLabel.setFontFillColor(cc.color.WHITE);
+
+    this.cardBackgroundSprite.setVisible(false);
+    this.cardTypeLabel.setVisible(false);
+    this.factionNameLabel.setVisible(false);
+    this.cardNameLabel.setPosition(this._phobiesPosition(positions.name));
+    this.cardDescriptionLabel.setPosition(this._phobiesPosition(positions.effect.center));
+    this.cardDescriptionLabel.setDimensions(cc.size(positions.effect.maxWidth / 2, 80));
+    const costPosition = this._phobiesPosition(positions.cost);
+    this._manaGemSprite.setPosition(costPosition);
+    this.manaLabel.setPosition(cc.p(costPosition.x, costPosition.y + 3));
+    this._manaGemSprite.setLocalZOrder(2);
+    this.manaLabel.setLocalZOrder(2);
+    this.raritySprite && this.raritySprite.setVisible(false);
+
+    // Keep the original animated unit node, but render it between the frame
+    // and the stat/name overlays.
+    if (this.cardSprite != null) {
+      this.cardSprite.removeFromParent(false);
+      this._staticContainerNodeFront.addChild(this.cardSprite, 1);
+      this.cardSprite.setAnchorPoint(cc.p(0.5, 0.5));
+      this.cardSprite.setPosition(this._phobiesPosition(positions.unitSprite.center));
+    }
+    this._phobiesUnitFaceNodes = nodes;
+  },
+
   setSdkCard(sdkCard, showBaseState, actionToShowStateFor, actionEventTypeToShowStateFor) {
     // update card if different
     if (this.sdkCard != sdkCard) {
       // reset last card
       if (this.sdkCard != null) {
+        this._clearPhobiesUnitFace();
         if (this.cardSprite != null) {
           this.cardSprite.destroy();
           this.cardSprite = null;
@@ -558,6 +742,8 @@ var CardNode = SdkNode.extend({
             }
             this.cardSprite.setPosition(cardSpritePosition);
 
+            this._setupPhobiesUnitFace(sdkCard);
+
             // shadow
             if (!(sdkCard instanceof SDK.Tile)) {
               this._unitShadow.fadeTo(0.0, (SDK.Cards.getIsPrismaticCardId(sdkCard.getId()) ? 200.0 : 150.0));
@@ -627,7 +813,7 @@ var CardNode = SdkNode.extend({
             }
 
             if (this.raritySprite != null) {
-              this.raritySprite.setVisible(true);
+              this.raritySprite.setVisible(!(this._phobiesUnitFaceEnabled && sdkCard instanceof SDK.Unit));
             }
 
             // glow for select reveal
@@ -752,6 +938,34 @@ var CardNode = SdkNode.extend({
           this.hpLabel.setString(hp, true);
         }
         this.hpLabel.setVisible(true);
+        if (this._phobiesMovementValueLabel != null) {
+          this._phobiesMovementValueLabel.setString(this.sdkCard.getMovementDistance(), true);
+        }
+        if (this._phobiesRangeValueLabel != null) {
+          this._phobiesRangeValueLabel.setString(this.sdkCard.getAttackRangeValue(), true);
+        }
+        if (this._phobiesStatIconSprites != null) {
+          const attackIcons = {
+            melee: RSX.collection_card_attack_melee,
+            ranged: RSX.collection_card_attack_ranged,
+            lobbed: RSX.collection_card_attack_arc,
+            area: RSX.collection_card_attack_area,
+          };
+          const movementIcons = {
+            walk: RSX.collection_card_move_walk,
+            fly: RSX.collection_card_move_fly,
+            phase: RSX.collection_card_move_phase,
+          };
+          const icons = [
+            attackIcons[this.sdkCard.getAttackType()] || attackIcons.melee,
+            RSX.collection_card_health,
+            movementIcons[this.sdkCard.getMovementType()] || movementIcons.walk,
+            RSX.collection_card_range,
+          ];
+          this._phobiesStatIconSprites.forEach((sprite, index) => {
+            sprite.setTexture(cc.textureCache.getTextureForKey(icons[index].img));
+          });
+        }
       } else {
         if (atk > 0) {
           if (`${atk}` !== this.atkLabel.getString()) {
@@ -793,8 +1007,8 @@ var CardNode = SdkNode.extend({
           }
         }
       } else {
-        this.atkLabel.setFontFillColor(CONFIG.ATK_COLOR);
-        this.hpLabel.setFontFillColor(CONFIG.HP_COLOR);
+        this.atkLabel.setFontFillColor(this._phobiesUnitFaceEnabled ? cc.color.WHITE : CONFIG.ATK_COLOR);
+        this.hpLabel.setFontFillColor(this._phobiesUnitFaceEnabled ? cc.color.WHITE : CONFIG.HP_COLOR);
       }
     } else {
       this.atkLabel.setVisible(false);

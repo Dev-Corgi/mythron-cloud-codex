@@ -11,6 +11,7 @@ var SDK = require('app/sdk');
 var audio_engine = require('app/audio/audio_engine');
 var InventoryManager = require('app/ui/managers/inventory_manager');
 var CollectionCardCompositeView = require('./collection_card');
+var PhobiesCollectionCardVisual = require('./PhobiesCollectionCardVisual');
 var SelectedCardLayoutTempl = require('./templates/selected_card.hbs');
 
 var SelectedCardLayout = Backbone.Marionette.LayoutView.extend({
@@ -36,6 +37,8 @@ var SelectedCardLayout = Backbone.Marionette.LayoutView.extend({
 
   serializeModel: function (model) {
     var data = model.toJSON.apply(model, _.rest(arguments));
+    var card = model.get('card');
+    data.activeAbility = PhobiesCollectionCardVisual.getAbilityDetail(card);
 
     // get lore for card id
     var baseCardId = this.model.get('baseCardId');

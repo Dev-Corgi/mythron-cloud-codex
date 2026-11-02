@@ -48,12 +48,12 @@ describe('active ability state', () => {
     expect(deployed.getActiveAbilityState().cooldown).to.equal(0);
   });
 
-  it('does not initialize active ability state outside Practice/Sandbox v2', () => {
+  it('retains card metadata but does not initialize active ability state outside Practice/Sandbox v2', () => {
     gameSession.setRuleset('practice-sandbox-hex', 1);
     const deployed = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
+    expect(deployed.activeAbility).to.deep.equal({ effectCardId: SDK.Cards.Spell.PhoenixFire, lockdown: 1, cooldown: 1 });
     deployed.setOwnerId(gameSession.getPlayer1Id());
     gameSession.applyCardToBoard(deployed, 0, 1, deployed.createNewCardData(), null);
-    expect(deployed.activeAbility).to.equal(null);
     expect(deployed.getActiveAbilityState()).to.equal(null);
   });
 

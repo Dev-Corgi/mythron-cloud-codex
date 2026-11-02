@@ -878,7 +878,7 @@
 	}
 	.card-sprite {
 		position: absolute;
-		z-index: 2;
+		z-index: 1;
 		width: 16.8rem;
 		height: 16.8rem;
 		left: 60.2%;
@@ -893,7 +893,7 @@
 		width: 22.6rem;
 		height: 29.6rem;
 		transform: translateX(-50%);
-		z-index: 4;
+		z-index: 3;
 		pointer-events: none;
 	}
 	.phobies-card-frame {
@@ -908,7 +908,7 @@
 	.phobies-card-stat-value,
 	.phobies-card-effect {
 		position: absolute;
-		z-index: 1;
+		z-index: 2;
 		transform: translate(-50%, -50%);
 		text-align: center;
 		text-shadow: 0 0 0.3rem #061323, 0 0 0.6rem #061323;
@@ -935,7 +935,7 @@
 	.phobies-card-stat-icon,
 	.phobies-card-rarity {
 		position: absolute;
-		z-index: 1;
+		z-index: 2;
 		width: 1.8rem;
 		height: 1.8rem;
 		transform: translate(-50%, -50%);
@@ -944,10 +944,29 @@
 		width: 3rem;
 		height: 1.3rem;
 	}
+	.phobies-card-skill-art {
+		position: absolute;
+		z-index: 2;
+		width: 4rem;
+		height: 4rem;
+		transform: translate(-50%, -50%);
+		background-repeat: no-repeat;
+		image-rendering: pixelated;
+	}
+	.phobies-card-skill-cooldown-icon {
+		width: 1.15rem;
+		height: 1.15rem;
+	}
 	.phobies-card-stat-value {
 		color: #fff;
 		font-size: 1.15rem;
 		line-height: 1.2rem;
+	}
+	.phobies-card-skill-counters {
+		width: 2.3rem;
+		color: #9bced8;
+		font-size: 0.62rem;
+		line-height: 0.8rem;
 	}
 	.inventory-count {
 		z-index: 6;

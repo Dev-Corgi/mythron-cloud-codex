@@ -30,6 +30,14 @@
         <h4>{{localize 'collection.copies_label'}}</h4>
         <p>{{inventoryCount}}/{{#if isGeneral}}1{{else}}3{{/if}}</p>
     </div>
+    {{#if activeAbility}}
+        <div class="card-attribute card-active-ability">
+            <h4>{{localize 'collection.active_ability_label'}}</h4>
+            <p>{{activeAbility.name}}</p>
+            <p>{{activeAbility.description}}</p>
+            <p>{{localize 'collection.lockdown_label'}} {{activeAbility.lockdown}} / {{localize 'collection.cooldown_label'}} {{activeAbility.cooldown}}</p>
+        </div>
+    {{/if}}
     <div class="card-help">
 			{{#if keywordDescriptions}}
           <hr class="shine">

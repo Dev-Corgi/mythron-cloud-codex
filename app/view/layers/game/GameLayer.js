@@ -5301,15 +5301,21 @@ var GameLayer = FXCompositeLayer.extend({
           }
         }
 
+        const gameSession = SDK.GameSession.getInstance();
+        const usePhobiesUnitFace = gameSession.getRulesetId() === 'practice-sandbox-hex'
+          && gameSession.getRulesetVersion() === 2;
+        this._inspectCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && sdkCard instanceof SDK.Unit);
+        this._referencedCardNode.setPhobiesUnitFaceEnabled(false);
+
         // show inspect
         // inspect triggers rebuild so it must be done before using content size
         this._inspectCardNode.showInspect(sdkCard, showBaseState, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
-        const gameSession = SDK.GameSession.getInstance();
         const relatedCardId = InspectCardResolver.getRelatedInspectCardId(sdkCard, gameSession.getRulesetId(), gameSession.getRulesetVersion());
         if (relatedCardId != null) {
           const referencedCard = gameSession.createCardForIdentifier(relatedCardId);
           if (referencedCard != null) {
             referencedCard.setOwner(sdkCard.getOwner());
+            this._referencedCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && referencedCard instanceof SDK.Unit);
             this._referencedCardNode.showInspect(referencedCard, true, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
           }
         }

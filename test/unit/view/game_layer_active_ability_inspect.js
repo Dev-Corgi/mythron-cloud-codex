@@ -6,12 +6,14 @@ const { expect } = require('chai');
 describe('GameLayer active ability inspect card', () => {
   let GameLayer;
   let session;
+  let FakeUnit;
 
   before(() => {
     const Module = require('module');
     const originalLoad = Module._load;
     class FakeNode {}
-    const sdk = { GameSession: { getInstance: () => session } };
+    FakeUnit = class FakeUnit {};
+    const sdk = { GameSession: { getInstance: () => session }, Unit: FakeUnit };
     const events = { update_cache_action: 'update_cache_action', inspect_card_start: 'inspect_card_start' };
     const utilsEngine = {
       getPlayer1InspectCardPosition: () => ({ x: 200, y: 200 }),
@@ -70,6 +72,7 @@ describe('GameLayer active ability inspect card', () => {
       getCardContentSize: () => ({ width: 100, height: 100 }),
       getKeywordsShowing: () => false,
       getHasKeywords: () => false,
+      setPhobiesUnitFaceEnabled() {},
       setPosition() {},
     });
     const gameLayer = {
@@ -82,12 +85,12 @@ describe('GameLayer active ability inspect card', () => {
       getMyPlayer: () => ({}),
       getEventBus: () => ({ trigger() {} }),
     };
-    const unit = {
+    const unit = Object.assign(new FakeUnit(), {
       activeAbility: { effectCardId: 701 },
       getOwner: () => owner,
       isOwnedByPlayer2: () => false,
       isOwnedByGameSession: () => false,
-    };
+    });
 
     GameLayer.prototype.showInspectCard.call(gameLayer, unit, {});
 
