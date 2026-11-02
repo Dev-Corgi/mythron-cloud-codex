@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101313" />
+    <title>Phobies — 카드 갤러리</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <div class="brand-copy">
+          <p class="eyebrow">FIELD GUIDE <span>·</span> PHOBIES</p>
+          <h1>카드 갤러리</h1>
+        </div>
+        <div class="level-control">
+          <label for="levelRange">표시 레벨 <strong id="levelValue">3</strong></label>
+          <input id="levelRange" type="range" min="1" max="20" value="3" />
+          <div class="level-ends"><span>Lv. 1</span><span>Lv. 20</span></div>
+        </div>
+      </header>
+
+      <section class="intro" aria-label="안내">
+        <p>필요한 Phobie를 찾고, 레벨에 따른 능력치와 특수 효과를 한눈에 비교하세요.</p>
+        <p class="data-note">수록 데이터: 공개 v1.7 데이터베이스 158종 · 최신 카드 일부 미포함</p>
+      </section>
+
+      <section class="toolbar" aria-label="카드 검색 및 필터">
+        <label class="search-box">
+          <span class="sr-only">카드 이름 검색</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+          <input id="searchInput" type="search" placeholder="이름이나 능력으로 검색" autocomplete="off" />
+        </label>
+        <label class="select-wrap"><span class="sr-only">희귀도 필터</span><select id="rarityFilter"><option value="">모든 희귀도</option></select></label>
+        <label class="select-wrap"><span class="sr-only">키 비용 필터</span><select id="keyFilter"><option value="">모든 키 비용</option></select></label>
+        <label class="select-wrap"><span class="sr-only">이동 유형 필터</span><select id="moveFilter"><option value="">모든 이동 유형</option></select></label>
+        <label class="select-wrap sort-wrap"><span class="sr-only">정렬 방식</span><select id="sortSelect"><option value="name">이름순</option><option value="keys">키 비용순</option><option value="health">체력순</option></select></label>
+      </section>
+
+      <div class="result-line"><span id="resultCount" aria-live="polite"></span><button id="resetButton" class="reset-button" type="button">필터 초기화</button></div>
+      <section id="cardGrid" class="card-grid" aria-label="Phobies 카드 목록"></section>
+      <div id="emptyState" class="empty-state" hidden>조건에 맞는 카드가 없어요. 검색어나 필터를 바꿔 보세요.</div>
+
+      <footer class="footer">
+        <span>데이터 버전 v1.7 · 각 카드의 위키 링크에서 상세 내용을 확인할 수 있습니다.</span>
+        <a href="https://github.com/13ouncyKnight/Phobies_Game/blob/main/Official%20Phobies%20Database%281.7%20Bouncy%20Edit%29.xlsx" target="_blank" rel="noreferrer">데이터 출처 ↗</a>
+      </footer>
+    </main>
+    <script src="cards.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
