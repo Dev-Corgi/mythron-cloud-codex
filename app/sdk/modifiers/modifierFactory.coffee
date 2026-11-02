@@ -42,6 +42,7 @@ ModifierDeathWatch = require './modifierDeathWatch'
 ModifierDeathWatchBuffSelf = require './modifierDeathWatchBuffSelf'
 ModifierDeathWatchDamageEnemyGeneralHealMyGeneral = require './modifierDeathWatchDamageEnemyGeneralHealMyGeneral'
 ModifierFlying = require './modifierFlying'
+ModifierPhasing = require './modifierPhasing'
 ModifierOpeningGambitSpawnEntity = require './modifierOpeningGambitSpawnEntity'
 ModifierDeathWatchSpawnEntity = require './modifierDeathWatchSpawnEntity'
 ModifierOpeningGambitSacrificeNearbyBuffSelf = require './modifierOpeningGambitSacrificeNearbyBuffSelf'
@@ -773,6 +774,8 @@ class ModifierFactory
       return ModifierDeathWatchDamageEnemyGeneralHealMyGeneral
     if (modifierType == ModifierFlying.type)
       return ModifierFlying
+    if (modifierType == ModifierPhasing.type)
+      return ModifierPhasing
     if (modifierType == ModifierOpeningGambitSpawnEntity.type)
       return ModifierOpeningGambitSpawnEntity
     if (modifierType == ModifierDeathWatchSpawnEntity.type)

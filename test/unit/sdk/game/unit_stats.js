@@ -56,6 +56,29 @@ describe('unit stats', () => {
     expect(unit.getLevel()).to.equal(3);
   });
 
+  it('accepts lobbed attacks while retaining the previous value for unsupported types', () => {
+    const unit = createUnit();
+
+    expect(unit.getAttackType()).to.equal('melee');
+    unit.setAttackType('lobbed');
+    expect(unit.getAttackType()).to.equal('lobbed');
+    unit.setAttackType('splash');
+    expect(unit.getAttackType()).to.equal('lobbed');
+  });
+
+  it('reconstructs Phasing modifiers by their serialized type', () => {
+    const modifier = SDK.ModifierFactory.modifierForType('ModifierPhasing', gameSession);
+    expect(modifier).to.be.instanceOf(SDK.ModifierPhasing);
+    expect(modifier.type).to.equal('ModifierPhasing');
+    const contextObject = modifier.createContextObject();
+    expect(contextObject.type).to.equal('ModifierPhasing');
+    expect(SDK.ModifierFactory.modifierForType(contextObject.type, gameSession)).to.be.instanceOf(SDK.ModifierPhasing);
+
+    const unit = createUnit();
+    unit.hasModifierClass = (modifierClass) => modifierClass === SDK.ModifierPhasing;
+    expect(unit.getMovementType()).to.equal('phase');
+  });
+
   it('derives fly and area types from existing traits and ranged from reach', () => {
     const flyingUnit = UtilsSDK.applyCardToBoard(
       { id: SDK.Cards.Neutral.SpottedDragonlark }, 0, 1, gameSession.getPlayer1Id());

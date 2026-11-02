@@ -2,6 +2,7 @@ CONFIG = require 'app/common/config'
 UtilsPosition = require 'app/common/utils/utils_position'
 Range = require './range'
 ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
+ModifierPhasing = require 'app/sdk/modifiers/modifierPhasing'
 CardType = require 'app/sdk/cards/cardType'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
 
@@ -40,13 +41,16 @@ class MovementRange extends Range
             visited[key] = true
             isHole = board.getGameSession().getRulesetVersion() is 2 and !board.hasTileAtPosition(nextPosition)
             isFlying = entity.hasActiveModifierClass(ModifierFlying)
-            continue if isHole and !isFlying
+            isPhasing = board.getGameSession().getRulesetVersion() is 2 and entity.hasActiveModifierClass(ModifierPhasing)
+            canCrossTerrain = isFlying or isPhasing
+            continue if isHole and !canCrossTerrain
             obstruction = board.getObstructionAtPositionForEntity(nextPosition, entity)
-            canTraverse = !obstruction or entity.getIsSameTeamAs(obstruction) or isFlying
+            isEnemyUnit = obstruction and obstruction.getType? and obstruction.getType() is CardType.Unit and !entity.getIsSameTeamAs(obstruction)
+            canTraverse = !obstruction or entity.getIsSameTeamAs(obstruction) or (canCrossTerrain and !isEnemyUnit) or (isPhasing and isEnemyUnit)
             continue unless canTraverse
             path = node.path.concat([nextPosition])
             queue.push({position: nextPosition, path: path})
-            isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and isFlying and board.getGameSession().getRulesetVersion() is 2
+            isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and canCrossTerrain and board.getGameSession().getRulesetVersion() is 2
             @_validPositions.push(path) unless obstruction and !isWallEndpoint
       return @_validPositions
     if !@_validPositions?

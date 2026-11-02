@@ -29,6 +29,7 @@ ModifierRangedProvoke = require 'app/sdk/modifiers/modifierRangedProvoke'
 ModifierBattlePet = require 'app/sdk/modifiers/modifierBattlePet'
 ModifierTamedBattlePet = require 'app/sdk/modifiers/modifierTamedBattlePet'
 ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
+ModifierPhasing = require 'app/sdk/modifiers/modifierPhasing'
 ModifierBlastAttack = require 'app/sdk/modifiers/modifierBlastAttack'
 
 PlayerModifierChangeSignatureCard = require 'app/sdk/playerModifiers/playerModifierChangeSignatureCard'
@@ -329,6 +330,7 @@ class Entity extends Card
       @movementType = type
 
   getMovementType: () ->
+    return "phase" if @hasModifierClass(ModifierPhasing)
     return "phase" if @movementType is "phase"
     if @hasModifierClass(ModifierFlying)
       return "fly"
@@ -338,11 +340,11 @@ class Entity extends Card
     return @getSpeed(withAuras)
 
   setAttackType: (type) ->
-    if type in ["melee", "ranged", "area"]
+    if type in ["melee", "ranged", "lobbed", "area"]
       @attackType = type
 
   getAttackType: () ->
-    if @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "area"]
+    if @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "lobbed", "area"]
       return @attackType
     if @hasModifierClass(ModifierBlastAttack)
       return "area"

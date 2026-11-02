@@ -620,6 +620,58 @@ describe('board', () => {
     }
   });
 
+  it('lets Phasing cross enemy units in version 2 without allowing occupied endpoints', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const enemyPosition = { q: 2, r: 0 };
+    const destination = { q: 3, r: 0 };
+    const wallPosition = { q: 1, r: 1 };
+    const phasing = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    phasing.setPosition({ q: 1, r: 0 });
+    phasing.setSpeed(2);
+    phasing.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierPhasing;
+    const enemy = { getType: () => SDK.CardType.Unit, getIsSameTeamAs: () => false };
+    const wall = {
+      getType: () => SDK.CardType.Tile,
+      getId: () => SDK.Cards.Tile.Wall,
+      getIsSameTeamAs: () => false,
+    };
+    const originalGetObstruction = board.getObstructionAtPositionForEntity;
+    board.getObstructionAtPositionForEntity = (position, entity) =>
+      position.q === enemyPosition.q && position.r === enemyPosition.r ? enemy
+        : position.q === wallPosition.q && position.r === wallPosition.r ? wall
+          : originalGetObstruction.call(board, position, entity);
+
+    try {
+      const range = phasing.getMovementRange();
+      expect(range.getPathTo(board, phasing, enemyPosition)).to.deep.equal([]);
+      expect(range.getPathTo(board, phasing, destination)).to.deep.equal([
+        { q: 1, r: 0 }, enemyPosition, destination,
+      ]);
+      expect(range.getPathTo(board, phasing, wallPosition)).to.deep.equal([
+        { q: 1, r: 0 }, wallPosition,
+      ]);
+
+      phasing.hasActiveModifierClass = (modifierClass) => modifierClass === SDK.ModifierFlying;
+      phasing.getMovementRange().flushCachedState();
+      expect(phasing.getMovementRange().getPathTo(board, phasing, destination)).to.deep.equal([]);
+    } finally {
+      board.getObstructionAtPositionForEntity = originalGetObstruction;
+    }
+  });
+
+  it('keeps the Phasing movement buff inactive in version 1 and legacy rules', () => {
+    const session = SDK.GameSession.getInstance();
+    const phasingModifier = new SDK.ModifierPhasing(session);
+    expect(phasingModifier.getIsAllowedToBeActiveForCache()).to.equal(false);
+    session.setRuleset('practice-sandbox-hex', 1);
+    expect(phasingModifier.getIsAllowedToBeActiveForCache()).to.equal(false);
+
+    session.setRuleset('practice-sandbox-hex', 2);
+    expect(phasingModifier.getIsAllowedToBeActiveForCache()).to.equal(true);
+  });
+
   it('preserves version 1 movement onto positions that are holes in version 2', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 1);
