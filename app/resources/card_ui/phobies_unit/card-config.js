@@ -147,7 +147,8 @@ window.CARD_PREVIEW_CONFIG = {
   "attackIcons": {
     "melee": "icons/attack_melee@2x.png",
     "ranged": "icons/attack_ranged@2x.png",
-    "area": "icons/attack_area@2x.png"
+    "area": "icons/attack_area@2x.png",
+    "arc": "icons/attack_arc@2x.png"
   },
   "levelStyle": {
     "fontFamily": "Lato",

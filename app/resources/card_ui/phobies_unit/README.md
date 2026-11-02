@@ -12,9 +12,9 @@ The user approved the geometry in `preview_astral_crusader_geometry_v3.png`. The
 - `card-layout.json`: authoritative dynamic card positions and sample card values.
 - `card-config.js`: generated browser-readable copy of card-layout.json.
 - `preview.html`: original sprite atlases, fonts, icons, and text composed over the frame.
-- `icons/`: active exported movement, attack, health, range, cooldown assets.
+- `icons/`: active exported movement, attack (melee, ranged, area, arc), health, range, cooldown assets.
 - `rarity/`: five active hexagonal crystal colors, normal 30 x 13 and 2x 60 x 26.
-- `sources/`: four required raw icon/crystal sheets. Raw sheets are build inputs; use exported icons, not unused cells on the sheets.
+- `sources/`: five required raw icon/crystal sheets. Raw sheets are build inputs; use exported icons, not unused cells on the sheets.
 
 ## Rebuild on Windows
 

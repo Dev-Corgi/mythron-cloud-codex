@@ -69,7 +69,9 @@ for name, box in (
     ("attack_area", (midpoint, 0, attack_sheet.width, attack_sheet.height)),
 ):
     export_icon(crop_clean(attack_sheet, box), ICONS / f"{name}@2x.png")
-for name in ("attack_melee", "attack_ranged", "attack_area"):
+arc = Image.open(SOURCES / "attack_arc_generated.png").convert("RGBA")
+export_icon(crop_clean(arc, (0, 0, arc.width, arc.height)), ICONS / "attack_arc@2x.png")
+for name in ("attack_melee", "attack_ranged", "attack_area", "attack_arc"):
     Image.open(ICONS / f"{name}@2x.png").resize(
         (128, 128), Image.Resampling.LANCZOS).save(ICONS / f"{name}.png")
 
