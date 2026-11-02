@@ -10,6 +10,7 @@ EndFollowupAction =         require './actions/endFollowupAction'
 PlayCardAction =         require './actions/playCardAction'
 PlayCardFromHandAction =         require './actions/playCardFromHandAction'
 PlaySignatureCardAction =         require './actions/playSignatureCardAction'
+UseActiveAbilityAction =         require './actions/useActiveAbilityAction'
 ResignAction =         require './actions/resignAction'
 DrawStartingHandAction =   require './actions/drawStartingHandAction'
 ReplaceCardFromHandAction =   require './actions/replaceCardFromHandAction'
@@ -466,7 +467,7 @@ class Player extends SDKObject
 
   actionUseActiveAbility: (unitIndex, targetPosition) ->
     return null unless @getGameSession().getIsPracticeSandboxV2()
-    return new (require 'app/sdk/actions/useActiveAbilityAction')(@getGameSession(), @getPlayerId(), unitIndex, targetPosition)
+    return new UseActiveAbilityAction(@getGameSession(), @getPlayerId(), unitIndex, targetPosition)
 
   actionPlayFollowup: (followupCard, tileX, tileY) ->
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and tileX? and typeof tileX is 'object'

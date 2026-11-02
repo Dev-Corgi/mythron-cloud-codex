@@ -62,6 +62,6 @@ class AttackAction extends DamageAction
 
   _isVersion2StatDrivenAreaAttack: (attacker) ->
     session = attacker?.getGameSession?()
-    return !!(session? and session.getIsPracticeSandboxV2() and attacker.getAttackType?() is 'area' and attacker.hasOwnProperty('attackType') and attacker.attackType is 'area')
+    return !!(session? and session.getIsPracticeSandboxV2() and attacker.getHasExplicitAttackType?() and attacker.getAttackType() is 'area')
 
 module.exports = AttackAction

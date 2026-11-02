@@ -25,7 +25,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(fromPosition)
         for position in board.getHexPositionsInRange(fromPosition, entity.getReach())
           continue if board.positionsEqual(fromPosition, position)
-          continue if @_isVersion2Ruleset(entity) and !HexAttackGeometry.canDeliver(board, entity, fromPosition, position)
+          continue if entity.getIsPracticeSandboxV2() and !HexAttackGeometry.canDeliver(board, entity, fromPosition, position)
           continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, fromPosition, position)
           key = "#{position.q},#{position.r}"
           unless positionsByKey[key]
@@ -44,7 +44,7 @@ class AttackRange extends Range
         continue unless board.isOnBoard(origin)
         distance = board.getHexDistance(origin, position)
         continue if distance is 0 or distance > entity.getReach()
-        continue if @_isVersion2Ruleset(entity) and !HexAttackGeometry.canDeliver(board, entity, origin, position)
+        continue if entity.getIsPracticeSandboxV2() and !HexAttackGeometry.canDeliver(board, entity, origin, position)
         continue if entity.getAttackNeedsLOS() and !@_hasHexLineOfSight(board, entity, origin, position)
         return position
       return null
@@ -81,7 +81,7 @@ class AttackRange extends Range
     return null
 
   getValidTargets: (board, entity, fromPositions) ->
-    if @_isVersion2Ruleset(entity)
+    if entity.getIsPracticeSandboxV2()
       targets = []
       seenPositions = {}
       for candidate in board.getEntities()
@@ -105,7 +105,7 @@ class AttackRange extends Range
     return attackAtlas.getValidTargets()
 
   getIsValidTarget: (board, entity, targetEntity) ->
-    if @_isVersion2Ruleset(entity)
+    if entity.getIsPracticeSandboxV2()
       return !!targetEntity and targetEntity is @getTargetAtPosition(board, entity, targetEntity.getPosition()) and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
       return !!targetEntity and targetEntity.getIsActive() and targetEntity.getIsTargetable() and !entity.getIsSameTeamAs(targetEntity) and !!@getValidPosition(board, entity, targetEntity.getPosition())
@@ -129,10 +129,6 @@ class AttackRange extends Range
       obstruction = board.getObstructionAtPositionForEntity(cell, entity)
       return false if obstruction and !entity.getIsSameTeamAs(obstruction) and obstruction.getIsObstructing()
     return true
-
-  _isVersion2Ruleset: (entity) ->
-    session = entity?.getGameSession?()
-    return !!(session? and session.getIsPracticeSandboxV2())
 
   getAttackAtlas: (board, entity, fromPositions) ->
     if !@_attackAtlasesByIndex? then @_attackAtlasesByIndex = {}

@@ -40,6 +40,9 @@ _ = require 'underscore'
 GENERAL_ACTIVE_ABILITY_LOCKDOWN = 2
 GENERAL_ACTIVE_ABILITY_COOLDOWN = 2
 
+# Explicit stat and ability fields that travel with cloned and copied card data.
+STAT_CARD_DATA_KEYS = ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"]
+
 class Entity extends Card
 
   type: CardType.Entity
@@ -97,7 +100,7 @@ class Entity extends Card
 
     cardData.damage = @damage
     # Preserve explicit unit stats when cards are cloned or reconstructed.
-    for key in ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"]
+    for key in STAT_CARD_DATA_KEYS
       if @[key]?
         cardData[key] = @[key]
 
@@ -105,7 +108,7 @@ class Entity extends Card
 
   getCardDataKeysForCopy: () ->
     keys = super()
-    keys = keys.concat(["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"])
+    keys = keys.concat(STAT_CARD_DATA_KEYS)
     return keys
 
   getGeneralActiveAbilityDefinition: () ->
@@ -388,8 +391,12 @@ class Entity extends Card
     if type in ["melee", "ranged", "lobbed", "area"]
       @attackType = type
 
+  # True only when this entity carries its own valid attack type; derived types do not count.
+  getHasExplicitAttackType: () ->
+    return @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "lobbed", "area"]
+
   getAttackType: () ->
-    if @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "lobbed", "area"]
+    if @getHasExplicitAttackType()
       return @attackType
     if @hasModifierClass(ModifierBlastAttack)
       return "area"
@@ -399,9 +406,6 @@ class Entity extends Card
 
   getAttackRangeValue: (withAuras) ->
     return @getReach(withAuras)
-
-  getAttackRangeStat: (withAuras) ->
-    return @getAttackRangeValue(withAuras)
 
   setLevel: (level) ->
     if typeof level is "number" and isFinite(level) and level >= 1

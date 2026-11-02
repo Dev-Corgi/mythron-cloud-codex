@@ -93,6 +93,23 @@ describe('unit stats', () => {
     expect(rangedUnit.getAttackType()).to.equal('ranged');
   });
 
+  it('counts only a configured attack type as explicit and copies it with the card data', () => {
+    const blast = UtilsSDK.applyCardToBoard(
+      { id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
+    expect(blast.getAttackType()).to.equal('area');
+    expect(blast.getHasExplicitAttackType()).to.equal(false);
+    expect(createUnit().getHasExplicitAttackType()).to.equal(false);
+
+    const unit = createUnit();
+    unit.setAttackType('ranged');
+    expect(unit.getHasExplicitAttackType()).to.equal(true);
+    const copy = gameSession.createCardForIdentifier(unit.getId());
+    copy.applyCardData(unit.createCloneCardData());
+    expect(copy.getHasExplicitAttackType()).to.equal(true);
+    expect(copy.getAttackType()).to.equal('ranged');
+    expect(unit.getCardDataKeysForCopy()).to.include.members(['speed', 'reach', 'movementType', 'attackType', 'level', 'actionPoints', 'actionPointsSpentThisTurn', 'activeAbilityState']);
+  });
+
   it('lets an explicitly configured attack type override inferred traits', () => {
     const unit = UtilsSDK.applyCardToBoard(
       { id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
