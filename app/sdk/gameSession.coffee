@@ -880,15 +880,17 @@ class _GameSession extends SDKObject
     throw new Error("Unsupported ruleset #{rulesetId} version #{rulesetVersion}") unless ruleset?
     @rulesetId = ruleset.id
     @rulesetVersion = ruleset.version
-    if @rulesetId is "practice-sandbox-hex" and @rulesetVersion is 2
-      for player in (@players or [])
-        player.getSignatureAbilityState?()
+    for player in (@players or [])
+      player.initializeSignatureAbilityState()
 
   getRulesetId: () ->
     return @rulesetId ? Rulesets.defaultRuleset.id
 
   getRulesetVersion: () ->
     return @rulesetVersion ? Rulesets.defaultRuleset.version
+
+  getIsPracticeSandboxV2: () ->
+    return Rulesets.isPracticeSandboxV2(@getRulesetId(), @getRulesetVersion())
 
   setGameFormat: (val) ->
     @gameFormat = val
@@ -1340,14 +1342,11 @@ class _GameSession extends SDKObject
       currentPlayer = @getCurrentPlayer()
 
       # Active ability counters advance only at the end of their owner's turn.
-      if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+      if @getIsPracticeSandboxV2()
         for entity in @board.getEntities(allowUntargetable=true)
           if entity.getOwnerId() is currentPlayer.getPlayerId() and entity.decrementActiveAbilityCounters?
             entity.decrementActiveAbilityCounters()
-        signatureState = currentPlayer.getSignatureAbilityState?()
-        if signatureState?
-          signatureState.lockdown = Math.max(0, signatureState.lockdown - 1)
-          signatureState.cooldown = Math.max(0, signatureState.cooldown - 1)
+        currentPlayer.decrementSignatureAbilityCounters()
 
       if @getRulesetId() is "practice-sandbox-hex"
         transferredMana = Math.min(3, currentPlayer.getReserveMana())
@@ -1393,7 +1392,7 @@ class _GameSession extends SDKObject
 
       # update entities
       for entity in @board.getEntities(allowUntargetable=true)
-        if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+        if @getIsPracticeSandboxV2()
           entity.refreshExhaustion() if entity.getOwnerId() is @getCurrentPlayer().getPlayerId()
         else
           entity.refreshExhaustion()
@@ -2212,7 +2211,7 @@ class _GameSession extends SDKObject
       if !@isOver()
         # start new turn as needed
         if action instanceof EndTurnAction
-          if @getRulesetId() is "practice-sandbox-hex" and @getRulesetVersion() is 2
+          if @getIsPracticeSandboxV2()
             # Run captures after all end-turn effects and duration changes have
             # resolved, while the ending player's turn is still current.
             for point in @getBoard().getTiles(true, false)
@@ -3584,6 +3583,7 @@ class _GameSession extends SDKObject
       for playerData, i in sessionData.players
         player = @players[i]
         player.deserialize(playerData)
+        player.initializeSignatureAbilityState()
 
     # deserialize
     if sessionData.battleMapTemplate?

@@ -122,7 +122,7 @@ class AttackRange extends Range
   # priority; otherwise a neutral Wall can be attacked beneath an allied Unit.
   getTargetAtPosition: (board, entity, position) ->
     return null unless board and position?
-    return null unless entity.getGameSession().getRulesetId() is 'practice-sandbox-hex' and entity.getGameSession().getRulesetVersion() is 2
+    return null unless entity.getGameSession().getIsPracticeSandboxV2()
     unit = board.getUnitAtPosition(position, true)
     tile = board.getTileAtPosition(position)
     if unit? and unit.getIsActive() and !entity.getIsSameTeamAs(unit)
@@ -145,7 +145,7 @@ class AttackRange extends Range
 
   _isVersion2Ruleset: (entity) ->
     session = entity?.getGameSession?()
-    return !!(session? and session.getRulesetId() is 'practice-sandbox-hex' and session.getRulesetVersion() is 2)
+    return !!(session? and session.getIsPracticeSandboxV2())
 
   _isLegalV2RangedLine: (board, entity, fromPosition, targetPosition) ->
     return false unless HexTopology.isOnHexAxis(fromPosition, targetPosition)

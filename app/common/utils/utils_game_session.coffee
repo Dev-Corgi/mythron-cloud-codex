@@ -114,7 +114,7 @@ UtilsGameSession.getSmartSpawnPositionsFromPattern = (gameSession, sourcePositio
   if gameSession.getRulesetId() is 'practice-sandbox-hex'
     candidatePositions = UtilsGameSession.getValidBoardPositionsFromPattern(board, sourcePosition, pattern, true)
     for candidate in candidatePositions
-      continue if gameSession.getRulesetVersion() is 2 and cardToSpawn?.getType() is CardType.Unit and !board.hasTileAtPosition(candidate)
+      continue if gameSession.getIsPracticeSandboxV2() and cardToSpawn?.getType() is CardType.Unit and !board.hasTileAtPosition(candidate)
       if !board.getObstructionAtPositionForEntity(candidate, cardToSpawn)
         spawnPositions.push(candidate)
     return spawnPositions

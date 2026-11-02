@@ -12,6 +12,6 @@ class ModifierPhasing extends Modifier
     speed: CONFIG.SPEED_INFINITE
 
   getIsAllowedToBeActiveForCache: () ->
-    return super() and @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2
+    return super() and @getGameSession().getIsPracticeSandboxV2()
 
 module.exports = ModifierPhasing

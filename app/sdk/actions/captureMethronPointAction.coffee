@@ -14,7 +14,7 @@ class CaptureMethronPointAction extends Action
     super()
 
     gameSession = @getGameSession()
-    return unless gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+    return unless gameSession.getIsPracticeSandboxV2()
     return unless gameSession.consumeMethronPointCaptureAuthorization?(@)
 
     point = @getTarget()

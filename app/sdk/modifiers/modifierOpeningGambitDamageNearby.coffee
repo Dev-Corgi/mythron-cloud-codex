@@ -30,7 +30,7 @@ class ModifierOpeningGambitDamageNearby extends ModifierOpeningGambit
 
   onOpeningGambit: () ->
     board = @getGameSession().getBoard()
-    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2
+    if @getGameSession().getIsPracticeSandboxV2()
       entities = board.getEntitiesAroundEntity(@getCard(), CardType.Entity, 1)
       entities = entities.filter (entity) =>
         return !@getCard().getIsSameTeamAs(entity) if entity.getType() is CardType.Unit

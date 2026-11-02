@@ -160,7 +160,7 @@ class Spell extends Card
     # filter positions
     applyEffectPositions = @_filterApplyPositions(applyEffectPositions)
 
-    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2 and (@radius > 0 or (affectPattern? and affectPattern.length > 1))
+    if @getGameSession().getIsPracticeSandboxV2() and (@radius > 0 or (affectPattern? and affectPattern.length > 1))
       walls = (entity for entity in board.getEntities() when entity.getIsActive() and entity.getType() is CardType.Tile and entity.getId() is Cards.Tile.Wall and entity.getIsObstructing())
       applyEffectPositions = applyEffectPositions.filter (candidate) =>
         for wall in walls

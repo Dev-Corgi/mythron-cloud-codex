@@ -17,7 +17,7 @@ class ValidatorPlayCard extends Validator
     super(event)
     gameSession = @getGameSession()
     action = event.action
-    if action? and action.getIsValid() and !action.getIsImplicit() and action instanceof PlaySignatureCardAction and gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+    if action? and action.getIsValid() and !action.getIsImplicit() and action instanceof PlaySignatureCardAction and gameSession.getIsPracticeSandboxV2()
       general = gameSession.getGeneralForPlayerId(action.getOwnerId())
       state = action.getOwner()?.getSignatureAbilityState?()
       card = action.getCard()

@@ -74,7 +74,7 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     # always add general before adding cards but after setting up deck
     # because general may attempt to access deck and cards may attempt to add modifiers to the general
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      if gameSession.getRulesetVersion() is 2
+      if gameSession.getIsPracticeSandboxV2()
         general1X = -2
         general1Y = 4
       else
@@ -91,7 +91,7 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     GameSetup.addGeneral(gameSession, player1, general1, general1X, general1Y)
 
     if gameSession.getRulesetId() is "practice-sandbox-hex"
-      if gameSession.getRulesetVersion() is 2
+      if gameSession.getIsPracticeSandboxV2()
         general2X = 8
         general2Y = 0
       else
@@ -119,7 +119,7 @@ GameSetup.setupNewSession = (gameSession, player1Data, player2Data, withoutManaT
     GameSetup.addCardsToBoard(gameSession, player1Data.startingBoardCardsData, player1)
     GameSetup.addCardsToBoard(gameSession, player2Data.startingBoardCardsData, player2)
 
-    if gameSession.getRulesetId() is "practice-sandbox-hex" and gameSession.getRulesetVersion() is 2
+    if gameSession.getIsPracticeSandboxV2()
       for position in HexTopology.version2WallPositions
         wall = gameSession.getExistingCardFromIndexOrCreateCardFromData({id: Cards.Tile.Wall})
         gameSession.applyCardToBoard(wall, position.q, position.r)

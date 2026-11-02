@@ -18,7 +18,7 @@ class UseActiveAbilityAction extends PlayCardAction
     sourceUnit = session.getCardByIndex(@sourceUnitIndex)
     state = sourceUnit?.getActiveAbilityState?()
     return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.spendActionPoint()
-    state.cooldown = state.baseCooldown
+    sourceUnit.startActiveAbilityCooldown()
     @_private.source = sourceUnit
     super()
 

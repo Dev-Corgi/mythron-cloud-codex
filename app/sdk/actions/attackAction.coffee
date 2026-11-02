@@ -68,7 +68,7 @@ class AttackAction extends DamageAction
 
   _isVersion2StatDrivenAreaAttack: (attacker) ->
     session = attacker?.getGameSession?()
-    return !!(session? and session.getRulesetId() is 'practice-sandbox-hex' and session.getRulesetVersion() is 2 and attacker.getAttackType?() is 'area' and attacker.hasOwnProperty('attackType') and attacker.attackType is 'area')
+    return !!(session? and session.getIsPracticeSandboxV2() and attacker.getAttackType?() is 'area' and attacker.hasOwnProperty('attackType') and attacker.attackType is 'area')
 
   _isEligibleAreaVictim: (attacker, victim) ->
     return false unless victim? and victim.getIsActive?() and victim.getIsActive() and victim.getIsTargetable?() and victim.getIsTargetable()

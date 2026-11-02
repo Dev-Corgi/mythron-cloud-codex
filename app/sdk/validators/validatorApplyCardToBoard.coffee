@@ -21,7 +21,7 @@ class ValidatorApplyCardToBoard extends Validator
       targetPosition = action.getTargetPosition()
       if !card?
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_message"))
-      else if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2 and card.getType() is CardType.Unit and !@getGameSession().getBoard().hasTileAtPosition(targetPosition)
+      else if @getGameSession().getIsPracticeSandboxV2() and card.getType() is CardType.Unit and !@getGameSession().getBoard().hasTileAtPosition(targetPosition)
         # Movement-capable units may occupy holes; summons never may.
         @invalidateAction(action, targetPosition, i18next.t("validators.obstructed_position_message"))
       else if !(action instanceof RandomPlayCardSilentlyAction) and !@getGameSession().getBoard().isOnBoard(targetPosition)

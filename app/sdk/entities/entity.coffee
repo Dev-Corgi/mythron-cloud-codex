@@ -107,7 +107,7 @@ class Entity extends Card
   initializeActiveAbility: (handSlotIndex) ->
     definition = @activeAbility
     session = @getGameSession()
-    return unless definition? and session? and session.getRulesetId() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+    return unless definition? and session? and session.getIsPracticeSandboxV2()
     lockdown = Math.max(0, Math.floor(definition.lockdown or 0))
     cooldown = Math.max(1, Math.floor(definition.cooldown or 1))
     @activeAbilityState = { lockdown: lockdown, cooldown: 0, baseLockdown: lockdown, baseCooldown: cooldown, handSlotIndex: handSlotIndex }
@@ -119,6 +119,10 @@ class Entity extends Card
     return unless @activeAbilityState?
     @activeAbilityState.lockdown = Math.max(0, (@activeAbilityState.lockdown or 0) - 1)
     @activeAbilityState.cooldown = Math.max(0, (@activeAbilityState.cooldown or 0) - 1)
+
+  startActiveAbilityCooldown: () ->
+    return unless @activeAbilityState?
+    @activeAbilityState.cooldown = @activeAbilityState.baseCooldown
 
   clearActiveAbility: () ->
     @activeAbilityState = null
@@ -495,7 +499,7 @@ class Entity extends Card
 
   getUsesActionPoints: () ->
     session = @getGameSession()
-    return !!(session? and session.getRulesetId() is "practice-sandbox-hex" and session.getRulesetVersion() is 2)
+    return !!(session? and session.getIsPracticeSandboxV2())
 
   getActionPoints: () ->
     return Math.max(0, @actionPoints or 0) if @getUsesActionPoints()
@@ -720,7 +724,7 @@ class Entity extends Card
 
   actionAttackEntityAtPosition: (position) ->
     board = @getGameSession().getBoard()
-    targetEntity = if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2 then @getAttackRange().getTargetAtPosition(board, @, position) else board.getUnitAtPosition(position)
+    targetEntity = if @getGameSession().getIsPracticeSandboxV2() then @getAttackRange().getTargetAtPosition(board, @, position) else board.getUnitAtPosition(position)
     if !targetEntity
       Logger.module("SDK").error("[G:#{@getGameSession().getGameId()}] Entity #{@getLogName()} actionAttackEntityAtPosition - attempt to attack position with no entity")
     return @actionAttack(targetEntity)

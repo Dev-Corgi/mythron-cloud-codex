@@ -13,6 +13,9 @@ RULESETS =
 RULESETS.getRuleset = (rulesetId, rulesetVersion) ->
   return RULESETS.byIdAndVersion["#{rulesetId}:#{rulesetVersion}"] ? null
 
+RULESETS.isPracticeSandboxV2 = (rulesetId, rulesetVersion) ->
+  return rulesetId is practiceSandboxHexV2.id and rulesetVersion is practiceSandboxHexV2.version
+
 RULESETS.getServerRulesetForGameType = (gameType) ->
   if gameType == GameType.SinglePlayer
     return practiceSandboxHexV2

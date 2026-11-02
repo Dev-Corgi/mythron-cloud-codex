@@ -28,7 +28,7 @@ class ModifierDyingWishDamageNearbyEnemies extends ModifierDyingWish
 
   onDyingWish: () ->
     board = @getGameSession().getBoard()
-    if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and @getGameSession().getRulesetVersion() is 2
+    if @getGameSession().getIsPracticeSandboxV2()
       validEntities = board.getEntitiesAroundEntity(@getCard(), CardType.Entity, 1).filter (entity) =>
         return entity.getType() is CardType.Unit and !@getCard().getIsSameTeamAs(entity) if entity.getType() is CardType.Unit
         return entity.getType() is CardType.Tile and entity.getId() is Cards.Tile.Wall

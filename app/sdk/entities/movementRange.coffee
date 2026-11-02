@@ -39,9 +39,9 @@ class MovementRange extends Range
             key = "#{nextPosition.q},#{nextPosition.r}"
             continue if visited[key]
             visited[key] = true
-            isHole = board.getGameSession().getRulesetVersion() is 2 and !board.hasTileAtPosition(nextPosition)
+            isHole = board.getGameSession().getIsPracticeSandboxV2() and !board.hasTileAtPosition(nextPosition)
             isFlying = entity.hasActiveModifierClass(ModifierFlying)
-            isPhasing = board.getGameSession().getRulesetVersion() is 2 and entity.hasActiveModifierClass(ModifierPhasing)
+            isPhasing = board.getGameSession().getIsPracticeSandboxV2() and entity.hasActiveModifierClass(ModifierPhasing)
             canCrossTerrain = isFlying or isPhasing
             continue if isHole and !canCrossTerrain
             obstruction = board.getObstructionAtPositionForEntity(nextPosition, entity)
@@ -50,7 +50,7 @@ class MovementRange extends Range
             continue unless canTraverse
             path = node.path.concat([nextPosition])
             queue.push({position: nextPosition, path: path})
-            isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and canCrossTerrain and board.getGameSession().getRulesetVersion() is 2
+            isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and canCrossTerrain and board.getGameSession().getIsPracticeSandboxV2()
             @_validPositions.push(path) unless obstruction and !isWallEndpoint
       return @_validPositions
     if !@_validPositions?

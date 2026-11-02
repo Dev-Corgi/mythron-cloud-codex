@@ -20,6 +20,10 @@ PlayerModifierManaModifier = require './playerModifiers/playerModifierManaModifi
 PlayerModifierSignatureCardAlwaysReady = require './playerModifiers/playerModifierSignatureCardAlwaysReady'
 _ = require 'underscore'
 
+# Practice/Sandbox v2 General signature ability counters (Lockdown, then repeating Cooldown).
+SIGNATURE_ABILITY_LOCKDOWN = 2
+SIGNATURE_ABILITY_COOLDOWN = 2
+
 class Player extends SDKObject
 
   deck: null
@@ -328,15 +332,15 @@ class Player extends SDKObject
     sourceData = general?.getSignatureCardData()
     data = if sourceData? then _.extend({}, sourceData) else sourceData
     session = @getGameSession()
-    if data? and session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
-      data.activeAbility = _.extend({}, data.activeAbility or {effectCardId: data.id, lockdown: 2, cooldown: 2})
+    if data? and session?.getIsPracticeSandboxV2?()
+      data.activeAbility = _.extend({}, data.activeAbility or {effectCardId: data.id, lockdown: SIGNATURE_ABILITY_LOCKDOWN, cooldown: SIGNATURE_ABILITY_COOLDOWN})
       data.manaCost = 0
     return data
 
   # Resolve the living unit whose active ability occupies a fixed hand slot.
   getActiveAbilityForHandSlot: (slotIndex) ->
     session = @getGameSession()
-    return null unless session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
+    return null unless session?.getIsPracticeSandboxV2?()
     for entity in session.getBoard().getEntities(allowUntargetable=true)
       state = entity.getActiveAbilityState?()
       if entity.getOwnerId() is @getPlayerId() and state? and state.handSlotIndex is slotIndex
@@ -356,17 +360,26 @@ class Player extends SDKObject
     return @_private.cachedReferenceSignatureCard
 
   getIsSignatureCardActive: () ->
-    if @getGameSession()?.getRulesetId?() is "practice-sandbox-hex" and @getGameSession().getRulesetVersion() is 2
+    if @getGameSession()?.getIsPracticeSandboxV2?()
       state = @getSignatureAbilityState()
-      return state.lockdown is 0 and state.cooldown is 0
+      return !!state? and state.lockdown is 0 and state.cooldown is 0
     return @signatureCardActive or @getIsSignatureCardAlwaysReady()
 
+  initializeSignatureAbilityState: () ->
+    return unless @getGameSession()?.getIsPracticeSandboxV2?()
+    @signatureAbilityState ?= {lockdown: SIGNATURE_ABILITY_LOCKDOWN, cooldown: 0, baseLockdown: SIGNATURE_ABILITY_LOCKDOWN, baseCooldown: SIGNATURE_ABILITY_COOLDOWN}
+
   getSignatureAbilityState: () ->
-    session = @getGameSession()
-    return null unless session?.getRulesetId?() is "practice-sandbox-hex" and session.getRulesetVersion() is 2
-    unless @signatureAbilityState?
-      @signatureAbilityState = {lockdown: 2, cooldown: 0, baseLockdown: 2, baseCooldown: 2}
     return @signatureAbilityState
+
+  decrementSignatureAbilityCounters: () ->
+    return unless @signatureAbilityState?
+    @signatureAbilityState.lockdown = Math.max(0, @signatureAbilityState.lockdown - 1)
+    @signatureAbilityState.cooldown = Math.max(0, @signatureAbilityState.cooldown - 1)
+
+  startSignatureAbilityCooldown: () ->
+    return unless @signatureAbilityState?
+    @signatureAbilityState.cooldown = @signatureAbilityState.baseCooldown
 
   setIsSignatureCardActive: (isActive) ->
     @signatureCardActive = isActive
@@ -473,7 +486,7 @@ class Player extends SDKObject
       return playCardAction
 
   actionUseActiveAbility: (unitIndex, targetPosition) ->
-    return null unless @getGameSession().getRulesetId() is "practice-sandbox-hex" and @getGameSession().getRulesetVersion() is 2
+    return null unless @getGameSession().getIsPracticeSandboxV2()
     return new (require 'app/sdk/actions/useActiveAbilityAction')(@getGameSession(), @getPlayerId(), unitIndex, targetPosition)
 
   actionPlayFollowup: (followupCard, tileX, tileY) ->

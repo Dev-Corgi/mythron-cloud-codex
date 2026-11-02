@@ -50,9 +50,9 @@ CardEligibility =
     return false unless card?
     cardId = card.getId()
     if cardId is Cards.Tile.Wall
-      return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
+      return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if cardId is Cards.Tile.MethronPoint
-      return @isNewRules(gameSession) and gameSession.getRulesetVersion() is 2 and !sourceAction? and card.getOwnerId() is null
+      return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
       return sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and sourceUnit.activeAbility?.effectCardId is cardId
