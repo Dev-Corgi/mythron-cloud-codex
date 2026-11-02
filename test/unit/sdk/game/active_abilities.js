@@ -55,6 +55,41 @@ describe('active ability state', () => {
     expect(JSON.stringify(general.getActiveAbilityState())).to.equal(before);
   });
 
+  it('freezes unit counters while silenced and resumes them from the same values', () => {
+    const ModifierSilence = require('../../../../app/sdk/modifiers/modifierSilence.coffee');
+    const scout = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
+    scout.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(scout, 0, 1, scout.createNewCardData(), null);
+    scout.getActiveAbilityState().cooldown = 1;
+    gameSession.applyModifierContextObject(ModifierSilence.createContextObject(), scout);
+    gameSession.executeAction(gameSession.actionEndTurn());
+    expect(scout.getActiveAbilityState()).to.include({ lockdown: 1, cooldown: 1 });
+    gameSession.executeAction(gameSession.actionEndTurn());
+    gameSession.executeAction(gameSession.actionEndTurn());
+    expect(scout.getActiveAbilityState()).to.include({ lockdown: 1, cooldown: 1 });
+    gameSession.removeModifierFromCardByClass(ModifierSilence, scout);
+    gameSession.executeAction(gameSession.actionEndTurn()); // opponent's turn end: no change
+    expect(scout.getActiveAbilityState()).to.include({ lockdown: 1, cooldown: 1 });
+    gameSession.executeAction(gameSession.actionEndTurn()); // owner's turn end: resumes
+    expect(scout.getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 0 });
+  });
+
+  it('freezes the General counters while silenced', () => {
+    const ModifierSilence = require('../../../../app/sdk/modifiers/modifierSilence.coffee');
+    const general = gameSession.getGeneralForPlayer1();
+    gameSession.applyModifierContextObject(ModifierSilence.createContextObject(), general);
+    gameSession.executeAction(gameSession.actionEndTurn());
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 2, cooldown: 0 });
+    gameSession.executeAction(gameSession.actionEndTurn());
+    gameSession.executeAction(gameSession.actionEndTurn());
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 2, cooldown: 0 });
+    gameSession.removeModifierFromCardByClass(ModifierSilence, general);
+    gameSession.executeAction(gameSession.actionEndTurn()); // opponent's turn end: no change
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 2, cooldown: 0 });
+    gameSession.executeAction(gameSession.actionEndTurn()); // owner's turn end: resumes
+    expect(general.getActiveAbilityState()).to.include({ lockdown: 1, cooldown: 0 });
+  });
+
   it('counts counters down at the owning player end turn only', () => {
     const deployed = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
     deployed.setOwnerId(gameSession.getPlayer1Id());

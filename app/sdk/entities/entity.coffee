@@ -132,6 +132,8 @@ class Entity extends Card
 
   decrementActiveAbilityCounters: () ->
     return unless @activeAbilityState?
+    # silence freezes Lockdown and Cooldown; they resume from the same values afterwards
+    return if @getIsSilenced()
     @activeAbilityState.lockdown = Math.max(0, (@activeAbilityState.lockdown or 0) - 1)
     @activeAbilityState.cooldown = Math.max(0, (@activeAbilityState.cooldown or 0) - 1)
 
