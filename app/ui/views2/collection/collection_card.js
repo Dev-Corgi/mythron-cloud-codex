@@ -6,6 +6,7 @@ var UtilsEnv = require('app/common/utils/utils_env');
 var InventoryManager = require('app/ui/managers/inventory_manager');
 var ProgressionManager = require('app/ui/managers/progression_manager');
 var CardCompositeView = require('app/ui/views/composite/card');
+var PhobiesCollectionCardVisual = require('./PhobiesCollectionCardVisual');
 
 var CollectionCardCompositeView = CardCompositeView.extend({
 
@@ -17,6 +18,7 @@ var CollectionCardCompositeView = CardCompositeView.extend({
 
   onRender: function () {
     CardCompositeView.prototype.onRender.apply(this, arguments);
+    PhobiesCollectionCardVisual.render($, this.model, this.$el);
   },
 
   _updateState: function () {

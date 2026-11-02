@@ -16,7 +16,6 @@ const CausticPrismaticGlowSprite = require('../fx/CausticPrismaticGlowSprite');
 const NodeFactory = require('../../helpers/NodeFactory');
 const CardNodeVisualStateTag = require('../visualStateTags/CardNodeVisualStateTag');
 const StatsChangeNode = require('./StatsChangeNode');
-const PhobiesHandCardVisual = require('./PhobiesHandCardVisual');
 
 /** **************************************************************************
 BottomDeckCardNode
@@ -46,10 +45,6 @@ const BottomDeckCardNode = SdkNode.extend({
   _statChangeShowing: false,
   _statChangeQueue: null,
   _statsChangeNode: null,
-  _phobiesCardVisual: null,
-  _abilitySlotState: null,
-  _abilityDisplayCard: null,
-  _isPhobiesAbilityCard: false,
 
   ctor(sdkCard) {
     // initialize properties that may be required in init
@@ -161,29 +156,12 @@ const BottomDeckCardNode = SdkNode.extend({
 
   setSdkCardFromHandIndex(handIndex, cardFadeDuration) {
     this.handIndex = handIndex;
-    this._abilitySlotState = null;
-    this._isPhobiesAbilityCard = false;
-    let sdkCard = null;
     if (this.handIndex != null) {
-      const session = SDK.GameSession.getInstance();
-      const player = session.getMyPlayer();
-      sdkCard = player.getDeck().getCardInHandAtIndex(this.handIndex);
-      if (sdkCard == null && session.getRulesetId() === 'practice-sandbox-hex' && session.getRulesetVersion() === 2) {
-        const abilitySlot = player.getActiveAbilityForHandSlot(this.handIndex);
-        if (abilitySlot && abilitySlot.definition && abilitySlot.unit.getIsActive()) {
-          const effectCardId = abilitySlot.definition.effectCardId;
-          if (!this._abilityDisplayCard || this._abilityDisplayCard.getId() !== effectCardId) {
-            this._abilityDisplayCard = session.getExistingCardFromIndexOrCreateCardFromData({ id: effectCardId });
-            this._abilityDisplayCard.setOwnerId(player.getPlayerId());
-          }
-          sdkCard = this._abilityDisplayCard;
-          this._abilitySlotState = abilitySlot;
-          this._isPhobiesAbilityCard = true;
-        }
-      }
+      const sdkCard = SDK.GameSession.getInstance().getMyPlayer().getDeck().getCardInHandAtIndex(this.handIndex);
+      this.setSdkCard(sdkCard, cardFadeDuration);
+    } else {
+      this.setSdkCard(null, cardFadeDuration);
     }
-    this.setSdkCard(sdkCard, cardFadeDuration);
-    this._updatePhobiesCardVisual();
   },
 
   getHandIndex() {
@@ -199,39 +177,7 @@ const BottomDeckCardNode = SdkNode.extend({
    * @see SdkNode.getCardResourcePackageId
    */
   getCardResourcePackageId(sdkCard) {
-    const pkgIdentifier = PKGS.getCardInspectPkgIdentifier(sdkCard.getId());
-    const session = SDK.GameSession.getInstance();
-    if (session && session.getRulesetId() === 'practice-sandbox-hex' && session.getRulesetVersion() === 2) {
-      PKGS.addToPhobiesHandCardResources(pkgIdentifier);
-    }
-    return pkgIdentifier;
-  },
-
-  _updatePhobiesCardVisual() {
-    const session = SDK.GameSession.getInstance();
-    const isV2 = session && session.getRulesetId() === 'practice-sandbox-hex' && session.getRulesetVersion() === 2;
-    const shouldShow = isV2 && this.sdkCard && (this._isPhobiesAbilityCard || this.sdkCard instanceof SDK.Unit);
-    if (this._phobiesCardVisual) {
-      this._phobiesCardVisual.removeFromParent(true);
-      this._phobiesCardVisual = null;
-    }
-    if (!shouldShow) {
-      if (this.cardSprite) this.cardSprite.setOpacity(255);
-      this.manaTokenSprite.setOpacity(255);
-      this.manaCostLabel.setOpacity(this.sdkCard ? 255 : 0);
-      return;
-    }
-    this._phobiesCardVisual = this._isPhobiesAbilityCard
-      ? PhobiesHandCardVisual.createAbility(this.sdkCard, this._abilitySlotState.state)
-      : PhobiesHandCardVisual.createUnit(this.sdkCard);
-    this._phobiesCardVisual.setOpacity(this._usable === false ? 190 : 255);
-    this._phobiesCardVisual.setPosition(this.getContentSize().width * 0.5, this.getContentSize().height * 0.5 + 22);
-    this._containerNode.addChild(this._phobiesCardVisual, 8);
-    // Keep the live unit/effect art beneath the transparent frame layers so
-    // animations and the original card sprite lifecycle remain intact.
-    if (this.cardSprite) this.cardSprite.setOpacity(255);
-    this.manaTokenSprite.setOpacity(0);
-    this.manaCostLabel.setOpacity(0);
+    return PKGS.getCardInspectPkgIdentifier(sdkCard.getId());
   },
 
   setSdkCard(sdkCard, cardFadeDuration) {
@@ -301,17 +247,7 @@ const BottomDeckCardNode = SdkNode.extend({
           }
 
           this.cardSprite.setPosition(cardSpritePosition);
-          if (this._isPhobiesAbilityCard) {
-            this.cardSprite.setScale(1.24);
-            this.cardSprite.setPosition(contentSize.width * 0.5, contentSize.height * 0.5 + 65);
-          } else if (this.sdkCard instanceof SDK.Unit
-            && SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex'
-            && SDK.GameSession.getInstance().getRulesetVersion() === 2) {
-            this.cardSprite.setScale(1.04);
-            this.cardSprite.setPosition(contentSize.width * 0.5, contentSize.height * 0.5 - 5);
-          }
           this._containerNode.addChild(this.cardSprite, -1);
-          this._updatePhobiesCardVisual();
 
           // fade card sprites
           this.cardSprite.fadeTo(cardFadeDuration, 255.0);
@@ -639,22 +575,6 @@ const BottomDeckCardNode = SdkNode.extend({
   /** region USABILITY * */
 
   updateUsability() {
-    if (this._isPhobiesAbilityCard && this.sdkCard) {
-      const gameLayer = this.getScene() && this.getScene().getGameLayer();
-      const state = this._abilitySlotState && this._abilitySlotState.state;
-      const isReady = state && state.lockdown === 0 && state.cooldown === 0;
-      if (gameLayer && gameLayer.getIsGameActive()
-        && gameLayer.getIsTurnForPlayerId(this.sdkCard.getOwnerId())
-        && !gameLayer.getIsPlayerSelectionLocked()
-        && isReady && !this._abilitySlotState.silenced) {
-        this.showUsable();
-      } else {
-        this.showUnusable();
-      }
-      this._updatePhobiesCardVisual();
-      return;
-    }
-
     if (this.sdkCard) {
       const gameLayer = this.getScene().getGameLayer();
 

@@ -865,3 +865,131 @@
 		}
   }
 }
+
+// Approved Phobies faces apply only to collection cards. Deck, crafting, and
+// gameplay cards keep their existing frame and composition.
+.card.collection-card.phobies-unit,
+.card.collection-card.phobies-ability {
+	.bg,
+	.card-caption,
+	.card-description,
+	.prismatic-gradient {
+		display: none;
+	}
+	.card-sprite {
+		position: absolute;
+		z-index: 2;
+		width: 16.8rem;
+		height: 16.8rem;
+		left: 60.2%;
+		top: 36.5%;
+		margin: 0;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-collection-face {
+		position: absolute;
+		left: 50%;
+		top: 0;
+		width: 22.6rem;
+		height: 29.6rem;
+		transform: translateX(-50%);
+		z-index: 4;
+		pointer-events: none;
+	}
+	.phobies-card-frame {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 0;
+	}
+	.phobies-card-name,
+	.phobies-card-level,
+	.phobies-card-stat-value,
+	.phobies-card-effect {
+		position: absolute;
+		z-index: 1;
+		transform: translate(-50%, -50%);
+		text-align: center;
+		text-shadow: 0 0 0.3rem #061323, 0 0 0.6rem #061323;
+		white-space: nowrap;
+	}
+	.phobies-card-name {
+		width: 54%;
+		color: #fff;
+		font-size: 1.25rem;
+		line-height: 1.35rem;
+		&.is-long {
+			font-size: 0.95rem;
+			line-height: 1.05rem;
+		}
+	}
+	.phobies-card-level {
+		color: #9bced8;
+		font-size: 0.9rem;
+		line-height: 1rem;
+	}
+	.card-header .mana-cost {
+		z-index: 6;
+	}
+	.phobies-card-stat-icon,
+	.phobies-card-rarity {
+		position: absolute;
+		z-index: 1;
+		width: 1.8rem;
+		height: 1.8rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-card-rarity {
+		width: 3rem;
+		height: 1.3rem;
+	}
+	.phobies-card-stat-value {
+		color: #fff;
+		font-size: 1.15rem;
+		line-height: 1.2rem;
+	}
+	.inventory-count {
+		z-index: 6;
+		bottom: -0.1rem;
+		color: #b5dce3;
+	}
+	.is-unread-block {
+		z-index: 6;
+	}
+	.glow {
+		z-index: 5;
+	}
+}
+
+.card.collection-card.phobies-ability {
+	.card-sprite {
+		width: 9.6rem;
+		height: 9.6rem;
+		left: 50%;
+		top: 26.4%;
+	}
+	.phobies-card-name {
+		width: 90%;
+		font-size: 1.3rem;
+		&.is-long {
+			font-size: 1rem;
+		}
+	}
+	.phobies-card-level {
+		font-size: 0.9rem;
+	}
+	.phobies-card-effect {
+		width: 82%;
+		max-height: 7.4rem;
+		overflow: hidden;
+		color: #9bced8;
+		font-size: 1.1rem;
+		line-height: 1.35rem;
+		white-space: normal;
+		&.is-long {
+			font-size: 0.9rem;
+			line-height: 1.05rem;
+		}
+	}
+}

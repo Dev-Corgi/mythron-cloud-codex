@@ -160,8 +160,6 @@ var BottomDeckLayer = BaseLayer.extend({
     if (gameLayer) {
       gameLayer.getEventBus().on(EVENTS.followup_card_start, this.onGameFollowupCardStart, this);
       gameLayer.getEventBus().on(EVENTS.followup_card_stop, this.onGameFollowupCardStop, this);
-      gameLayer.getEventBus().on(EVENTS.update_cache_step, this.refreshV2HandAbilityCards, this);
-      gameLayer.getEventBus().on(EVENTS.update_cache_action, this.refreshV2HandAbilityCards, this);
     }
   },
 
@@ -173,8 +171,6 @@ var BottomDeckLayer = BaseLayer.extend({
     if (gameLayer) {
       gameLayer.getEventBus().off(EVENTS.followup_card_start, this.onGameFollowupCardStart, this);
       gameLayer.getEventBus().off(EVENTS.followup_card_stop, this.onGameFollowupCardStop, this);
-      gameLayer.getEventBus().off(EVENTS.update_cache_step, this.refreshV2HandAbilityCards, this);
-      gameLayer.getEventBus().off(EVENTS.update_cache_action, this.refreshV2HandAbilityCards, this);
     }
   },
 
@@ -548,19 +544,6 @@ var BottomDeckLayer = BaseLayer.extend({
     const cardNode = this.getCardNodes()[i];
     if (cardNode && !cardNode.getActionByTag(CONFIG.CARD_TAG)) {
       cardNode.setSdkCardFromHandIndex(i, cardFadeDuration);
-    }
-  },
-
-  refreshV2HandAbilityCards() {
-    const session = SDK.GameSession.getInstance();
-    if (!session || session.getRulesetId() !== 'practice-sandbox-hex' || session.getRulesetVersion() !== 2) return;
-    const cardNodes = this.getCardNodes();
-    for (let i = 0; i < cardNodes.length; i++) {
-      const cardNode = cardNodes[i];
-      if (cardNode instanceof BottomDeckCardNode) {
-        cardNode.setSdkCardFromHandIndex(i);
-        cardNode.updateUsability();
-      }
     }
   },
 
