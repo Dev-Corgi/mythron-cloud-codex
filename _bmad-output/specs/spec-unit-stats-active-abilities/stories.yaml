@@ -46,14 +46,15 @@
     In the existing card-plus-related-card inspect view, show the ability card where a spell such as Phoenix Fire
     appears for Lantern Fox (CAP-5). Read SPEC.md and active-ability-rules.md first.
 - id: "8"
-  title: Move the General's Bloodbound ability onto its entity
+  title: Move the General's Bloodbound ability state onto its entity
   description: >-
-    Retire Player.signatureAbilityState and the parallel signature branches in PlaySignatureCardAction and
-    ValidatorPlayCard (AD-7). Give each General an activeAbility definition (effect = its Bloodbound Spell,
-    Lockdown 2, Cooldown 2, no mana) and a per-entity activeAbilityState that is initialized explicitly when
-    the General enters play, never in a getter. The ability keeps its dedicated Bloodbound slot, identified
-    separately from hand indices, and uses UseActiveAbilityAction. Saved version 2 matches that carry
-    player-level signature state must still load and replay, so add a migration or a reconstruction path.
+    Retire Player.signatureAbilityState and its helper methods (AD-7). In version 2 each General carries an
+    activeAbility definition (Lockdown 2, Cooldown 2) and a per-entity activeAbilityState created by explicit,
+    non-overwriting initialization when the General is placed or the version 2 ruleset is assigned, never in a getter.
+    The existing counter decrement at the owner's turn end and the cooldown reset after use run through the entity.
+    PlaySignatureCardAction, its validator branch, and getIsSignatureCardActive read the General's state, while the
+    action type, the AI calls, the Bloodbound slot UI, and network events stay unchanged (Story 14 unifies them).
+    Version 2 snapshots that still carry player-level signature state restore its counters onto the General.
     Version 1 and legacy behavior are unchanged. Read SPEC.md, active-ability-rules.md, and
     ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-7) first.
 - id: "9"
@@ -96,3 +97,12 @@
     Player.actionUseActiveAbility to the top by resolving the cardEligibility cycle, and drop the
     attackRange._isVersion2Ruleset wrapper in favor of the AD-1 helper. Behavior must not change. Read SPEC.md and
     ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md first.
+- id: "14"
+  title: Unify the General's Bloodbound ability under the active-ability action
+  description: >-
+    After Story 8, make the General's Bloodbound ability use UseActiveAbilityAction instead of
+    PlaySignatureCardAction in version 2 (AD-7), with its effect resolved through the existing spell card and its dedicated Bloodbound slot identified
+    separately from hand indices. Port every v2 caller: the server AI (starter_ai, phase_ii_ai, and the phase scoring
+    modules), single_player.coffee pointer and tracking logic, app/view/Player.js network events, SignatureCardNode, and the
+    game layout reminders. Handle prismatic Generals and a changed signature card. Legacy and version 1 keep
+    PlaySignatureCardAction. Read SPEC.md, active-ability-rules.md, and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-7) first.

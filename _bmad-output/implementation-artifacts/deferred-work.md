@@ -32,3 +32,6 @@
 - source_spec: `spec-correct-phobies-card-surfaces.md`
   summary: Add focused rendering assertions for the collection card face and V2 in-game unit inspect face, including Planar Scout's Phoenix Fire icon and Lockdown/Cooldown counters.
   evidence: Existing collection visual tests cover card classification and stat mappings but do not exercise rendered DOM layering; the GameLayer inspect test verifies the paired effect card but does not assert the new face output.
+- source_spec: `_bmad-output/specs/spec-unit-stats-active-abilities/stories/8-move-the-general-s-bloodbound-ability-state-onto-its-entity.md`
+  summary: Unify the General's Bloodbound ability under UseActiveAbilityAction and port the AI, server, and UI callers (Story 14).
+  evidence: Server AI, single-player tracking, Player.js events, and SignatureCardNode all call PlaySignatureCardAction directly in version 2, so switching the action type together with the state move is a separate shippable change with its own AI and UI risk.
