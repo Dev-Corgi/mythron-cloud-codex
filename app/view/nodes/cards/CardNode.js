@@ -9,6 +9,7 @@ const SDK = require('app/sdk');
 const RSX = require('app/data/resources');
 const PKGS = require('app/data/packages');
 const UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
+const STAT_ICON_SIZE_2X = 35;
 const ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const UtilsEngine = require('app/common/utils/utils_engine');
@@ -613,12 +614,19 @@ var CardNode = SdkNode.extend({
     ];
     this._phobiesStatIconSprites = [];
     positions.stats.forEach((position, index) => {
-      const iconPosition = this._phobiesPosition([position[0] - 36, position[1]]);
-      this._phobiesStatIconSprites[index] = addSprite(statResources[index], iconPosition, 0.5);
+      // Approved geometry (phobies_unit/preview.html): a 35px icon in the 2x canvas whose
+      // top-left is (x - 51, y - 17); the source images are larger than that, so scale by size.
+      const iconPosition = this._phobiesPosition([position[0] - 33.5, position[1] + 0.5]);
+      const iconSprite = addSprite(statResources[index], iconPosition);
+      iconSprite.setScale((STAT_ICON_SIZE_2X / 2) / iconSprite.getContentSize().width);
+      this._phobiesStatIconSprites[index] = iconSprite;
     });
 
     this._phobiesMovementValueLabel = addValue(14);
     this._phobiesRangeValueLabel = addValue(14);
+    // updateStats runs before these labels exist when the face is (re)built, so fill them now
+    this._phobiesMovementValueLabel.setString(sdkCard.getMovementDistance(), true);
+    this._phobiesRangeValueLabel.setString(sdkCard.getAttackRangeValue(), true);
     this.atkLabel.setPosition(this._phobiesPosition(positions.stats[0]));
     this.hpLabel.setPosition(this._phobiesPosition(positions.stats[1]));
     this._phobiesMovementValueLabel.setPosition(this._phobiesPosition(positions.stats[2]));
@@ -690,10 +698,16 @@ var CardNode = SdkNode.extend({
 
     const lockdown = ABILITY_LAYOUT.counters.lockdown;
     const cooldown = ABILITY_LAYOUT.counters.cooldown;
-    addSprite(RSX.collection_card_ability_lockdown_ring, this._phobiesPosition(lockdown.center), 0.25);
-    addSprite(RSX.collection_card_ability_lockdown_icon, this._phobiesPosition(lockdown.iconCenter), 0.25);
-    addSprite(RSX.collection_card_ability_cooldown_ring, this._phobiesPosition(cooldown.center), 0.25);
-    addSprite(RSX.collection_card_ability_cooldown_icon, this._phobiesPosition(cooldown.iconCenter), 0.25);
+    // Layout sizes are 2x canvas pixels; scale each image to that size at normal card size.
+    const addSizedSprite = (resource, center, size) => {
+      const sprite = addSprite(resource, this._phobiesPosition(center));
+      sprite.setScale((size[0] / 2) / sprite.getContentSize().width);
+      return sprite;
+    };
+    addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
+    addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
+    addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
+    addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
 
     const activeAbility = this._phobiesAbilityFaceData;
     const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);

@@ -5452,6 +5452,26 @@ var GameLayer = FXCompositeLayer.extend({
   },
 
   /**
+   * Version 2 matches draw units and unit-granted abilities with the Phobies card faces everywhere
+   * a full card is shown (inspect already does), so played and burned cards use them too.
+   * @param {CardNode} cardNode node that is about to show the card
+   * @param {SDK.Card} sdkCard card to show
+   * @param {SDK.Action} action action that played or burned the card
+   */
+  _setPhobiesFacesForShownCard(cardNode, sdkCard, action) {
+    const usePhobiesFaces = SDK.GameSession.getInstance().getIsPracticeSandboxV2();
+    cardNode.setPhobiesUnitFaceEnabled(usePhobiesFaces && sdkCard instanceof SDK.Unit);
+    let abilityData = null;
+    if (usePhobiesFaces && action instanceof SDK.UseActiveAbilityAction && !action.getIsGeneralAbility()) {
+      const sourceUnit = action.getSourceUnit();
+      if (sourceUnit != null && sourceUnit.activeAbility != null && sourceUnit.activeAbility.effectCardId === sdkCard.getId()) {
+        abilityData = sourceUnit.activeAbility;
+      }
+    }
+    cardNode.setPhobiesAbilityFaceEnabled(abilityData);
+  },
+
+  /**
    * Starts showing a played card
    * @param {SDK.Action} action action that played card to show
    * @param {Number} animateDuration duration of animation in seconds
@@ -5466,6 +5486,7 @@ var GameLayer = FXCompositeLayer.extend({
       this.stopShowingPlayCard(currentSdkCard);
 
       // set sdk card to trigger rebuild
+      this._setPhobiesFacesForShownCard(this._playCardNode, sdkCard, action);
       this._playCardNode.setSdkCard(sdkCard, action);
       const cardContentSize = this._playCardNode.getCardContentSize();
       const ownerId = action.getOwnerId();
@@ -5573,6 +5594,7 @@ var GameLayer = FXCompositeLayer.extend({
     const currentSdkCard = this._burnCardNode.getSdkCard();
     if (currentSdkCard == null || currentSdkCard !== sdkCard) {
       // set sdk card to trigger rebuild
+      this._setPhobiesFacesForShownCard(this._burnCardNode, sdkCard, action);
       this._burnCardNode.setSdkCard(sdkCard, action);
       const cardContentSize = this._burnCardNode.getCardContentSize();
       const ownerId = action.getOwnerId();
