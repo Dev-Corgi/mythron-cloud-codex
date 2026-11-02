@@ -46,7 +46,6 @@ class SetExhaustionAction extends Action
       if @exhausted? then target.setExhausted(@exhausted)
       if @movesMade? then target.setMovesMade(@movesMade)
       if @attacksMade? then target.setAttacksMade(@attacksMade)
-      if @actionPoints? and target.getUsesActionPoints?() and target.getUsesActionPoints() then target.setActionPoints(@actionPoints)
-      if @actionPointsSpentThisTurn? and target.getUsesActionPoints?() and target.getUsesActionPoints() then target.setHasSpentActionPointThisTurn(@actionPointsSpentThisTurn)
+      target.restoreActionPointState?(@actionPoints, @actionPointsSpentThisTurn)
 
 module.exports = SetExhaustionAction

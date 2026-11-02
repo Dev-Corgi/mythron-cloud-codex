@@ -39,8 +39,6 @@ class MoveAction extends Action
 
     # move entity
     entity.setPosition(@getTargetPosition())
-    if entity.getUsesActionPoints?() and entity.getUsesActionPoints()
-      entity.spendActionPoint()
-    entity.setMovesMade(entity.getMovesMade() + 1)
+    entity.recordMove()
 
 module.exports = MoveAction

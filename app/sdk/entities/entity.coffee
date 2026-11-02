@@ -516,9 +516,12 @@ class Entity extends Card
     return @getActionPoints() > 0 and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasAttacksLeft() and @getATK() > 0 and @getReach() > 0
 
-  getUsesActionPoints: () ->
+  getIsPracticeSandboxV2: () ->
     session = @getGameSession()
     return !!(session? and session.getIsPracticeSandboxV2())
+
+  getUsesActionPoints: () ->
+    return @getIsPracticeSandboxV2()
 
   getActionPoints: () ->
     return Math.max(0, @actionPoints or 0) if @getUsesActionPoints()
@@ -542,6 +545,49 @@ class Entity extends Card
     @actionPointsSpentThisTurn = true
     @exhausted = @actionPoints is 0
     return true
+
+  ###
+  * Returns whether this unit has moved, attacked, or used an ability this turn.
+  * Action-point units track the spent flag; others track moves and attacks made.
+  ###
+  getHasActedThisTurn: () ->
+    return @getHasSpentActionPointThisTurn() if @getUsesActionPoints()
+    return @getMovesMade() != 0 or @getAttacksMade() != 0
+
+  # Records an executed explicit move. The point is spent before the moves counter increments.
+  recordMove: () ->
+    @spendActionPoint() if @getUsesActionPoints()
+    @setMovesMade(@getMovesMade() + 1)
+
+  # Records an executed explicit (non-implicit) attack. The point is spent before the attacks counter increments.
+  recordAttack: () ->
+    @spendActionPoint() if @getUsesActionPoints()
+    @setAttacksMade(@getAttacksMade() + 1)
+
+  # True only for action-point units that have no points left.
+  getIsOutOfActionPoints: () ->
+    return @getUsesActionPoints() and @getActionPoints() <= 0
+
+  # Whether the unit has the action points needed to use an active ability.
+  getCanUseActiveAbility: () ->
+    return @getUsesActionPoints() and @getActionPoints() > 0
+
+  # Spends the action point for an active ability use. Returns false when it cannot be spent.
+  recordActiveAbilityUse: () ->
+    return @spendActionPoint()
+
+  # Restores action-point state copied from another unit (e.g. when transformed). Null values are skipped.
+  restoreActionPointState: (actionPoints, hasSpentActionPointThisTurn) ->
+    return unless @getUsesActionPoints()
+    @setActionPoints(actionPoints) if actionPoints?
+    @setHasSpentActionPointThisTurn(hasSpentActionPointThisTurn) if hasSpentActionPointThisTurn?
+
+  # Values to carry into a Transformed context when a building completes.
+  # Without action points the old behavior (fresh state, no action-point fields) is preserved.
+  getBuildingTransformState: () ->
+    if @getUsesActionPoints()
+      return {exhausted: @getExhausted(), movesMade: @getMovesMade(), attacksMade: @getAttacksMade(), actionPoints: @getActionPoints(), actionPointsSpentThisTurn: @getHasSpentActionPointThisTurn()}
+    return {exhausted: false, movesMade: 0, attacksMade: 0, actionPoints: undefined, actionPointsSpentThisTurn: undefined}
 
   getCanAct:() ->
     return @isOwnersTurn() and @getDoesOwnerHaveEnoughManaToAct() and (@getCanMove() or @getCanAttack())

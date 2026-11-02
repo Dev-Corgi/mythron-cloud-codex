@@ -77,10 +77,8 @@ class ModifierBuilding extends ModifierStartTurnWatch
     # because we may need information about the existing entity being replaced
     @transformCardData.additionalModifiersContextObjects ?= []
     entity = @getCard()
-    if entity.getUsesActionPoints?() and entity.getUsesActionPoints()
-      transformedState = ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn())
-    else
-      transformedState = ModifierTransformed.createContextObject(false,0,0)
+    carried = entity.getBuildingTransformState()
+    transformedState = ModifierTransformed.createContextObject(carried.exhausted, carried.movesMade, carried.attacksMade, carried.actionPoints, carried.actionPointsSpentThisTurn)
     @transformCardData.additionalModifiersContextObjects.push(transformedState)
     spawnAction = new PlayCardAsTransformAction(@getGameSession(), @getCard().getOwnerId(), @getCard().getPosition(), @transformCardData)
 

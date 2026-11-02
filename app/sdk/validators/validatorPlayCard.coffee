@@ -22,7 +22,7 @@ class ValidatorPlayCard extends Validator
       state = general?.getActiveAbilityState()
       card = action.getCard()
       targetPosition = action.getTargetPosition()
-      if !general? or action.getOwnerId() isnt general.getOwnerId() or !state? or !general.getIsActive() or general.getIsSilenced() or general.getActionPoints() < 1 or state.lockdown > 0 or state.cooldown > 0
+      if !general? or action.getOwnerId() isnt general.getOwnerId() or !state? or !general.getIsActive() or general.getIsSilenced() or !general.getCanUseActiveAbility() or state.lockdown > 0 or state.cooldown > 0
         @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
       else if !card? or !CardType.getIsSpellCardType(card.getType()) or !card.getIsPositionValidTarget(targetPosition)
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))
@@ -31,7 +31,7 @@ class ValidatorPlayCard extends Validator
       state = sourceUnit?.getActiveAbilityState?()
       card = action.getCard()
       targetPosition = action.getTargetPosition()
-      if !sourceUnit? or !state? or action.getOwnerId() isnt sourceUnit.getOwnerId() or !sourceUnit.getIsActive() or sourceUnit.getIsSilenced() or state.lockdown > 0 or state.cooldown > 0 or sourceUnit.getActionPoints() < 1
+      if !sourceUnit? or !state? or action.getOwnerId() isnt sourceUnit.getOwnerId() or !sourceUnit.getIsActive() or sourceUnit.getIsSilenced() or state.lockdown > 0 or state.cooldown > 0 or !sourceUnit.getCanUseActiveAbility()
         @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
       else if !card? or !CardType.getIsSpellCardType(card.getType()) or !card.getIsPositionValidTarget(targetPosition)
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))

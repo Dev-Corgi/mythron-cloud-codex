@@ -28,7 +28,7 @@ class ModifierFirstBlood extends Modifier
     # if rush is applied on the turn that the unit was summoned
     if @getGameSession().wasActionExecutedDuringTurn(card.getAppliedToBoardByAction(), @getGameSession().getCurrentTurn()) and @getGameSession().getCanCardBeScheduledForRemoval(card)
       # immediately activate the unit IF it has not already moved and / or attacked this turn (do not re-activate units that already had rush)
-      hasNotActed = if card.getUsesActionPoints?() and card.getUsesActionPoints() then !card.getHasSpentActionPointThisTurn() else card.getMovesMade() == 0 and card.getAttacksMade() == 0
+      hasNotActed = !card.getHasActedThisTurn()
       if hasNotActed
         refreshExhaustionAction = @getGameSession().createActionForType(RefreshExhaustionAction.type)
         refreshExhaustionAction.setSource(card)

@@ -23,7 +23,7 @@ class ModifierPseudoRush extends Modifier
     super(card)
 
     card = @getCard()
-    hasNotActed = if card.getUsesActionPoints?() and card.getUsesActionPoints() then !card.getHasSpentActionPointThisTurn() else card.getMovesMade() == 0 and card.getAttacksMade() == 0
+    hasNotActed = !card.getHasActedThisTurn()
     if hasNotActed
       refreshExhaustionAction = @getGameSession().createActionForType(RefreshExhaustionAction.type)
       refreshExhaustionAction.setSource(card)
