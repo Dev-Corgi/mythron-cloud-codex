@@ -2,7 +2,7 @@
 title: 'Prevent local Firebase placeholder URLs in client bundles'
 type: 'bugfix'
 created: '2026-11-02'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context: []
