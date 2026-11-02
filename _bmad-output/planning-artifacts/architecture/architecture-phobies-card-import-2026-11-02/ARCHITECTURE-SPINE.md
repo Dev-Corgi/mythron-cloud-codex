@@ -74,13 +74,13 @@ Dependency direction: cards and effects depend on the SDK stat model and modifie
 
 - **Binds:** CAP-5; match setup, `ResolveMethronPointControlDamageAction`, Wall setup.
 - **Prevents:** General health, deficit damage and Wall health defined inline in different places, and drifting values.
-- **Rule:** One v2 ruleset config object defines General health 6000, Methron deficit damage 200 per point, and Wall health 2000. It replaces the inline values (Wall health 10 in the tile factory, General health 25 in each faction factory, the multiplier in the control-damage action) and is applied at v2 match setup, where General health is overridden; no other code embeds these numbers. They supersede the parent AD-9 value of two damage per point and the map spec's ten-health Wall, and this treats v2 as not yet released, which weakens the parent AD-1 reading that a ruleset version is immutable. v1 and other modes keep their values. Saved v2 matches, replays and snapshots made under the old values are purged by the project owner; there is no migration and no per-match constant storage.
+- **Rule:** One v2 ruleset config object defines General health 6000, General attack and Bloodbound Spell effect amounts scaled by 100, Methron deficit damage 200 per point, and Wall health 2000. The Bloodbound scale is applied where the General's ability resolves in v2, so legacy spell cards are not edited. It replaces the inline values (Wall health 10 in the tile factory, General health 25 in each faction factory, the multiplier in the control-damage action) and is applied at v2 match setup, where General health is overridden; no other code embeds these numbers. They supersede the parent AD-9 value of two damage per point and the map spec's ten-health Wall, and this treats v2 as not yet released, which weakens the parent AD-1 reading that a ruleset version is immutable. v1 and other modes keep their values. Saved v2 matches, replays and snapshots made under the old values are purged by the project owner; there is no migration and no per-match constant storage.
 
 ### AD-14 — Passives and Lifegain are modifiers on existing hooks [ADOPTED]
 
 - **Binds:** CAP-3, CAP-6; modifiers, damage and heal actions, card effect text.
 - **Prevents:** Passive behavior hard-coded in actions, Lifegain duplicating the existing heal-on-damage modifier, and legacy cards gaining the behavior.
-- **Rule:** Lifegain is the existing `ModifierHealSelfWhenDealingDamage` given an optional ratio parameter (default 1.0, so every existing use is unchanged), restoring `floor(ratio × damage dealt)` capped at missing Health; it counts all damage the unit deals, including ability damage, and Phobies cards attach it at ratio 0.5. Each passive (Body Count, Counter Attack at 35% rounded down, Regatorate, Rage, Heart Attack) uses an existing modifier where one fits (for example a start-of-turn or kill-watch modifier) and is otherwise a card-specific modifier on existing hooks; Heart means the General. Nothing may attach these modifiers to a non-Phobies card. Effect text is worded in Duelyst terminology per `card-roster.md`.
+- **Rule:** Lifegain is the existing `ModifierHealSelfWhenDealingDamage` given an optional ratio parameter (default 1.0, so every existing use is unchanged), restoring `floor(ratio × damage dealt)` capped at missing Health; it counts all damage the unit deals, including ability damage, and Phobies cards attach it at ratio 0.5. Each passive (Body Count, Counter Attack at 35% rounded down and never triggered by another Counter Attack's reflected damage, Regatorate, Rage, Heart Attack) uses an existing modifier where one fits (for example a start-of-turn or kill-watch modifier) and is otherwise a card-specific modifier on existing hooks; Heart means the General. Nothing may attach these modifiers to a non-Phobies card. Effect text is worded in Duelyst terminology per `card-roster.md`.
 
 ### AD-15 — Reuse before create [ADOPTED]
 
@@ -133,9 +133,12 @@ app/sdk/rulesets/                # v2 config, allowlist roles, shared bot/preset
 | CAP-5 General health, Methron damage, Wall health | v2 config, setup, control-damage action | AD-9, AD-13 |
 | CAP-6 Lifegain | Existing heal-on-damage modifier with ratio | AD-14, AD-15 |
 | CAP-7 allowed list, bot deck, presets | Allowlist module, bot setup, deck select | AD-4, AD-5, AD-12 |
+| CAP-8 AI uses abilities | Practice AI agent actions | AD-7, AD-11 |
 
 ## Deferred
 
+- Prismatic and skin ids auto-generated for the new cards; on hold until a need appears.
+- Practice AI ability use follows the AD-7 ability action and the existing balanced policy; evaluation weights are tuning.
 - Per-effect implementation of the 16 actives beyond the new spell kinds listed in AD-11; stories decide each.
 - Deck-builder presentation of imported cards; the allowlist reset hides originals, so no marker is specified.
 - Level mechanics, action-point display and further cards remain deferred as in the parent spine.

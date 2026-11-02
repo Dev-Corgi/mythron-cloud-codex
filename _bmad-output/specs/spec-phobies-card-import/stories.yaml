@@ -1,7 +1,7 @@
 - id: "1"
   title: Move v2 General health, Methron damage, and Wall health into one ruleset config
   description: >-
-    Define General health 6000, Methron deficit damage 200 per point, and Wall health 2000 in one v2 config that replaces the inline values in the tile factory, the faction General factories, and the control-damage action, with the General health override applied at v2 match setup (CAP-5, AD-13). Version 1 and other modes keep their values. Read SPEC.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-13) first.
+    Define General health 6000, General attack and Bloodbound Spell effect amounts times 100 (the story records which spell numbers it scaled), Methron deficit damage 200 per point, and Wall health 2000 in one v2 config that replaces the inline values in the tile factory, the faction General factories, and the control-damage action, with the General health override applied at v2 match setup (CAP-5, AD-13). Version 1 and other modes keep their values. Read SPEC.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-13) first.
 - id: "2"
   title: Add the none attack type for attack-less units
   description: >-
@@ -33,39 +33,45 @@
 - id: "7"
   title: Implement the five Phobies passives
   description: >-
-    Add Body Count, Counter Attack (35%, rounded down), Regatorate, Rage, and Heart Attack with Duelyst effect text and the General as the Heart, including damage dealt through abilities (CAP-3, AD-14). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-14, AD-15) first.
+    Add Body Count, Counter Attack (35%, rounded down, never triggered by another Counter Attack's reflected damage), Regatorate, Rage, and Heart Attack with Duelyst effect text and the General as the Heart, including damage dealt through abilities (CAP-3, AD-14). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-14, AD-15) first.
   invoke_dev_with: >-
     Reuse before create (AD-15): look for existing start-of-turn, kill-watch, take-damage, and general-damage modifiers first, and record what you reviewed.
 - id: "8"
   title: Implement the damage, heal, buff, and debuff actives
   description: >-
-    Add the effect cards and unit links for Monty, Pure Adrenaline, Group Hug, I feel great!, Clang! Clang!, Helping Hand, and Peek-a-booOO! (2 turns), with the AD-17 target classes and their caster and target FX and sfx (CAP-4, AD-11, AD-16, AD-17). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-11, AD-16, AD-17) first.
+    Add the effect cards and unit links for Monty, Pure Adrenaline, Group Hug, I feel great!, Clang! Clang!, Helping Hand, and Peek-a-booOO! (2 turns), with the AD-17 target classes and their caster and target FX and sfx (CAP-4, AD-11, AD-16, AD-17). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-11, AD-16, AD-17) first. Name each ability card by its Duelyst skill name from the card-roster.md ability text section, not the Phobies active name.
   invoke_dev_with: >-
     Reuse before create (AD-15): build on existing spell kinds (damage, heal, buff) and record what you reviewed. Register each id in the eligibility module and attach the FX and sfx from card-roster.md.
 - id: "9"
   title: Implement the self-destruct and adjacent-area actives
   description: >-
-    Add Special Delivery, Poof!, Gotcha (2 turns, immobilize), and Raising Hell! as effect cards using the shared area resolver, with their FX and sfx (CAP-4, AD-8, AD-11, AD-17). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-8, AD-11, AD-17) first.
+    Add Special Delivery, Poof!, Gotcha (2 turns, immobilize), and Raising Hell! as effect cards using the shared area resolver, with their FX and sfx (CAP-4, AD-8, AD-11, AD-17). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-8, AD-11, AD-17) first. Name each ability card by its Duelyst skill name from the card-roster.md ability text section, not the Phobies active name.
   invoke_dev_with: >-
     Reuse before create (AD-15): use the AD-8 resolver and existing damage and removal actions, and record what you reviewed. Register each id in the eligibility module and attach the FX and sfx from card-roster.md.
 - id: "10"
   title: Implement the movement and push actives
   description: >-
-    Add Caw Claw, Bull Rush, and Play Smashface, extending the AD-8 resolver with push and dash paths (Bull Rush prefers enemy tiles over empty tiles); an effect with a move or attack costs one action point in total and its attacks still trigger attack-related modifiers (CAP-4, AD-6, AD-8, AD-11). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-6, AD-8, AD-11) first.
+    Add Caw Claw, Bull Rush, and Play Smashface, extending the AD-8 resolver with push and dash paths (Bull Rush prefers enemy tiles over empty tiles); an effect with a move or attack costs one action point in total and its attacks still trigger attack-related modifiers (CAP-4, AD-6, AD-8, AD-11). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-6, AD-8, AD-11) first. Name each ability card by its Duelyst skill name from the card-roster.md ability text section, not the Phobies active name.
   invoke_dev_with: >-
     Reuse before create (AD-15): build on the existing move and teleport actions and add a push action only if none fits, recording what you reviewed. Register each id in the eligibility module and attach the FX and sfx from card-roster.md.
 - id: "11"
   title: Implement Terrorform and Behold
   description: >-
-    Add Terrorform (create a Wall with the v2 config health on an adjacent empty tile, or destroy an adjacent Wall) and Behold (straight-line beam through the resolver) with their FX and sfx (CAP-4, AD-8, AD-9, AD-11, AD-13). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-8, AD-9, AD-11, AD-13) first.
+    Add Terrorform (create a Wall with the v2 config health on an adjacent empty tile, or destroy an adjacent Wall) and Behold (straight-line beam through the resolver) with their FX and sfx (CAP-4, AD-8, AD-9, AD-11, AD-13). Read SPEC.md, card-roster.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-8, AD-9, AD-11, AD-13) first. Name each ability card by its Duelyst skill name from the card-roster.md ability text section, not the Phobies active name.
   invoke_dev_with: >-
     Reuse before create (AD-15): reuse the existing Wall setup and the AD-8 resolver, and record what you reviewed. Register each id in the eligibility module and attach the FX and sfx from card-roster.md.
 - id: "12"
+  title: Teach the Practice AI to use active abilities
+  description: >-
+    Let the Practice bot use unit and General abilities within Lockdown, Cooldown, range, target, and action-point rules, selected by its existing balanced policy (CAP-8, AD-7). Read SPEC.md, active-ability-rules.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-7, AD-11, AD-17) first.
+  invoke_dev_with: >-
+    Reuse before create (AD-15): build on the existing agent actions and the ability use action, and record what you reviewed.
+- id: "13"
   title: Replace the allowlist, purge invalid decks, and set the bot deck and presets
   description: >-
     Make deckable the 35 cards plus generals and remove all other cards from it (including Planar Scout), have deck load and entry validation delete saved Practice and Sandbox decks with other cards, and use the eight-card bot list for the Practice bot and each faction's primary-General preset (CAP-7, AD-12). Read SPEC.md, practice-bot-deck.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-12) first.
   done_checkpoint: true
-- id: "13"
+- id: "14"
   title: Verify card display for imported cards and their ability cards in the game
   description: >-
     Check in the running game the [PB] name, skill icons, Duelyst-terminology effect text, the ability card in card detail view, and the card reveal, FX, and sfx attached in earlier stories (CAP-1, CAP-4, AD-16); fix any display gaps found. Read SPEC.md, card-roster.md, active-ability-rules.md and ../../planning-artifacts/architecture/architecture-phobies-card-import-2026-11-02/ARCHITECTURE-SPINE.md (AD-16) first.

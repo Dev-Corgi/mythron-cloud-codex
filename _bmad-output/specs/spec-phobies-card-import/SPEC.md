@@ -31,11 +31,11 @@ Bring 35 Phobies cards into Duelyst's Practice and Sandbox, keeping Phobies' sta
   - **success:** Each passive in `card-roster.md` (Body Count, Counter Attack, Regatorate, Rage, Heart Attack) behaves as its Phobies description states and appears in the card's effect text, worded in Duelyst terminology (General, minion, Attack, Health) per `card-roster.md`.
 - **CAP-4**
   - **intent:** Phobies active abilities work as hand-slot abilities.
-  - **success:** Each active in `card-roster.md` is a hand-slot ability under the unit-stats ability structure, with Phobies Lockdown (`unlocking`), Cooldown (default 1), range and effect, and displays the roster's Duelyst skill icon; its effect text is worded in Duelyst terminology per `card-roster.md`. Using it plays the spell-style card reveal (card back, then reveal) followed by the caster and target effects and sounds listed in the roster's FX table, using existing Duelyst effects only.
+  - **success:** Each active in `card-roster.md` is a hand-slot ability under the unit-stats ability structure, with Phobies Lockdown (`unlocking`), Cooldown (default 1), range and effect, and displays the roster's Duelyst skill icon, and the ability card is named by that Duelyst skill, not the Phobies active name; its effect text is worded in Duelyst terminology per `card-roster.md`. Using it plays the spell-style card reveal (card back, then reveal) followed by the caster and target effects and sounds listed in the roster's FX table, using existing Duelyst effects only.
 
 - **CAP-5**
   - **intent:** Generals are sturdier and Methron control hits harder to match Phobies-scale stats.
-  - **success:** In Practice and Sandbox v2 matches each General starts with 6000 health, and the Methron deficit deals 200 damage per point of deficit (3 versus 1 deals 400); other modes keep their General health and damage values. Ogre's Rage and Hi-Five's Heart Attack treat the General as the Heart.
+  - **success:** In Practice and Sandbox v2 matches each General starts with 6000 health, each General's attack and the numeric effects of each Bloodbound Spell are 100 times their usual values, and the Methron deficit deals 200 damage per point of deficit (3 versus 1 deals 400); other modes keep their General health and damage values. Ogre's Rage and Hi-Five's Heart Attack treat the General as the Heart.
 
 - **CAP-6**
   - **intent:** The eight Phobies Undead cards carry the Lifegain modifier.
@@ -45,14 +45,19 @@ Bring 35 Phobies cards into Duelyst's Practice and Sandbox, keeping Phobies' sta
   - **intent:** Practice and Sandbox allow only the imported cards, and the Practice bot plays them.
   - **success:** The allowed-card list for Practice and Sandbox decks is reset to the 35 imported cards plus generals; no previously allowed neutral or faction card is selectable or playable there, and saved Practice/Sandbox decks containing removed cards are deleted automatically. Deck selection offers, for each faction's primary General, a preset starter deck equal to that General plus the eight cards of `practice-bot-deck.md`, replacing the 40-card faction starter decks in these modes. The Practice bot deck is `practice-bot-deck.md` for each general, replacing the former list, and the bot plays it under its existing difficulty modes and balanced policy.
 
+- **CAP-8**
+  - **intent:** The Practice AI uses active abilities.
+  - **success:** The Practice bot uses unit and General abilities under their Lockdown, Cooldown, range, target and action-point rules, chosen by its existing balanced policy; a bot unit with a ready ability and a legal target in a favorable position uses it.
+
 ## Constraints
 
+- Phobies `keys` is the mana cost (confirmed).
 - Neutral Walls in Practice and Sandbox v2 have 2000 Health instead of 10, superseding the map spec's CAP-4 value; the Bonechill Barrier visuals and all other Wall rules are unchanged.
 - The `[PB] ` name prefix is temporary and display-only; it must be removable in one place without changing card ids or lookups. Original and imported cards are told apart by id, a dedicated `Phobies` card set and a field linking to the original card id, not by name.
 - Supersedes the allowed cards of the overhaul spec and the bot deck in `../spec-duelyst-rules-overhaul/practice-bot-deck.md` for Practice and Sandbox. Planar Scout's dev placeholder ability in the unit-stats spec is retired from these modes, since the card is no longer allowed.
 - Lifegain is a new generic modifier (ratio-parameterized, modeled on the existing heal-self-when-dealing-damage modifier, which restores 100%), attached only to imported cards; no legacy card changes. It counts all damage the unit deals, including its active abilities.
 
-- The 6000 General health and 200-per-point Methron damage supersede the Methron value (2 per point) in the map spec's CAP-3, in Practice and Sandbox v2 only.
+- The 6000 General health, 100-times General attack and Bloodbound Spell numbers, and 200-per-point Methron damage supersede the Methron value (2 per point) in the map spec's CAP-3, in Practice and Sandbox v2 only.
 - Phobies Targeted AOE basic attacks (Numbskull, Minotaur, Hi-Five) are area attacks centered on the attacker, with the attack range as radius, hitting enemies only.
 - Phobies electric, poison, fire and disease fields are ignored; Zappy's Counter Attack applies only its 35% reflect, rounded down.
 - Imported cards use ruleset `practice-sandbox-hex` v2, with no new version.
@@ -78,7 +83,6 @@ A Practice match and a Sandbox match each accept a nine-card deck containing imp
 ## Assumptions
 
 - Beauty's basic attack is a ranged single-target attack of range 2; its Behold active is the separate straight-line beam.
-- Phobies `keys` is the mana cost.
 - Phobies health and damage values (hundreds to thousands) are used as-is; existing cards and Generals are not rescaled.
 - Phobies `unlocking` is the base Lockdown; a blank cooldown defaults to 1; the Phobies Heart is the General.
 - Phobies Line of Sight range 1 is melee, range 2 or more ranged; Lob is lobbed.

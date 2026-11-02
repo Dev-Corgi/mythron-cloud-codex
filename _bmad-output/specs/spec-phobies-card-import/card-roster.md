@@ -19,7 +19,7 @@ Mapping and Phobies source values for the 35 imported cards. Name, sprite and sk
 | KABOOM | Chaos Elemental | Pupabomb | 3 | 400 | — | walk 2 | none | — | Poof! (1/1) |
 | Murder Wing | Flameblood Warlock | Phoenix Fire | 3 | 695 | 250 | fly 2 | ranged 2 | — | Monty (0/1) |
 | Blinky | Wings of Paradise | — | 4 | 1600 | 450 | fly 2 | melee 1 | — | — |
-| Doctor Dermic | Emerald | Flash Reincarnation | 4 | 1200 | 340 | walk 2 | melee 1 | — | Pure Adrenaline (0/3) |
+| Doctor Dermic | Emerald Rejuvenator | Flash Reincarnation | 4 | 1200 | 340 | walk 2 | melee 1 | — | Pure Adrenaline (0/3) |
 | Gonzo Bonzo | Captain Hank Hart | War Surge | 4 | 1300 | 400 | walk 1 | ranged 2 | — | Clang! Clang! (1/2) |
 | Grimes | Dioltas | — | 4 | 1600 | 400 | phase 2 | melee 1 | Body Count | — |
 | Hydra | Brightmoss Golem | — | 4 | 3000 | 700 | walk 1 | melee 1 | — | — |
@@ -80,24 +80,26 @@ Passives show in the Duelyst card's effect text, replacing the original Duelyst 
 
 ## Active ability text (Duelyst terminology)
 
+Each ability card is named by its Duelyst skill (the skill icon name in the roster table), not by the Phobies active name, which is kept in parentheses for reference.
+
 Shown on the ability card; ranges are the use range in tiles. Poison wording is dropped because poison is ignored. All 16 actives in the roster are covered.
 
-- **BOOM → Ion — Special Delivery** (range 1): Destroy this minion. Deal 550 damage to all adjacent enemy units.
-- **KABOOM → Chaos Elemental — Poof!** (range 1): Destroy this minion. Deal 1400 damage to all adjacent enemy units.
-- **Cassowary → Rock Pulverizer — Caw Claw** (range 2): Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.
-- **Cupcake → Healing Mystic — I feel great!** (range 1): Restore 650 Health to a friendly minion and give it +300 Attack this turn.
-- **Doctor Dermic → Emerald — Pure Adrenaline** (range 1): Restore 1500 Health to a friendly minion.
-- **Leshy → Zurael, the Lifegiver — Group Hug** (range 1): Restore 1100 Health to all adjacent friendly minions.
-- **Gonzo Bonzo → Captain Hank Hart — Clang! Clang!** (range 2): Give a friendly minion +300 Attack this turn.
-- **Scritch → Letigress — Helping Hand** (range 2): Give a friendly minion +300 Attack this turn.
-- **Woolly Bully → Lightbender — Peek-a-booOO!** (range 2): Give an enemy unit -300 Attack for 2 turns.
-- **Rusty → Borean Bear — Gotcha** (range 1): Destroy this minion. An enemy unit cannot move for 2 turns.
-- **Murder Wing → Flameblood Warlock — Monty** (range 2): Deal 450 damage to an enemy unit.
-- **Slammer Head → Wild Tahr — Play Smashface** (range 1): Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.
-- **Grave Digger → Inquisitor Kron — Terrorform** (adjacent tiles): Create a 2000-Health Wall on an adjacent empty tile, or destroy an adjacent Wall.
-- **Fleshcrawler → Red Synja — Raising Hell!** (range 2): Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.
-- **Mr Tramples → Rook — Bull Rush** (range 3): Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred over empty tiles when choosing the path.
-- **Beauty → Xenkai Cannoneer — Behold** (range 2): Deal 500 damage to an enemy unit in a straight line from this minion, and to enemy units behind it.
+- **Ion — Pupabomb** (Phobies: Special Delivery) (range 1): Destroy this minion. Deal 550 damage to all adjacent enemy units.
+- **Chaos Elemental — Pupabomb** (Phobies: Poof!) (range 1): Destroy this minion. Deal 1400 damage to all adjacent enemy units.
+- **Rock Pulverizer — Knucklestorm** (Phobies: Caw Claw) (range 2): Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.
+- **Healing Mystic — Flash Reincarnation** (Phobies: I feel great!) (range 1): Restore 650 Health to a friendly minion and give it +300 Attack this turn.
+- **Emerald Rejuvenator — Flash Reincarnation** (Phobies: Pure Adrenaline) (range 1): Restore 1500 Health to a friendly minion.
+- **Zurael, the Lifegiver — Aperion's Claim** (Phobies: Group Hug) (range 1): Restore 1100 Health to all adjacent friendly minions.
+- **Captain Hank Hart — War Surge** (Phobies: Clang! Clang!) (range 2): Give a friendly minion +300 Attack this turn.
+- **Letigress — Flash Reincarnation** (Phobies: Helping Hand) (range 2): Give a friendly minion +300 Attack this turn.
+- **Lightbender — Blindscorch** (Phobies: Peek-a-booOO!) (range 2): Give an enemy unit -300 Attack for 2 turns.
+- **Borean Bear — Flash Freeze** (Phobies: Gotcha) (range 1): Destroy this minion. An enemy unit cannot move for 2 turns.
+- **Flameblood Warlock — Phoenix Fire** (Phobies: Monty) (range 2): Deal 450 damage to an enemy unit.
+- **Wild Tahr — Koan of Horns** (Phobies: Play Smashface) (range 1): Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.
+- **Inquisitor Kron — Boulder Hurl** (Phobies: Terrorform) (adjacent tiles): Create a 2000-Health Wall on an adjacent empty tile, or destroy an adjacent Wall.
+- **Red Synja — Holy Immolation** (Phobies: Raising Hell!) (range 2): Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.
+- **Rook — Spiral Counter** (Phobies: Bull Rush) (range 3): Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred over empty tiles when choosing the path.
+- **Xenkai Cannoneer — Thunderbomb** (Phobies: Behold) (range 2): Deal 500 damage to an enemy unit in a straight line from this minion, and to enemy units behind it.
 
 ## Lifegain
 
