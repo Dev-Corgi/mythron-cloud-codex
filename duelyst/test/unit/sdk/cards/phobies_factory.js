@@ -46,6 +46,18 @@ const getFixtureAttackType = (row) => {
 };
 
 describe('Phobies imported unit factory', () => {
+  it('provides a real source spell and animated art for every hand ability', () => {
+    const session = SDK.GameSession.create();
+    for (let id = 51001; id <= 51016; id++) {
+      const effect = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(effect.originalCardId, `effect ${id} source`).to.be.a('number');
+      const sourceSpell = SDK.CardFactory.cardForIdentifier(effect.originalCardId, session);
+      expect(sourceSpell, `effect ${id} source spell`).to.exist;
+      expect(effect.getBaseAnimResource().idle, `effect ${id} art`).to.be.a('string');
+      expect(effect.getBaseAnimResource()).to.deep.equal(sourceSpell.getBaseAnimResource());
+    }
+  });
+
   it('matches every imported stat to the checked-in source snapshot', () => {
     const byName = new Map(source.map((row) => [row.name, row]));
     const session = SDK.GameSession.create();

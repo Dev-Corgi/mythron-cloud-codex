@@ -441,7 +441,7 @@ class CardFactory_PhobiesAbilities
         result.setBaseSoundResource(apply: RSX.sfx_spell_spiraltechnique.audio)
       )
     else if identifier is Cards.PhobiesAbility.PlaySmashface
-      card = makeAbilityCard(gameSession, identifier, 'Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', PhobiesPlaySmashface, Cards.Spell.CryonicPotential, (result) ->
+      card = makeAbilityCard(gameSession, identifier, 'Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', PhobiesPlaySmashface, Cards.Spell.KoanOfHorns, (result) ->
         result.damageAmount = 350
         result.setFXResource(['FX.Cards.Spell.CryonicPotential', 'FX.Modifiers.ModifierGenericDamageIce'])
         result.setBaseSoundResource(apply: RSX.sfx_f2tank_attack_swing.audio)

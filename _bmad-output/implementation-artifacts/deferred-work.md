@@ -70,3 +70,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
   summary: State whether the Phobies collection filter shows every imported card or only cards eligible for Practice/Sandbox decks.
   evidence: The visual correction adds a Phobies set filter, while the current collection specification does not distinguish set membership from deck eligibility.
+- source_spec: `_bmad-output/implementation-artifacts/spec-restore-phobies-hand-ability.md`
+  summary: Update old active_abilities fixtures to the currently allowed card roster.
+  evidence: The broad suite reports 14 failures involving legacy Planar Scout and General fixtures rejected by current card eligibility or lacking active state. Focused imported ability coverage passes.
+- source_spec: `_bmad-output/implementation-artifacts/spec-restore-phobies-hand-ability.md`
+  summary: Verify the repaired active ability sprite in a running Practice/Sandbox client.
+  evidence: Validated SDK deployment, hand slot model, animation resources, and all 16 generated inspect packages pass, but the actual Cocos hand node has not been visually inspected.

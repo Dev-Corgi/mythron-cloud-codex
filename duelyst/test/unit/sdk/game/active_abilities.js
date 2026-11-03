@@ -659,6 +659,42 @@ describe('active ability state', () => {
     expect(deployed.getActiveAbilityState()).to.equal(null);
   });
 
+  it('resolves an imported unit ability and source art after playing it from hand', () => {
+    SDK.GameSession.reset();
+    UtilsSDK.setupSession(
+      [{ id: SDK.Cards.Faction1.General }, { id: 50014 }],
+      [{ id: SDK.Cards.Faction2.General }],
+      true,
+      true,
+    );
+    gameSession = SDK.GameSession.getInstance();
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const player = gameSession.getPlayer1();
+    const slot = player.getDeck().getHand().findIndex((index) => index != null
+      && gameSession.getCardByIndex(index).getId() === 50014);
+    expect(slot).to.be.at.least(0);
+    const general = gameSession.getGeneralForPlayer1();
+    general.setPosition({ q: 4, r: 0 });
+    const position = findOpenPosition(general.getPosition(), 1, 1);
+    const play = player.actionPlayCardFromHand(slot, position);
+    player.setStartingMana(9);
+    gameSession.executeAction(play);
+    expect(play.getIsValid(), play.getValidationMessage()).to.equal(true);
+    const deployed = gameSession.getBoard().getUnitAtPosition(position);
+    expect(deployed, 'deployed imported unit').to.exist;
+    expect(deployed.getActiveAbilityState(), 'imported unit ability state').to.include({ handSlotIndex: slot });
+    const ability = player.getActiveAbilityForHandSlot(slot);
+    expect(ability).to.exist;
+    expect(player.getDeck().getCardIndexInHandAtIndex(slot)).to.equal(null);
+    const HandAbilitySlot = require('../../../../app/view/layers/game/handAbilitySlot');
+    const model = HandAbilitySlot.describeHandAbilitySlot(ability, { isMyTurn: true });
+    expect(model.effectCardId).to.equal(51002);
+    const effect = gameSession.createCardForIdentifier(model.effectCardId);
+    expect(effect.originalCardId).to.equal(SDK.Cards.Spell.PhoenixFire);
+    const source = gameSession.createCardForIdentifier(effect.originalCardId);
+    expect(effect.getBaseAnimResource()).to.deep.equal(source.getBaseAnimResource());
+  });
+
   it('plays the ability from its original hand slot for one AP and no mana', () => {
     const player = gameSession.getPlayer1();
     const opposingGeneral = gameSession.getGeneralForPlayer2();

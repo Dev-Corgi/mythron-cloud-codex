@@ -60,10 +60,11 @@ function getAbilityIcon(effect, effectCardId) {
 
 function getAbilityArtPresentation(icon) {
   if (!icon) return null;
+  var atlasSize = icon.atlas === RSX.icon_f2_phoenixfire.img ? '256px 512px' : '512px 512px';
   return {
     art: icon.atlas,
     artPosition: icon.portrait ? 'center' : `${-icon.x * 2}px ${-icon.y * 2}px`,
-    artSize: icon.portrait ? 'cover' : '256px 512px',
+    artSize: icon.portrait ? 'cover' : atlasSize,
   };
 }
 
