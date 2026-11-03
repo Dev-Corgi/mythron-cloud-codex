@@ -6,6 +6,8 @@ const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
 const UtilsSDK = require('../../../utils/utils_sdk');
 const Spell = require('../../../../app/sdk/spells/spell.coffee');
+const HexAttackGeometry = require('../../../../app/sdk/rulesets/hexAttackGeometry.coffee');
+const HexTopology = require('../../../../app/sdk/rulesets/hexTopology.coffee');
 
 Logger.enabled = false;
 
@@ -100,6 +102,62 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     expect(valid(offAxis)).to.equal(true);
   });
 
+  it('RANGED: walls crossed away from their centers do not block', () => {
+    attacker.setReach(4);
+    attacker.setAttackType('ranged');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 3, r: 1 });
+    addWall({ q: 1, r: 1 });
+    flush();
+    expect(HexTopology.segmentEntersHexInterior({ q: 0, r: 0 }, { q: 3, r: 1 }, { q: 1, r: 1 })).to.equal(true);
+    expect(valid(enemy)).to.equal(true);
+  });
+
+  it('RANGED fixtures: table-driven center-line and linked-Wall outcomes', () => {
+    const fixtures = [
+      { range: 2, grid: ['.##x.', ' ##W# ', 'xWA##', ' !WW# ', '.x!x.'] },
+      { range: 3, grid: ['..####...', ' .######. ', '.xxWA##..', ' .######. ', '..####...'] },
+      { range: 3, grid: ['..####...', ' .####W. ', '.###A###.', ' .####W. ', '..####...'] },
+      { range: 4, grid: ['.######x.', ' .####W!!. ', 'xxxWA#Wxx', ' !!!WW### ', '.!!x!x##.'] },
+      { range: 4, grid: ['.##x!x!x.', ' ###WWWW# ', '####A####', ' ######## ', '.#######.'] },
+      { range: 4, grid: ['.##x!x##.', ' ###WW#WW ', '####A####', ' ######## ', '.#######.'] },
+    ];
+
+    for (const fixture of fixtures) {
+      const walls = [];
+      const targets = [];
+      let origin;
+      fixture.grid.forEach((line, r) => {
+        [...line.trim()].forEach((symbol, c) => {
+          if (symbol === '.') return;
+          const position = { q: c - Math.floor(r / 2), r };
+          if (symbol === 'A') origin = position;
+          else if (symbol === 'W' || symbol === 'w') walls.push(position);
+          else targets.push({ symbol, position });
+        });
+      });
+
+      const fakeWalls = walls.map((position) => ({
+        getIsActive: () => true,
+        getType: () => SDK.CardType.Tile,
+        getId: () => SDK.Cards.Tile.Wall,
+        getIsObstructing: () => true,
+        getPosition: () => position,
+      }));
+      const fakeBoard = {
+        getEntities: () => fakeWalls,
+        positionsEqual: (a, b) => a.q === b.q && a.r === b.r,
+      };
+      const rangedEntity = { getAttackType: () => 'ranged' };
+
+      for (const target of targets) {
+        const distance = HexTopology.getDistance(origin, target.position);
+        expect(distance, `fixture target ${target.symbol} at ${target.position.q},${target.position.r}`).to.be.within(1, fixture.range);
+        const expected = target.symbol === '#' || target.symbol === 'W';
+        expect(HexAttackGeometry.canDeliver(fakeBoard, rangedEntity, origin, target.position), `${target.symbol} at ${target.position.q},${target.position.r}`).to.equal(expected);
+      }
+    }
+  });
+
   it('RANGED: adjacent Walls block their center-to-center link, while an unlinked pair does not', () => {
     attacker.setReach(4);
     attacker.setAttackType('ranged');
@@ -126,6 +184,14 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     const far = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
     expect(ranged.getAttackRange().getIsValidTarget(board, ranged, near)).to.equal(true);
     expect(ranged.getAttackRange().getIsValidTarget(board, ranged, far)).to.equal(false);
+
+    const banded = attacker;
+    banded.setReach(2);
+    const ModifierBandedRanged = require('../../../../app/sdk/modifiers/modifierBandedRanged.coffee');
+    session.applyModifierContextObject(ModifierBandedRanged.createContextObject(), banded);
+    expect(banded.getAttackType()).to.equal('ranged');
+    expect(banded.getAttackRangeValue()).to.equal(2);
+    expect(banded.getReach()).to.equal(2);
   });
 
   it('LOBBED: Walls and Units between do not block any in-reach target', () => {
