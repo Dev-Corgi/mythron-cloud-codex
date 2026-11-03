@@ -1,6 +1,7 @@
 Unit = require 'app/sdk/entities/unit'
 Factions = require 'app/sdk/cards/factionsLookup'
 CardSet = require 'app/sdk/cards/cardSetLookup'
+ModifierHealSelfWhenDealingDamage = require 'app/sdk/modifiers/modifierHealSelfWhenDealingDamage'
 
 # Phobies source values are intentionally kept separate from the original
 # Duelyst card definitions. The original card is consulted only for presentation.
@@ -42,6 +43,8 @@ ROSTER = [
   [50035, 159, 'Xenkai Cannoneer', 8, 1800, 425, 2, 'walk', 2, 'ranged']
 ]
 
+LIFEGAIN_CARD_IDS = [50002, 50004, 50011, 50014, 50015, 50018, 50030, 50034]
+
 class CardFactory_Phobies
   @cardForIdentifier: (identifier, gameSession) ->
     row = (entry for entry in ROSTER when entry[0] is identifier)[0]
@@ -62,6 +65,11 @@ class CardFactory_Phobies
     card.setMovementType(movementType)
     card.setReach(reach)
     card.setAttackType(attackType)
+
+    if id in LIFEGAIN_CARD_IDS
+      card.setInherentModifiersContextObjects([
+        ModifierHealSelfWhenDealingDamage.createContextObject({ healRatio: 0.5 })
+      ])
 
     # Resolve lazily so cardFactory can finish registering this factory first.
     if originalCardId > 0

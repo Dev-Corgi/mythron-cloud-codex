@@ -20,6 +20,7 @@ const duelystMappings = [
   [11112, 'Letigress'], [19031, 'Thorn Needler'], [404, 'Kolossus'], [10207, 'Stormmetal Golem'], [10956, 'Red Synja'],
   [10996, 'Zurael, the Lifegiver'], [10990, 'Rook'], [19032, 'Rogue Warden'], [119, 'Hamon Bladeseeker'], [159, 'Xenkai Cannoneer']
 ];
+const lifegainCardIds = [50002, 50004, 50011, 50014, 50015, 50018, 50030, 50034];
 const expectedAttackStats = [
   ['none', 0], ['area', 1], ['melee', 1], ['melee', 1], ['none', 0], ['melee', 1], ['melee', 1], ['ranged', 2], ['none', 0],
   ['area', 1], ['melee', 1], ['lobbed', 3], ['none', 0], ['ranged', 2], ['melee', 1], ['melee', 1], ['ranged', 2], ['melee', 1],
@@ -47,6 +48,14 @@ describe('Phobies imported unit factory', () => {
       expect(card.getMovementType()).to.equal(({ Walking: 'walk', Flying: 'fly', Bypassing: 'phase' })[row.move_type]);
       expect(card.getAttackType()).to.equal(expectedAttackStats[index][0]);
       expect(card.getReach()).to.equal(expectedAttackStats[index][1]);
+      const lifegainModifiers = card.getInherentModifiersContextObjects()
+        .filter((modifier) => modifier.type === 'ModifierHealSelfWhenDealingDamage');
+      if (lifegainCardIds.includes(card.getId())) {
+        expect(lifegainModifiers).to.have.length(1);
+        expect(lifegainModifiers[0].healRatio).to.equal(0.5);
+      } else {
+        expect(lifegainModifiers).to.have.length(0);
+      }
       const fixtureAttackType = row.damage === '' ? 'none' : (row.attack_type === 'Lob' ? 'lobbed' : row.attack_type === 'Targeted AOE' ? 'area' : row.attack_range === 1 ? 'melee' : 'ranged');
       expect(expectedAttackStats[index][0]).to.equal(fixtureAttackType);
       expect(expectedAttackStats[index][1]).to.equal(row.damage === '' ? 0 : Number(row.attack_range));

@@ -10,6 +10,14 @@ class ModifierHealSelfWhenDealingDamage extends Modifier
 
   @description:"Whenever this deals damage, restore that much Health to it"
 
+  healRatio: 1.0
+
+  @getDescription: (contextObject) ->
+    healRatio = contextObject?.healRatio ? 1.0
+    return @description if healRatio == 1.0
+    percentage = Math.floor(healRatio * 100)
+    return "Lifegain — Whenever this minion deals damage, restore Health to it equal to #{percentage}% of the damage dealt (rounded down)."
+
   activeInHand: false
   activeInDeck: false
   activeInSignatureCards: false
@@ -23,6 +31,11 @@ class ModifierHealSelfWhenDealingDamage extends Modifier
         healAction = @getCard().getGameSession().createActionForType(HealAction.type)
         healAction.setTarget(@getCard())
         damageToHeal = action.getTotalDamageAmount()
+        # Phobies Lifegain is based on HP actually removed, excluding overkill.
+        # Keep the legacy 1.0 behavior unchanged for existing cards.
+        if @healRatio != 1.0 and action.getTarget()?
+          damageToHeal = Math.min(damageToHeal, action.getTarget().getHP())
+        damageToHeal = Math.floor(damageToHeal * @healRatio)
         if damageToHeal > @getCard().getDamage()
           damageToHeal = @getCard().getDamage()
         healAction.setHealAmount(damageToHeal)
