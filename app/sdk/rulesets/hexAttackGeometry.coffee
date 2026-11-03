@@ -41,7 +41,7 @@ HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall = (board, origin, target) ->
   for wall in walls
     position = wall.getPosition()
     continue if board.positionsEqual(position, origin) or board.positionsEqual(position, target)
-    return true if HexTopology.segmentEntersHexInterior(origin, target, position)
+    return true if HexTopology.segmentPassesThroughCenter(origin, target, position)
   start = HexTopology._cartesianCenter(origin)
   finish = HexTopology._cartesianCenter(target)
   seen = {}

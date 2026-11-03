@@ -163,6 +163,20 @@ HEX_TOPOLOGY.isOnHexAxis = (start, finish) ->
 HEX_TOPOLOGY._cartesianCenter = (position) ->
   return {x: Math.sqrt(3) * (position.q + position.r / 2), y: 1.5 * position.r}
 
+HEX_TOPOLOGY.segmentPassesThroughCenter = (start, finish, center, tolerance=1e-7) ->
+  a = HEX_TOPOLOGY._cartesianCenter(start)
+  b = HEX_TOPOLOGY._cartesianCenter(finish)
+  p = HEX_TOPOLOGY._cartesianCenter(center)
+  dx = b.x - a.x
+  dy = b.y - a.y
+  lengthSquared = dx * dx + dy * dy
+  return false if lengthSquared <= tolerance
+  t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared
+  return false unless t > tolerance and t < 1 - tolerance
+  closestX = a.x + t * dx
+  closestY = a.y + t * dy
+  return Math.hypot(p.x - closestX, p.y - closestY) <= tolerance
+
 HEX_TOPOLOGY.segmentsIntersect = (a, b, c, d, tolerance=1e-7) ->
   cross = (x, y) -> x.x * y.y - x.y * y.x
   r = {x: b.x - a.x, y: b.y - a.y}
