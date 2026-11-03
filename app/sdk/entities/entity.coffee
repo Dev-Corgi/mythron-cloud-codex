@@ -29,6 +29,7 @@ ModifierRangedProvoke = require 'app/sdk/modifiers/modifierRangedProvoke'
 ModifierBattlePet = require 'app/sdk/modifiers/modifierBattlePet'
 ModifierTamedBattlePet = require 'app/sdk/modifiers/modifierTamedBattlePet'
 ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
+ModifierRanged = require 'app/sdk/modifiers/modifierRanged'
 ModifierPhasing = require 'app/sdk/modifiers/modifierPhasing'
 ModifierBlastAttack = require 'app/sdk/modifiers/modifierBlastAttack'
 
@@ -425,6 +426,7 @@ class Entity extends Card
     return @getReach() == CONFIG.REACH_MELEE
 
   isRanged: () ->
+    return (@getHasExplicitAttackType() and @attackType is "ranged") or @hasModifierClass(ModifierRanged) if @getIsPracticeSandboxV2()
     return @getReach() == CONFIG.REACH_RANGED
 
   getAttackRange:() ->

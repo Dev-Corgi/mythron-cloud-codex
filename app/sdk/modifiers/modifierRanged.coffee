@@ -16,6 +16,11 @@ class ModifierRanged extends Modifier
   @modifierName:i18next.t("modifiers.ranged_name")
   @description: null
 
+  constructor: (gameSession) ->
+    super(gameSession)
+    # In v2 Ranged defines delivery geometry only; reach remains the unit stat.
+    @attributeBuffs = null if gameSession?.getIsPracticeSandboxV2?()
+
   attributeBuffs:
     reach: CONFIG.REACH_RANGED - CONFIG.REACH_MELEE
 

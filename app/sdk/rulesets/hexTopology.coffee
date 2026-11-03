@@ -158,4 +158,30 @@ HEX_TOPOLOGY.isOnHexAxis = (start, finish) ->
   dr = finish.r - start.r
   return dq is 0 or dr is 0 or dq + dr is 0
 
+# Cartesian center-line geometry is used only for direct ranged attacks. The
+# pointy-top axial embedding makes adjacent-center links literal straight lines.
+HEX_TOPOLOGY._cartesianCenter = (position) ->
+  return {x: Math.sqrt(3) * (position.q + position.r / 2), y: 1.5 * position.r}
+
+HEX_TOPOLOGY.segmentsIntersect = (a, b, c, d, tolerance=1e-7) ->
+  cross = (x, y) -> x.x * y.y - x.y * y.x
+  r = {x: b.x - a.x, y: b.y - a.y}
+  s = {x: d.x - c.x, y: d.y - c.y}
+  offset = {x: c.x - a.x, y: c.y - a.y}
+  denominator = cross(r, s)
+  if Math.abs(denominator) > tolerance
+    t = cross(offset, s) / denominator
+    u = cross(offset, r) / denominator
+    # The attack segment is open at both ends so a supporting Wall link does
+    # not block a shot that terminates at the target center.
+    return t > tolerance and t < 1 - tolerance and u >= -tolerance and u <= 1 + tolerance
+  return false if Math.abs(cross(offset, r)) > tolerance
+  lengthSquared = r.x * r.x + r.y * r.y
+  return false if lengthSquared <= tolerance
+  t0 = (offset.x * r.x + offset.y * r.y) / lengthSquared
+  t1 = t0 + (s.x * r.x + s.y * r.y) / lengthSquared
+  overlapStart = Math.max(Math.min(t0, t1), tolerance)
+  overlapEnd = Math.min(Math.max(t0, t1), 1 - tolerance)
+  return overlapEnd > overlapStart
+
 module.exports = HEX_TOPOLOGY

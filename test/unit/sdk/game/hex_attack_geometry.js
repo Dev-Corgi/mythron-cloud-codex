@@ -75,11 +75,57 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     expect(valid(enemy)).to.equal(true);
   });
 
-  it('RANGED: off-axis in-range targets are invalid', () => {
+  it('RANGED: a Wall is targetable, supports a target Unit, and zero health does not stop blocking while present', () => {
+    attacker.setReach(3);
+    attacker.setAttackType('ranged');
+    const wallTarget = addWall({ q: 5, r: 1 });
+    expect(valid(wallTarget)).to.equal(true);
+    const supportedEnemy = addUnit(session.getPlayer2Id(), { q: 5, r: 1 });
+    expect(valid(supportedEnemy)).to.equal(true);
+
+    const fartherEnemy = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const blocker = addWall({ q: 6, r: 0 });
+    blocker.setDamage(blocker.getMaxHP());
+    flush();
+    expect(valid(fartherEnemy)).to.equal(false);
+    blocker.setIsRemoved(true);
+    flush();
+    expect(valid(fartherEnemy)).to.equal(true);
+  });
+
+  it('RANGED: off-axis in-range targets are legal when the center line is clear', () => {
     attacker.setReach(3);
     attacker.setAttackType('ranged');
     const offAxis = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
-    expect(valid(offAxis)).to.equal(false);
+    expect(valid(offAxis)).to.equal(true);
+  });
+
+  it('RANGED: adjacent Walls block their center-to-center link, while an unlinked pair does not', () => {
+    attacker.setReach(4);
+    attacker.setAttackType('ranged');
+    const enemy = addUnit(session.getPlayer2Id(), { q: 4, r: 4 });
+    addWall({ q: 5, r: 1 });
+    addWall({ q: 4, r: 2 });
+    flush();
+    expect(valid(enemy)).to.equal(false);
+    for (const e of board.getEntities()) if (e.getType() === SDK.CardType.Tile && e.getId() === SDK.Cards.Tile.Wall) e.setIsRemoved(true);
+    addWall({ q: 5, r: 1 });
+    addWall({ q: 3, r: 2 });
+    flush();
+    expect(valid(enemy)).to.equal(true);
+  });
+
+  it('RANGED: the Ranged keyword keeps attack type but does not grant v2 reach', () => {
+    const ranged = attacker;
+    ranged.setReach(2);
+    session.applyModifierContextObject(SDK.ModifierRanged.createContextObject(), ranged);
+    expect(ranged.getAttackType()).to.equal('ranged');
+    expect(ranged.getAttackRangeValue()).to.equal(2);
+    expect(ranged.getReach()).to.equal(2);
+    const near = addUnit(session.getPlayer2Id(), { q: 5, r: 1 });
+    const far = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    expect(ranged.getAttackRange().getIsValidTarget(board, ranged, near)).to.equal(true);
+    expect(ranged.getAttackRange().getIsValidTarget(board, ranged, far)).to.equal(false);
   });
 
   it('LOBBED: Walls and Units between do not block any in-reach target', () => {

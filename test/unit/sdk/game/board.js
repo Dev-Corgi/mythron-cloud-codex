@@ -158,7 +158,7 @@ describe('board', () => {
     expect(topology.isOnHexAxis({ q: 0, r: 0 }, { q: 2, r: 1 })).to.equal(false);
   });
 
-  it('restricts v2 ranged attacks to six axes and blocks intervening Walls', () => {
+  it('allows open off-axis v2 ranged attacks and blocks intervening Walls', () => {
     const session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 2);
     const board = session.getBoard();
@@ -188,7 +188,7 @@ describe('board', () => {
     offAxis.setIsRemoved(false);
     board.addCard(offAxis);
     attacker.getAttackRange().flushCachedState();
-    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, offAxis)).to.equal(false);
+    expect(attacker.getAttackRange().getIsValidTarget(board, attacker, offAxis)).to.equal(true);
 
     const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
     session.applyCardToBoard(wall, 6, 0);
