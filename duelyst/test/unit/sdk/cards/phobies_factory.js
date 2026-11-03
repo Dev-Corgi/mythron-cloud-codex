@@ -154,6 +154,7 @@ describe('Phobies imported unit factory', () => {
       expect(CardEligibility.isDeckChoiceId(effectId, { getIsPracticeSandboxV2: () => true })).to.equal(false);
       expect(CardEligibility.isAllowedRuntimeCard(session, effect, null)).to.equal(false);
       const [expectedName, description, fx, sound, sourceSpellId] = effectExpectations.get(effectId);
+      expect(effect.originalCardId).to.equal(sourceSpellId);
       expect(effect.name).to.equal(expectedName);
       expect(effect.getDescription()).to.equal(description);
       expect(effect.getFXResource()).to.deep.equal(['FX.Factions.Neutral', ...fx]);

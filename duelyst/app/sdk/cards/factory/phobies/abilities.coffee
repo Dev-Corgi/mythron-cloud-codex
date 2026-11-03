@@ -337,6 +337,9 @@ class PhobiesBehold extends Spell
 makeAbilityCard = (gameSession, id, name, description, spellClass, sourceSpellId, configure) ->
   card = new spellClass(gameSession)
   card.setId(id)
+  # Ability cards reuse their source spell's art package. Keep the source ID
+  # so card resource lookups do not request the nonexistent 510xx package.
+  card.originalCardId = sourceSpellId
   card.name = name
   card.setDescription(description)
   card.manaCost = 0

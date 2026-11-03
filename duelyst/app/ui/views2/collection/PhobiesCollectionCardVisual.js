@@ -63,7 +63,7 @@ function getAbilityArtPresentation(icon) {
   return {
     art: icon.atlas,
     artPosition: icon.portrait ? 'center' : `${-icon.x * 2}px ${-icon.y * 2}px`,
-    artSize: icon.portrait ? 'cover' : '512px 512px',
+    artSize: icon.portrait ? 'cover' : '256px 512px',
   };
 }
 
