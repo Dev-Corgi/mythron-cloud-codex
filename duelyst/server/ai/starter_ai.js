@@ -16,6 +16,7 @@ const CardIntent = require('./card_intent/card_intent');
 const CardIntentType = require('./card_intent/card_intent_type');
 const CardTargetType = require('./card_intent/card_target_type');
 const CardPhaseType = require('./card_intent/card_phase_type');
+const PhobiesAbilityIntents = require('./card_intent/phobies_abilities');
 const BOUNTY = require('./scoring/bounty');
 const THRESHOLD = require('./scoring/threshold');
 const ScoreForCard = require('./scoring/base/card');
@@ -470,6 +471,11 @@ StarterAI.prototype = {
     });
     if (this._nextActions.length > 0) return;
 
+    // Active abilities share the medium-priority card tier. Lethal attacks
+    // and immediate Methron tactics above keep precedence over ability use.
+    this._findBestUnitAbilityAction(THRESHOLD.PLAY_CARD_MEDIUM_PRIORITY);
+    if (this._nextActions.length > 0) return;
+
     // try to play medium priority cards
     this._findBestPlayCardAction(THRESHOLD.PLAY_CARD_MEDIUM_PRIORITY);
     if (this._nextActions.length > 0) return;
@@ -513,6 +519,52 @@ StarterAI.prototype = {
       }
     });
     return myUsableUnits;
+  },
+
+  _findBestUnitAbilityAction(useThreshold) {
+    const gameSession = this.getGameSession();
+    if (!gameSession.getIsPracticeSandboxV2()) return;
+
+    const board = gameSession.getBoard();
+    const myGeneral = this.getMyGeneral();
+    const friendlyUnits = board.getFriendlyEntitiesForEntity(myGeneral, SDK.CardType.Unit);
+    let bestCandidate = null;
+
+    _.each(friendlyUnits, (unit) => {
+      const definition = unit.activeAbility;
+      const state = unit.getActiveAbilityState && unit.getActiveAbilityState();
+      if (!definition || !state || !unit.getIsActive() || unit.getIsSilenced()
+        || unit.hasActiveModifierClass(SDK.ModifierStunned)
+        || state.lockdown > 0 || state.cooldown > 0 || !unit.getCanUseActiveAbility()) return;
+
+      const effectCard = SDK.CardFactory.cardForIdentifier(definition.effectCardId, gameSession);
+      if (!effectCard) return;
+      effectCard.setOwnerId(this.getMyPlayerId());
+
+      const unitPosition = unit.getPosition();
+      const validTargetPositions = effectCard.getValidTargetPositions().filter((position) => {
+        const distance = board.getHexDistance(unitPosition, position);
+        return distance != null && distance <= definition.useRange
+          && (effectCard.getId() !== SDK.Cards.PhobiesAbility.GroupHug || board.positionsEqual(unitPosition, position));
+      });
+      if (validTargetPositions.length === 0) return;
+
+      const scored = this._findFilteredTargetPositionsScoresAndFollowupsForCardByIntent(effectCard, validTargetPositions, 0);
+      for (const positionAndScore of scored.positionsAndScores) {
+        const score = positionAndScore.score
+          + PhobiesAbilityIntents.scoreAbilityPosition(effectCard, unit, positionAndScore.position);
+        if (score < useThreshold) continue;
+        const candidate = { unit, positionAndScore: { ...positionAndScore, score } };
+        if (!bestCandidate || candidate.positionAndScore.score > bestCandidate.positionAndScore.score) bestCandidate = candidate;
+      }
+    });
+
+    if (bestCandidate) {
+      this._nextActions.push(this.getMyPlayer().actionUseActiveAbility(
+        bestCandidate.unit.getIndex(),
+        ...this._getActionPositionArgs(bestCandidate.positionAndScore.position),
+      ));
+    }
   },
 
   _replaceCard() {

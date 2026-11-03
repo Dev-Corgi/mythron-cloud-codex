@@ -17,6 +17,9 @@ const AgentActions = require('../../../../app/sdk/agents/agentActions.coffee');
 // disable the logger for cleaner test output
 Logger.enabled = false;
 
+// Keep the existing focused top-level suites in this legacy test file.
+/* eslint mocha/max-top-level-suites: off */
+
 describe('hex agent action positions', () => {
   beforeEach(() => {
     UtilsSDK.setupSession([{ id: SDK.Cards.Faction1.General }], [{ id: SDK.Cards.Faction4.General }], true, true);
@@ -51,7 +54,10 @@ describe('starter ai Bloodbound in practice version 2', () => {
   beforeEach(() => {
     UtilsSDK.setupSession(
       [{ id: SDK.Cards.Faction1.General }, { id: SDK.Cards.Neutral.GolemMetallurgist }],
-      [{ id: SDK.Cards.Faction2.General }], true, true);
+      [{ id: SDK.Cards.Faction2.General }],
+      true,
+      true,
+    );
     session = SDK.GameSession.getInstance();
     session.setRuleset('practice-sandbox-hex', 2);
     player = session.getPlayer1();
@@ -104,6 +110,82 @@ describe('starter ai Bloodbound in practice version 2', () => {
     const next = ai.nextActionForActiveGame();
     expect(next).to.not.equal(queued);
     expect(ai._invalidPlayedCards).to.include(signature);
+  });
+
+  describe('unit abilities in practice version 2', () => {
+    let session;
+    let ai;
+    let player;
+    let general;
+    let healer;
+    let ally;
+
+    beforeEach(() => {
+      UtilsSDK.setupSession(
+        [{ id: SDK.Cards.Faction1.General }],
+        [{ id: SDK.Cards.Faction2.General }],
+        true,
+        true,
+      );
+      session = SDK.GameSession.getInstance();
+      session.setRuleset('practice-sandbox-hex', 2);
+      player = session.getPlayer1();
+      general = session.getGeneralForPlayer1();
+      general.setActionPoints(0);
+      healer = session.createCardForIdentifier(50005);
+      healer.setOwnerId(player.getPlayerId());
+      session.applyCardToBoard(healer, 2, 1, null, null);
+      healer.setActionPoints(2);
+      healer.getActiveAbilityState().lockdown = 0;
+      healer.getActiveAbilityState().cooldown = 0;
+
+      ally = session.createCardForIdentifier(50007);
+      ally.setOwnerId(player.getPlayerId());
+      session.applyCardToBoard(ally, 3, 1, null, null);
+      ally.setDamage(500);
+      ai = new StarterAI(session, player.getPlayerId(), 1.0);
+    });
+
+    afterEach(() => SDK.GameSession.reset());
+
+    it('chooses a favorable unit ability and resolves it for one action point', () => {
+      ally.setActionPoints(0);
+      session.setStatus(SDK.GameStatus.active);
+      const action = ai.nextAction();
+      expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
+      expect(action.getSourceUnit()).to.equal(healer);
+      session.validateAction(action, false);
+      expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+      session.executeAction(action);
+      expect(ally.getDamage()).to.equal(0);
+      expect(healer.getActionPoints()).to.equal(1);
+    });
+
+    it('skips abilities that are locked, silenced, stunned, exhausted, or have no valuable legal target', () => {
+      const find = () => {
+        ai._nextActions = [];
+        ai._findBestUnitAbilityAction(40);
+        return ai._nextActions.length;
+      };
+
+      healer.getActiveAbilityState().lockdown = 1;
+      expect(find()).to.equal(0);
+      healer.getActiveAbilityState().lockdown = 0;
+      healer.getActiveAbilityState().cooldown = 1;
+      expect(find()).to.equal(0);
+      healer.getActiveAbilityState().cooldown = 0;
+      session.applyModifierContextObject(SDK.ModifierSilence.createContextObject(), healer);
+      expect(find()).to.equal(0);
+      session.removeModifierFromCardByClass(SDK.ModifierSilence, healer);
+      session.applyModifierContextObject(SDK.ModifierStunned.createContextObject(), healer);
+      expect(find()).to.equal(0);
+      session.removeModifierFromCardByClass(SDK.ModifierStunned, healer);
+      healer.setActionPoints(0);
+      expect(find()).to.equal(0);
+      healer.setActionPoints(2);
+      healer.activeAbility.effectCardId = SDK.Cards.PhobiesAbility.Monty;
+      expect(find()).to.equal(0);
+    });
   });
 });
 

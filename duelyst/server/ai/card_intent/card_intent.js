@@ -1,4 +1,3 @@
-const BoardGeometry = require('../scoring/utils/utils_boardGeometry');
 const UtilsGameSession = require('app/common/utils/utils_game_session');
 const CONFIG = require('app/common/config');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
@@ -12,6 +11,7 @@ const CardIntentType = require('./card_intent_type');
 const CardTargetType = require('./card_target_type');
 const CardPhaseType = require('./card_phase_type');
 const CardImmunity = require('./card_immunity');
+const BoardGeometry = require('../scoring/utils/utils_boardGeometry');
 const F1 = require('./faction1');
 const F2 = require('./faction2');
 const F3 = require('./faction3');
@@ -26,6 +26,7 @@ const NU = require('./neutral_unity');
 const NF = require('./neutral_firstwatch');
 const NW = require('./neutral_wartech');
 const Boss = require('./boss');
+const PhobiesAbilities = require('./phobies_abilities');
 
 /*
 Fill in later with a guide on how to use card intents
@@ -48,6 +49,7 @@ UtilsJavascript.fastExtend(CardIntent._intentsByCardId, NU);
 UtilsJavascript.fastExtend(CardIntent._intentsByCardId, NF);
 UtilsJavascript.fastExtend(CardIntent._intentsByCardId, NW);
 UtilsJavascript.fastExtend(CardIntent._intentsByCardId, Boss);
+UtilsJavascript.fastExtend(CardIntent._intentsByCardId, PhobiesAbilities);
 
 // flatten each card's intent tree to create lists that include followups
 CardIntent._intentsWithFollowupsByCardId = {};
