@@ -1,4 +1,9 @@
 Modifier =           require './modifier'
+ModifierPhobiesBodyCount = require './modifierPhobiesBodyCount'
+ModifierPhobiesCounterAttack = require './modifierPhobiesCounterAttack'
+ModifierPhobiesRegatorate = require './modifierPhobiesRegatorate'
+ModifierPhobiesRage = require './modifierPhobiesRage'
+ModifierPhobiesHeartAttack = require './modifierPhobiesHeartAttack'
 ModifierDestructible = require './modifierDestructible'
 ModifierRanged = require './modifierRanged'
 ModifierSilence =       require './modifierSilence'
@@ -2177,6 +2182,17 @@ class ModifierFactory
       return PlayerModifierEmblemSummonWatchAbyssUndyingQuest
     if (modifierType == PlayerModifierEmblemGainMinionOrLoseControlWatch.type)
       return PlayerModifierEmblemGainMinionOrLoseControlWatch
+
+    if (modifierType == ModifierPhobiesBodyCount.type)
+      return ModifierPhobiesBodyCount
+    if (modifierType == ModifierPhobiesCounterAttack.type)
+      return ModifierPhobiesCounterAttack
+    if (modifierType == ModifierPhobiesRegatorate.type)
+      return ModifierPhobiesRegatorate
+    if (modifierType == ModifierPhobiesRage.type)
+      return ModifierPhobiesRage
+    if (modifierType == ModifierPhobiesHeartAttack.type)
+      return ModifierPhobiesHeartAttack
 
     if (modifierType == GameSessionModifier.type)
       return GameSessionModifier

@@ -35,3 +35,16 @@
 - source_spec: `_bmad-output/specs/spec-unit-stats-active-abilities/stories/8-move-the-general-s-bloodbound-ability-state-onto-its-entity.md`
   summary: Unify the General's Bloodbound ability under UseActiveAbilityAction and port the AI, server, and UI callers (Story 14).
   evidence: Server AI, single-player tracking, Player.js events, and SignatureCardNode all call PlaySignatureCardAction directly in version 2, so switching the action type together with the state move is a separate shippable change with its own AI and UI risk.
+
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/8-implement-the-five-phobies-passives.md`
+  summary: Complete Story 5 ability-origin wiring and verify actual active-ability execution marks embedded actions with the caster source.
+  evidence: Review found `setAbilityOriginOn` has no production caller in the diff; Story 8 tests use it directly, so real ability actions may not carry the provenance assumed by the new passives.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/8-implement-the-five-phobies-passives.md`
+  summary: Preserve ability-origin provenance when root actions are indexed after marking and when area attacks create child attacks.
+  evidence: Review traced `setAbilityOriginOn` only registering a child when the root already has an index, and `AttackAction` creates area children with parent linkage alone; these are pre-existing Story 5 action infrastructure changes.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/8-implement-the-five-phobies-passives.md`
+  summary: Make ability-origin movement validation consistently honor immobilize bypass across rulesets and reject inactive units.
+  evidence: `getCanMove`'s non-action-point branch still reads ordinary speed and exhaustion/move limits, while the action-point branch lacks an active-state check; reviewers confirmed the existing ability test covers only the action-point sandbox.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/8-implement-the-five-phobies-passives.md`
+  summary: Add a poison-state regression once the SDK models poison as a unit status or modifier.
+  evidence: Current SDK search finds no poison unit status/modifier; Regatorate only executes `HealAction`, but the current test cannot assert the poison-specific acceptance behavior.

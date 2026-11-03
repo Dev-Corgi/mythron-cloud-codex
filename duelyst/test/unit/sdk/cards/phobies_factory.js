@@ -27,6 +27,13 @@ const expectedAttackStats = [
   ['melee', 1], ['melee', 1], ['melee', 1], ['ranged', 2], ['ranged', 2], ['melee', 1], ['melee', 1], ['ranged', 2], ['ranged', 2],
   ['melee', 1], ['melee', 1], ['melee', 1], ['melee', 1], ['melee', 1], ['ranged', 2], ['area', 1], ['ranged', 2]
 ];
+const passiveDescriptions = new Map([
+  [50018, ['ModifierPhobiesBodyCount', 'Whenever this minion destroys an enemy by attacking, it permanently gains +200 Attack.']],
+  [50027, ['ModifierPhobiesCounterAttack', 'Whenever this minion takes damage, deal 35% of that damage (rounded down) to the damage source.']],
+  [50028, ['ModifierPhobiesRegatorate', 'At the start of your turn, restore 400 Health to this minion.']],
+  [50033, ['ModifierPhobiesRage', 'When your General has 3000 or less Health, this minion permanently gains +300 Attack.']],
+  [50034, ['ModifierPhobiesHeartAttack', 'Deals +400 damage when attacking the enemy General.']],
+]);
 
 describe('Phobies imported unit factory', () => {
   it('matches every imported stat to the checked-in source snapshot', () => {
@@ -71,5 +78,19 @@ describe('Phobies imported unit factory', () => {
       expect(card.getPortraitResource()).to.equal(original.getPortraitResource());
       expect(card.getPortraitHexResource()).to.equal(original.getPortraitHexResource());
     });
+  });
+  it('attaches the five passive modifiers with the roster wording', () => {
+    const session = SDK.GameSession.create();
+    for (const [id, [type, description]] of passiveDescriptions) {
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      const passive = card.getInherentModifiersContextObjects().find((modifier) => modifier.type === type);
+      expect(passive, `${id} modifier`).to.exist;
+      const ModifierClass = session.getModifierClassForType(type);
+      expect(ModifierClass.getDescription(passive)).to.equal(description);
+    }
+    for (const id of [50001, 50019, 50035, SDK.Cards.Neutral.GolemMetallurgist]) {
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type.startsWith('ModifierPhobies'))).to.equal(false);
+    }
   });
 });

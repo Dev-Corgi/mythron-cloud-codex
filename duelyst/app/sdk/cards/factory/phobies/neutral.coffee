@@ -2,6 +2,11 @@ Unit = require 'app/sdk/entities/unit'
 Factions = require 'app/sdk/cards/factionsLookup'
 CardSet = require 'app/sdk/cards/cardSetLookup'
 ModifierHealSelfWhenDealingDamage = require 'app/sdk/modifiers/modifierHealSelfWhenDealingDamage'
+ModifierPhobiesBodyCount = require 'app/sdk/modifiers/modifierPhobiesBodyCount'
+ModifierPhobiesCounterAttack = require 'app/sdk/modifiers/modifierPhobiesCounterAttack'
+ModifierPhobiesRegatorate = require 'app/sdk/modifiers/modifierPhobiesRegatorate'
+ModifierPhobiesRage = require 'app/sdk/modifiers/modifierPhobiesRage'
+ModifierPhobiesHeartAttack = require 'app/sdk/modifiers/modifierPhobiesHeartAttack'
 
 # Phobies source values are intentionally kept separate from the original
 # Duelyst card definitions. The original card is consulted only for presentation.
@@ -66,10 +71,20 @@ class CardFactory_Phobies
     card.setReach(reach)
     card.setAttackType(attackType)
 
+    modifiers = []
     if id in LIFEGAIN_CARD_IDS
-      card.setInherentModifiersContextObjects([
-        ModifierHealSelfWhenDealingDamage.createContextObject({ healRatio: 0.5 })
-      ])
+      modifiers.push(ModifierHealSelfWhenDealingDamage.createContextObject({ healRatio: 0.5 }))
+    if id is 50018
+      modifiers.push(ModifierPhobiesBodyCount.createContextObject())
+    else if id is 50027
+      modifiers.push(ModifierPhobiesCounterAttack.createContextObject())
+    else if id is 50028
+      modifiers.push(ModifierPhobiesRegatorate.createContextObject())
+    else if id is 50033
+      modifiers.push(ModifierPhobiesRage.createContextObject())
+    else if id is 50034
+      modifiers.push(ModifierPhobiesHeartAttack.createContextObject())
+    card.setInherentModifiersContextObjects(modifiers) if modifiers.length > 0
 
     # Resolve lazily so cardFactory can finish registering this factory first.
     if originalCardId > 0
