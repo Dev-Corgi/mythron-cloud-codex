@@ -1,4 +1,5 @@
 PlayCardAction = require './playCardAction'
+ModifierStunned = require 'app/sdk/modifiers/modifierStunned'
 
 class UseActiveAbilityAction extends PlayCardAction
 
@@ -30,11 +31,20 @@ class UseActiveAbilityAction extends PlayCardAction
   getIsGeneralAbility: () ->
     return !!@getSourceUnit()?.getIsGeneral?()
 
+  # Mark an embedded move, attack, damage, or heal as ability-originated while
+  # preserving the casting Entity as its causal source.
+  setAbilityOriginOn: (action) ->
+    return action unless action?
+    action.setIsAbilityOrigin(true)
+    action.setSource(@getSourceUnit())
+    @addSubAction(action) if @getIndex()?
+    return action
+
   _execute: () ->
     session = @getGameSession()
     sourceUnit = session.getCardByIndex(@sourceUnitIndex)
     state = sourceUnit?.getActiveAbilityState?()
-    return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.getCanUseActiveAbility() and sourceUnit.recordActiveAbilityUse()
+    return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and !sourceUnit.hasActiveModifierClass(ModifierStunned) and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.getCanUseActiveAbility() and sourceUnit.recordActiveAbilityUse()
     sourceUnit.startActiveAbilityCooldown()
     @_private.source = sourceUnit
     super()

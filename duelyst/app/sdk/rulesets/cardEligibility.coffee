@@ -1,6 +1,7 @@
 Rulesets = require './rulesetsLookup'
 CONFIG = require 'app/common/config'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
+CardType = require 'app/sdk/cards/cardType'
 UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
@@ -67,13 +68,17 @@ CardEligibility =
   isAllowedRuntimeCard: (gameSession, card, sourceAction) ->
     return false unless card?
     cardId = card.getId()
+    # Ability effects are never runtime cards unless they are the effect
+    # currently bound to their owning unit's active-ability action.
+    if CardType.getIsAbilityEffectCardType(card.getType())
+      return false unless sourceAction instanceof UseActiveAbilityAction
     if cardId is Cards.Tile.Wall
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if cardId is Cards.Tile.MethronPoint
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
-      return @isV2Rules(gameSession) and sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
+      return @isV2Rules(gameSession) and sourceUnit? and (sourceUnit.getIsGeneral() or CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId, gameSession)
     return false unless @isGeneratedDependencyId(cardId)
 

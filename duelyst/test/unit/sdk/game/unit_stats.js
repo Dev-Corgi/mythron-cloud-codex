@@ -223,6 +223,16 @@ describe('unit stats', () => {
     expect(unit.getActionPoints()).to.equal(2);
   });
 
+  it('charges one point for each ordinary explicit move and attack', () => {
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const unit = gameSession.getGeneralForPlayer1();
+    unit.refreshExhaustion();
+    unit.recordMove();
+    expect(unit.getActionPoints()).to.equal(1);
+    unit.recordAttack();
+    expect(unit.getActionPoints()).to.equal(0);
+  });
+
   it('maps explicit exhaustion actions to and from the version 2 point budget', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
     const unit = gameSession.getGeneralForPlayer1();

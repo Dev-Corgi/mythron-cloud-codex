@@ -6,6 +6,8 @@ class CardType
   @Spell:4
   @Tile:5
   @Artifact:6
+  # Effect spells resolved only through UseActiveAbilityAction.
+  @AbilityEffect:7
 
   @getIsEntityCardType: (cardType) ->
     return cardType == CardType.Entity or cardType == CardType.Unit or cardType == CardType.Tile
@@ -18,6 +20,9 @@ class CardType
 
   @getIsSpellCardType: (cardType) ->
     return cardType == CardType.Spell
+
+  @getIsAbilityEffectCardType: (cardType) ->
+    return cardType == CardType.AbilityEffect
 
   @getIsArtifactCardType: (cardType) ->
     return cardType == CardType.Artifact
@@ -35,6 +40,8 @@ class CardType
       return "Artifact"
     else if @getIsSpellCardType(cardType)
       return "Spell"
+    else if @getIsAbilityEffectCardType(cardType)
+      return "Ability Effect"
     else if @getIsTileCardType(cardType)
       return "Tile"
     else if @getIsUnitCardType(cardType)

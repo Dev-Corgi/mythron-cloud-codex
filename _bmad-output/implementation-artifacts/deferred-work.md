@@ -51,3 +51,9 @@
 - source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/9-implement-the-damage-heal-buff-and-debuff-actives.md`
   summary: Make ability-origin movement bypass immobilize consistently in non-action-point rulesets.
   evidence: Review traced the non-action-point `Entity.getCanMove` branch to ordinary speed; that branch is part of the pre-existing Story 5 infrastructure diff, not Story 9.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/10-implement-the-self-destruct-and-adjacent-area-actives.md`
+  summary: Resolve whether Raising Hell's distance-two area requires direct line alignment or applies to every unit at hex distance two.
+  evidence: Review found the current implementation applies distance tiers by hex distance, while the roster text specifies a straight line.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/10-implement-the-self-destruct-and-adjacent-area-actives.md`
+  summary: Add multi-target self-destruct coverage for source death during area resolution.
+  evidence: Existing Story 10 tests cover one adjacent enemy, not whether all selected targets resolve before the source is destroyed.

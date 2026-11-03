@@ -1209,6 +1209,13 @@ class Cards
     PeekABoo: 51005
     HelpingHand: 51006
     GroupHug: 51007
+    SpecialDelivery: 51008
+    Gotcha: 51009
+    Poof: 51010
+    RaisingHell: 51011
+    CawClaw: 51012
+    BullRush: 51013
+    PlaySmashface: 51014
   }
 
 module.exports = Cards

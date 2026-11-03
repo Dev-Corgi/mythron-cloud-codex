@@ -65,6 +65,7 @@ RestoreChargeToAllArtifactsAction = require './restoreChargeToAllArtifactsAction
 BurnCardAction = require './burnCardAction'
 CaptureMethronPointAction = require './captureMethronPointAction'
 ResolveMethronPointControlDamageAction = require './resolveMethronPointControlDamageAction'
+PhobiesPushAction = require './phobiesPushAction'
 
 Colors = require 'colors' # used for console message coloring
 
@@ -131,6 +132,8 @@ class ActionFactory
       return new CaptureMethronPointAction(gameSession)
     if (actionType == ResolveMethronPointControlDamageAction.type)
       return new ResolveMethronPointControlDamageAction(gameSession)
+    if (actionType == PhobiesPushAction.type)
+      return new PhobiesPushAction(gameSession)
     if (actionType == BonusManaAction.type)
       return new BonusManaAction(gameSession)
     if (actionType == StopBufferingEventsAction.type)

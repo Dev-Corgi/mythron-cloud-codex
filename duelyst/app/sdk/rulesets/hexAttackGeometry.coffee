@@ -98,4 +98,58 @@ HEX_ATTACK_GEOMETRY.isAreaVictim = (board, attacker, origin, radius, victim) ->
 HEX_ATTACK_GEOMETRY.filterAreaPositions = (board, center, positions) ->
   return positions.filter (candidate) -> !HEX_ATTACK_GEOMETRY.isSegmentBlockedByWall(board, center, candidate)
 
+# Bull Rush endpoints are exactly three steps away. Search every shortest route
+# in the topology's fixed neighbor order, then prefer routes that cross more
+# enemy Units. Equal scores retain the first route found for deterministic ties.
+HEX_ATTACK_GEOMETRY.getBullRushPath = (board, source, endpoint) ->
+  return [] unless board? and source? and endpoint?
+  start = source.getPosition()
+  return [] unless board.getGameSession().getIsPracticeSandboxV2()
+  return [] unless HexTopology.getDistance(start, endpoint) is 3 and board.isOnBoard(endpoint) and board.hasTileAtPosition(endpoint)
+  return [] if board.getObstructionAtPositionForEntity(endpoint, source)
+
+  paths = []
+  visit = (position, path) ->
+    if board.positionsEqual(position, endpoint)
+      paths.push(path)
+      return
+    return if path.length >= 4
+    for nextPosition in HexTopology.getNeighbors(position)
+      continue unless board.isOnBoard(nextPosition) and board.hasTileAtPosition(nextPosition)
+      continue unless HexTopology.getDistance(nextPosition, endpoint) is 3 - path.length
+      obstruction = board.getObstructionAtPositionForEntity(nextPosition, source)
+      continue if obstruction? and (obstruction.getType?() isnt CardType.Unit or source.getIsSameTeamAs(obstruction))
+      visit(nextPosition, path.concat([nextPosition]))
+  visit(start, [start])
+  return [] unless paths.length
+
+  bestPath = null
+  bestScore = -1
+  for path in paths
+    score = 0
+    for position in path.slice(1, -1)
+      unit = board.getUnitAtPosition(position, true)
+      score++ if unit? and unit.getIsActive() and !source.getIsSameTeamAs(unit)
+    if score > bestScore
+      bestScore = score
+      bestPath = path
+  return bestPath ? []
+
+# A Bull Rush step can pass through an enemy Unit, but never through a Wall,
+# allied Unit, hole, or off-board position.
+HEX_ATTACK_GEOMETRY.isLegalBullRushStep = (board, source, from, to) ->
+  return false unless board? and source? and board.isOnBoard(to) and board.hasTileAtPosition(to)
+  return false unless HexTopology.getDistance(from, to) is 1
+  obstruction = board.getObstructionAtPositionForEntity(to, source)
+  return !obstruction? or (obstruction.getType?() is CardType.Unit and !source.getIsSameTeamAs(obstruction))
+
+# Smashface pushes in the attacker-to-target direction only when the vector is
+# one of the six axial neighbor deltas and the destination is empty and legal.
+HEX_ATTACK_GEOMETRY.getPushDestination = (board, attackerPosition, targetPosition) ->
+  return null unless board? and HexTopology.getDistance(attackerPosition, targetPosition) is 1
+  destination = {q: targetPosition.q + targetPosition.q - attackerPosition.q, r: targetPosition.r + targetPosition.r - attackerPosition.r}
+  return null unless board.isOnBoard(destination) and board.hasTileAtPosition(destination)
+  return null if board.getObstructionAtPosition(destination)
+  return destination
+
 module.exports = HEX_ATTACK_GEOMETRY

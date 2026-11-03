@@ -55,6 +55,7 @@ class Modifier extends SDKObject
   cardFXResource: null # fx resource that is added onto this modifier's card's fx resource, effectively overriding card's fx while this modifier is active on the card
   contextObject: null
   durationEndTurn: 0 # how many end of turns can elapse before this modifier is removed
+  durationEndTurnPlayerId: null # optional owner whose turn end advances this duration
   durationStartTurn: 0 # how many start of turns can elapse before this modifier is removed
   durationRespectsBonusTurns: true # whether duration will be extended with bonus turns
   durability: 0 # damage unit can take before this is destroyed
@@ -530,6 +531,7 @@ class Modifier extends SDKObject
       "isRemoved"
       "auraModifierId"
       "numEndTurnsElapsed"
+      "durationEndTurnPlayerId"
       "numStartTurnsElapsed"
       "maxDurability"
       "durability"
@@ -2109,6 +2111,8 @@ class Modifier extends SDKObject
       @getGameSession().popTriggeringModifierFromStack()
 
   _onEndTurnDurationChange: (event) ->
+    endingPlayerId = @getGameSession().getCurrentPlayerId()
+    return if @durationEndTurnPlayerId? and endingPlayerId isnt @durationEndTurnPlayerId
     if !@_private.cachedIsActive and !@_private.cachedIsActiveInLocation
       # don't change duration for inactive modifiers while in non-active locations
       return

@@ -18,18 +18,22 @@ class MovementRange extends Range
   flushCachedState: () ->
     super()
     @_pathsToPositionsByIndex = null
+    @_validAbilityOriginPositions = null
+    @_abilityOriginPathsToPositionsByIndex = null
 
-  getValidPositions: (board, entity) ->
+  getValidPositions: (board, entity, isAbilityOrigin=false) ->
+    validPositionsKey = if isAbilityOrigin then "_validAbilityOriginPositions" else "_validPositions"
+    validPositions = @[validPositionsKey]
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
-      unless @_validPositions?
+      unless validPositions?
         origin = entity.getPosition()
-        return @_validPositions = [] unless board.isOnBoard(origin)
-        speed = Math.max(0, entity.getSpeed())
+        return @[validPositionsKey] = [] unless board.isOnBoard(origin)
+        speed = Math.max(0, if isAbilityOrigin then entity.getSpeedForAbilityOrigin() else entity.getSpeed())
         originKey = "#{origin.q},#{origin.r}"
         queue = [{position: origin, path: [origin]}]
         visited = {}
         visited[originKey] = true
-        @_validPositions = []
+        validPositions = @[validPositionsKey] = []
         cursor = 0
         while cursor < queue.length
           node = queue[cursor]
@@ -51,15 +55,15 @@ class MovementRange extends Range
             path = node.path.concat([nextPosition])
             queue.push({position: nextPosition, path: path})
             isWallEndpoint = obstruction?.getType? and obstruction.getType() is CardType.Tile and obstruction.getId() is Cards.Tile.Wall and canCrossTerrain and board.getGameSession().getIsPracticeSandboxV2()
-            @_validPositions.push(path) unless obstruction and !isWallEndpoint
-      return @_validPositions
-    if !@_validPositions?
+            validPositions.push(path) unless obstruction and !isWallEndpoint
+      return validPositions
+    if !validPositions?
       entityPosition = entity.getPosition()
       entityMovementPatternMap = entity.getMovementPatternMap()
-      speed = entity.getSpeed()
+      speed = if isAbilityOrigin then entity.getSpeedForAbilityOrigin() else entity.getSpeed()
       step = CONFIG.MOVE_PATTERN_STEP
 
-      validPositions = @_validPositions = []
+      validPositions = @[validPositionsKey] = []
 
       rowCount = board.getRowCount()
       columnCount = board.getColumnCount()
@@ -109,38 +113,44 @@ class MovementRange extends Range
               parent = parent.parent
             validPositions.push(path)
 
-    return @_validPositions
+    return validPositions
 
-  getPathTo: (board, entity, position) ->
+  getPathTo: (board, entity, position, isAbilityOrigin=false) ->
+    pathsKey = if isAbilityOrigin then "_abilityOriginPathsToPositionsByIndex" else "_pathsToPositionsByIndex"
+    paths = @[pathsKey]
     if entity.getGameSession().getRulesetId() is 'practice-sandbox-hex'
       return [] unless board.isOnBoard(position)
       key = "#{position.q},#{position.r}"
-      @_pathsToPositionsByIndex ?= {}
-      cached = @_pathsToPositionsByIndex[key]
+      paths ?= @[pathsKey] = {}
+      cached = paths[key]
       return cached if cached?
-      for path in @getValidPositions(board, entity)
+      for path in @getValidPositions(board, entity, isAbilityOrigin)
         endpoint = path[path.length - 1]
         if board.positionsEqual(endpoint, position)
-          return @_pathsToPositionsByIndex[key] = path
-      return @_pathsToPositionsByIndex[key] = []
+          return paths[key] = path
+      return paths[key] = []
     if board.isOnBoard(position)
       # if we've already tested this position, return previous result
       index = UtilsPosition.getMapIndexFromPosition(board.getColumnCount(), position.x, position.y)
-      if !@_pathsToPositionsByIndex? then @_pathsToPositionsByIndex = {}
-      path = @_pathsToPositionsByIndex[index]
+      paths ?= @[pathsKey] = {}
+      path = paths[index]
       if path?
         return path
       else
-        moves = @getValidPositions(board,entity)
+        moves = @getValidPositions(board,entity,isAbilityOrigin)
         for path in moves
           realEnd = path[path.length - 1]
           if realEnd.x == position.x and realEnd.y == position.y
             # valid path found
-            return @_pathsToPositionsByIndex[index] = path
+            return paths[index] = path
 
         # no valid path found
-        @_pathsToPositionsByIndex[index] = []
+        paths[index] = []
     return []
+
+  getIsPositionValid: (board, entity, position, isAbilityOrigin=false) ->
+    return @getPathTo(board, entity, position, true).length > 0 if isAbilityOrigin
+    return super(board, entity, position)
 
   getValidPosition: (board, entity, position) ->
     if @getPathTo(board, entity, position).length > 0

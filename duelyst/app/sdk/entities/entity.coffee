@@ -32,6 +32,7 @@ ModifierFlying = require 'app/sdk/modifiers/modifierFlying'
 ModifierRanged = require 'app/sdk/modifiers/modifierRanged'
 ModifierPhasing = require 'app/sdk/modifiers/modifierPhasing'
 ModifierBlastAttack = require 'app/sdk/modifiers/modifierBlastAttack'
+ModifierCannotMove = require 'app/sdk/modifiers/modifierCannotMove'
 
 PlayerModifierChangeSignatureCard = require 'app/sdk/playerModifiers/playerModifierChangeSignatureCard'
 
@@ -470,6 +471,12 @@ class Entity extends Card
   getSpeed: (withAuras) ->
     return @getBuffedAttribute(@speed, "speed", withAuras)
 
+  # Ability-originated movement ignores immobilize only. Other speed modifiers
+  # continue to apply to the embedded move.
+  getSpeedForAbilityOrigin: () ->
+    modifiers = (modifier for modifier in @getActiveModifiers() when !(modifier instanceof ModifierCannotMove))
+    return Math.max(0, @_getBuffedAttributeFromModifiers(@speed, "speed", modifiers, true))
+
   getMovementRange:() ->
     return @_private.movementRange
 
@@ -505,8 +512,9 @@ class Entity extends Card
     return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getMovesMade() < @getMoves()
 
-  getCanMove:() ->
-    return @getActionPoints() > 0 and @getSpeed() > 0 if @getUsesActionPoints()
+  getCanMove:(isAbilityOrigin=false) ->
+    speed = if isAbilityOrigin then @getSpeedForAbilityOrigin() else @getSpeed()
+    return (@getActionPoints() > 0 or isAbilityOrigin) and speed > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasMovesLeft() and @getSpeed() > 0
 
   setAttacksMade:(attacksMade) ->
@@ -525,9 +533,9 @@ class Entity extends Card
     return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getAttacksMade() < @getAttacks()
 
-  getCanAttack:() ->
+  getCanAttack:(isAbilityOrigin=false) ->
     return false if @getHasExplicitAttackType() and @attackType is "none"
-    return @getActionPoints() > 0 and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
+    return (@getActionPoints() > 0 or isAbilityOrigin) and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasAttacksLeft() and @getATK() > 0 and @getReach() > 0
 
   getIsPracticeSandboxV2: () ->
@@ -569,13 +577,13 @@ class Entity extends Card
     return @getMovesMade() != 0 or @getAttacksMade() != 0
 
   # Records an executed explicit move. The point is spent before the moves counter increments.
-  recordMove: () ->
-    @spendActionPoint() if @getUsesActionPoints()
+  recordMove: (isAbilityOrigin=false) ->
+    @spendActionPoint() if @getUsesActionPoints() and !isAbilityOrigin
     @setMovesMade(@getMovesMade() + 1)
 
   # Records an executed explicit (non-implicit) attack. The point is spent before the attacks counter increments.
-  recordAttack: () ->
-    @spendActionPoint() if @getUsesActionPoints()
+  recordAttack: (isAbilityOrigin=false) ->
+    @spendActionPoint() if @getUsesActionPoints() and !isAbilityOrigin
     @setAttacksMade(@getAttacksMade() + 1)
 
   # True only for action-point units that have no points left.

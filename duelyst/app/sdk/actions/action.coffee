@@ -14,6 +14,7 @@ class Action extends SDKObject
   fxResource: null # array of strings that map to fx data, ex: ["Actions.Teleport"]
   index: null # unique index of action, set automatically by game session
   isAutomatic: false # actions that act as explicit actions even though they are not player generated (example - battle pets)
+  isAbilityOrigin: false # embedded action provenance; independent of the causal source Entity
   manaCost: 0
   ownerId: null
   parentActionIndex: null # index of action this should be executed as a result of
@@ -64,6 +65,14 @@ class Action extends SDKObject
 
   getType: () ->
     return @type
+
+  setIsAbilityOrigin: (value) ->
+    @isAbilityOrigin = !!value
+
+  getIsAbilityOrigin: () ->
+    return false unless @isAbilityOrigin
+    rootAction = @getRootAction()
+    return rootAction?.getType?() is "UseActiveAbilityAction" and rootAction.getSourceUnit?() is @getSource() and rootAction.getFlattenedActionTree?().indexOf(@) >= 0
 
   getLogName: ()->
     sourcePositionText = if @sourcePosition?.q? then "q:#{@sourcePosition.q},r:#{@sourcePosition.r}" else "x:#{@sourcePosition?.x},y:#{@sourcePosition?.y}"
@@ -292,7 +301,7 @@ class Action extends SDKObject
    * @returns {Boolean}
    ###
   getIsImplicit: () ->
-    return @parentActionIndex?
+    return @parentActionIndex? and !@getIsAbilityOrigin()
 
   setFXResource: (fxResource) ->
     if !fxResource? or fxResource.length == 0

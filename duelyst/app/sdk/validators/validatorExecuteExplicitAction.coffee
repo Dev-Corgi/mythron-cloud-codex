@@ -13,6 +13,8 @@ ResignAction = require("app/sdk/actions/resignAction")
 EndTurnAction = require("app/sdk/actions/endTurnAction")
 RollbackToSnapshotAction = require("app/sdk/actions/rollbackToSnapshotAction")
 EndFollowupAction = require("app/sdk/actions/endFollowupAction")
+PhobiesPushAction = require("app/sdk/actions/phobiesPushAction")
+UseActiveAbilityAction = require("app/sdk/actions/useActiveAbilityAction")
 i18next = require("i18next")
 
 class ValidatorExecuteExplicitAction extends Validator
@@ -53,11 +55,17 @@ class ValidatorExecuteExplicitAction extends Validator
           else if owner.getRemainingMana() < action.getManaCost()
             # player doesn't have enough mana to execute this explicit action
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.not_enough_mana_message"))
-          else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == UseActiveAbilityAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
+          else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == UseActiveAbilityAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || @_isAbilityPush(action) || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
             # player is attempting to execute an explicit action that is not one of the allowed types
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.cannot_do_that_message"))
         else
           # player is attempting to execute an explicit action when game is neither new nor active
           @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.game_is_over_message"))
+
+  _isAbilityPush: (action) ->
+    return false unless action instanceof PhobiesPushAction and action.getIsAbilityOrigin()
+    rootAction = action.getRootAction?()
+    sourceUnit = rootAction?.getSourceUnit?()
+    return rootAction instanceof UseActiveAbilityAction and sourceUnit?.activeAbility?.effectCardId is 51014
 
 module.exports = ValidatorExecuteExplicitAction

@@ -6,6 +6,7 @@ CardType =       require 'app/sdk/cards/cardType'
 class MoveAction extends Action
 
   @type:"MoveAction"
+  isAbilityDashStep: false
 
   constructor: () ->
     @type ?= MoveAction.type
@@ -24,8 +25,17 @@ class MoveAction extends Action
   getPath:() ->
     if !@_private.cachedPath?
       entity = @getTarget()
-      @_private.cachedPath = entity.getMovementRange().getPathTo(@getGameSession().getBoard(), entity, @getTargetPosition())
+      if @getIsAbilityDashStep() and @getIsAbilityOrigin()
+        @_private.cachedPath = [entity.getPosition(), @getTargetPosition()]
+      else
+        @_private.cachedPath = entity.getMovementRange().getPathTo(@getGameSession().getBoard(), entity, @getTargetPosition(), @getIsAbilityOrigin())
     return @_private.cachedPath
+
+  setIsAbilityDashStep: (value) ->
+    @isAbilityDashStep = !!value
+
+  getIsAbilityDashStep: () ->
+    return !!@isAbilityDashStep
 
   _execute: () ->
     super()
@@ -39,6 +49,8 @@ class MoveAction extends Action
 
     # move entity
     entity.setPosition(@getTargetPosition())
-    entity.recordMove()
+    entity.getMovementRange().flushCachedState()
+    entity.getAttackRange().flushCachedState()
+    entity.recordMove(@getIsAbilityOrigin())
 
 module.exports = MoveAction

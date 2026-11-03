@@ -371,6 +371,56 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     expect(valid(enemy)).to.equal(true);
   });
 
+  it('BULL_RUSH: prefers the legal three-step path that crosses the most enemy Units', () => {
+    const enemies = new Map();
+    const fakeSource = {
+      getPosition: () => ({ q: 3, r: 2 }),
+      getIsSameTeamAs: (entity) => entity.ownerId === 1,
+    };
+    enemies.set('4,2', { getType: () => SDK.CardType.Unit, ownerId: 2, getIsActive: () => true });
+    const fakeBoard = {
+      getGameSession: () => ({ getIsPracticeSandboxV2: () => true }),
+      positionsEqual: (a, b) => a.q === b.q && a.r === b.r,
+      isOnBoard: HexTopology.isOnBoard,
+      hasTileAtPosition: (p) => HexTopology.hasTile(p, 2),
+      getObstructionAtPositionForEntity: (p) => enemies.get(`${p.q},${p.r}`) || null,
+      getUnitAtPosition: (p) => enemies.get(`${p.q},${p.r}`) || null,
+    };
+    const path = HexAttackGeometry.getBullRushPath(fakeBoard, fakeSource, { q: 6, r: 2 });
+    expect(path.map((p) => `${p.q},${p.r}`)).to.deep.equal(['3,2', '4,2', '5,2', '6,2']);
+  });
+
+  it('BULL_RUSH: keeps topology neighbor order for tied paths and rejects occupied endpoints', () => {
+    const fakeSource = { getPosition: () => ({ q: 3, r: 2 }), getIsSameTeamAs: () => false };
+    let occupiedEndpoint = false;
+    const fakeBoard = {
+      getGameSession: () => ({ getIsPracticeSandboxV2: () => true }),
+      positionsEqual: (a, b) => a.q === b.q && a.r === b.r,
+      isOnBoard: HexTopology.isOnBoard,
+      hasTileAtPosition: (p) => HexTopology.hasTile(p, 2),
+      getObstructionAtPositionForEntity: (p) => { if (occupiedEndpoint && p.q === 6 && p.r === 2) return {}; return null; },
+      getUnitAtPosition: () => null,
+    };
+    const path = HexAttackGeometry.getBullRushPath(fakeBoard, fakeSource, { q: 6, r: 2 });
+    expect(path[1]).to.deep.equal({ q: 4, r: 2 });
+    occupiedEndpoint = true;
+    expect(HexAttackGeometry.getBullRushPath(fakeBoard, fakeSource, { q: 6, r: 2 })).to.deep.equal([]);
+    expect(HexAttackGeometry.getBullRushPath(fakeBoard, fakeSource, { q: 5, r: 2 })).to.deep.equal([]);
+  });
+
+  it('PUSH: only returns an empty on-board straight-line destination', () => {
+    const occupants = new Set();
+    const fakeBoard = {
+      isOnBoard: HexTopology.isOnBoard,
+      hasTileAtPosition: (p) => HexTopology.hasTile(p, 2),
+      getObstructionAtPosition: (p) => { if (occupants.has(`${p.q},${p.r}`)) return {}; return null; },
+    };
+    expect(HexAttackGeometry.getPushDestination(fakeBoard, { q: 2, r: 2 }, { q: 3, r: 2 })).to.deep.equal({ q: 4, r: 2 });
+    occupants.add('4,2');
+    expect(HexAttackGeometry.getPushDestination(fakeBoard, { q: 2, r: 2 }, { q: 3, r: 2 })).to.equal(null);
+    expect(HexAttackGeometry.getPushDestination(fakeBoard, { q: 2, r: 2 }, { q: 3, r: 3 })).to.equal(null);
+  });
+
   it('NON_V2: version 1 ranged attackers are not restricted to hex axes', () => {
     session.setRuleset('practice-sandbox-hex', 1);
     attacker.setReach(3);

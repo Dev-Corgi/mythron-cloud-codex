@@ -57,6 +57,13 @@ ACTIVE_ABILITY_BY_CARD_ID =
   50024: {effectCardId: 51005, lockdown: 1, cooldown: 2, useRange: 2}
   50026: {effectCardId: 51006, lockdown: 0, cooldown: 2, useRange: 2}
   50031: {effectCardId: 51007, lockdown: 1, cooldown: 3, useRange: 1}
+  50001: {effectCardId: 51008, lockdown: 1, cooldown: 1, useRange: 1}
+  50009: {effectCardId: 51009, lockdown: 1, cooldown: 1, useRange: 1}
+  50013: {effectCardId: 51010, lockdown: 1, cooldown: 1, useRange: 1}
+  50030: {effectCardId: 51011, lockdown: 1, cooldown: 2, useRange: 2}
+  50004: {effectCardId: 51012, lockdown: 0, cooldown: 1, useRange: 2}
+  50032: {effectCardId: 51013, lockdown: 0, cooldown: 1, useRange: 3}
+  50020: {effectCardId: 51014, lockdown: 0, cooldown: 1, useRange: 1}
 
 class CardFactory_Phobies
   @cardForIdentifier: (identifier, gameSession) ->

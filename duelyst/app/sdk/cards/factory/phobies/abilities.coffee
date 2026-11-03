@@ -11,6 +11,13 @@ RSX = require 'app/data/resources'
 Modifier = require 'app/sdk/modifiers/modifier'
 HealAction = require 'app/sdk/actions/healAction'
 DamageAction = require 'app/sdk/actions/damageAction'
+KillAction = require 'app/sdk/actions/killAction'
+AttackAction = require 'app/sdk/actions/attackAction'
+MoveAction = require 'app/sdk/actions/moveAction'
+PhobiesPushAction = require 'app/sdk/actions/phobiesPushAction'
+ModifierCannotMove = require 'app/sdk/modifiers/modifierCannotMove'
+HexTopology = require 'app/sdk/rulesets/hexTopology'
+HexAttackGeometry = require 'app/sdk/rulesets/hexAttackGeometry'
 UtilsJavascript = require 'app/common/utils/utils_javascript'
 
 getAbilitySource = (sourceAction) ->
@@ -102,6 +109,171 @@ class PhobiesGroupHug extends Spell
       healAction.setHealAmount(@healModifier)
       @getGameSession().executeAction(healAction)
 
+class PhobiesSelfDestruct extends SpellDamage
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  canTargetGeneral: true
+  radius: 1
+  spellFilterType: SpellFilterType.EnemyDirect
+
+  _findApplyEffectPositions: (position, sourceAction) ->
+    source = getAbilitySource(sourceAction)
+    return [] unless source?
+    return super(source.getPosition(), sourceAction)
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
+    damageAction = new DamageAction(@getGameSession())
+    damageAction.setOwnerId(source.getOwnerId())
+    damageAction.setSource(source)
+    damageAction.setTarget(target)
+    damageAction.setDamageAmount(@damageAmount)
+    @getGameSession().executeAction(damageAction)
+
+  onApplyOneEffectToBoard: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    return unless source?
+    killAction = new KillAction(@getGameSession())
+    killAction.setOwnerId(source.getOwnerId())
+    killAction.setSource(source)
+    killAction.setTarget(source)
+    @getGameSession().executeAction(killAction)
+
+class PhobiesGotcha extends SpellApplyModifiers
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  spellFilterType: SpellFilterType.EnemyDirect
+  canTargetGeneral: false
+  durationForAffectedOwner: true
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId() and !target.getIsGeneral()
+    context = ModifierCannotMove.createContextObject({durationEndTurn: 2})
+    context.durationEndTurnPlayerId = target.getOwnerId()
+    @getGameSession().applyModifierContextObject(context, target)
+
+    killAction = new KillAction(@getGameSession())
+    killAction.setOwnerId(source.getOwnerId())
+    killAction.setSource(source)
+    killAction.setTarget(source)
+    @getGameSession().executeAction(killAction)
+
+class PhobiesRaisingHell extends PhobiesSelfDestruct
+  radius: 2
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    position = @getEffectPositionFromCoordinates(x, y)
+    target = board.getCardAtPosition(position, CardType.Unit)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
+    distance = HexTopology.getDistance(source.getPosition(), position)
+    return unless distance is 1 or distance is 2
+    damageAction = new DamageAction(@getGameSession())
+    damageAction.setOwnerId(source.getOwnerId())
+    damageAction.setSource(source)
+    damageAction.setTarget(target)
+    damageAction.setDamageAmount(if distance is 1 then 600 else 300)
+    @getGameSession().executeAction(damageAction)
+
+runAbilityAction = (sourceAction, action, sourcePosition) ->
+  rootAction = sourceAction?.getRootAction?() ? sourceAction
+  return false unless rootAction?.setAbilityOriginOn?
+  rootAction.setAbilityOriginOn(action)
+  action.setSourcePosition(sourcePosition) if sourcePosition?
+  action.getGameSession().executeAction(action)
+  return action.getIsValid()
+
+class PhobiesCawClaw extends Spell
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  canTargetGeneral: true
+  spellFilterType: SpellFilterType.EnemyDirect
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
+    distance = HexTopology.getDistance(source.getPosition(), target.getPosition())
+    return unless distance is 1 or distance is 2
+    if distance is 2
+      destination = null
+      for candidate in HexTopology.getNeighbors(target.getPosition())
+        continue unless HexTopology.getDistance(source.getPosition(), candidate) is 1
+        continue if board.getObstructionAtPositionForEntity(candidate, source)
+        continue unless source.getMovementRange().getIsPositionValid(board, source, candidate, true)
+        destination = candidate
+        break
+      return unless destination?
+      runAbilityAction(sourceAction, source.actionMove(destination), source.getPosition())
+      return unless source.getIsActive()
+      attackFrom = destination
+    else
+      attackFrom = source.getPosition()
+    runAbilityAction(sourceAction, source.actionAttack(target), attackFrom)
+
+class PhobiesBullRush extends Spell
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  canTargetGeneral: true
+  spellFilterType: SpellFilterType.None
+
+  onApplyToBoardTile: () ->
+    # The chosen endpoint is intentionally empty; resolution is handled once below.
+
+  onApplyOneEffectToBoard: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    endpoint = @getEffectPositionFromCoordinates(x, y)
+    path = HexAttackGeometry.getBullRushPath(board, source, endpoint)
+    return unless source? and path.length is 4
+    for position, index in path.slice(1)
+      fromPosition = path[index]
+      unit = board.getUnitAtPosition(position, true)
+      if unit? and unit.getIsActive() and !source.getIsSameTeamAs(unit)
+        return unless runAbilityAction(sourceAction, source.actionAttack(unit), fromPosition)
+      move = source.actionMove(position)
+      move.setIsAbilityDashStep(true)
+      return unless runAbilityAction(sourceAction, move, fromPosition) and source.getIsActive()
+
+class PhobiesPlaySmashface extends Spell
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  canTargetGeneral: true
+  spellFilterType: SpellFilterType.EnemyDirect
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    targetPosition = @getEffectPositionFromCoordinates(x, y)
+    target = board.getCardAtPosition(targetPosition, CardType.Unit)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId() and HexTopology.getDistance(source.getPosition(), targetPosition) is 1
+    runAbilityAction(sourceAction, source.actionAttack(target), source.getPosition())
+    return unless source.getIsActive() and target.getIsActive()
+    destination = HexAttackGeometry.getPushDestination(board, source.getPosition(), target.getPosition())
+    return unless destination?
+    push = new PhobiesPushAction(@getGameSession())
+    push.setOwnerId(source.getOwnerId())
+    push.setSource(target)
+    push.setTarget(target)
+    push.setTargetPosition(destination)
+    rootAction = sourceAction?.getRootAction?() ? sourceAction
+    rootAction.setAbilityOriginOn(push) if rootAction?.setAbilityOriginOn?
+    @getGameSession().executeAction(push)
+
 makeAbilityCard = (gameSession, id, name, description, spellClass, sourceSpellId, configure) ->
   card = new spellClass(gameSession)
   card.setId(id)
@@ -170,6 +342,46 @@ class CardFactory_PhobiesAbilities
         result.healModifier = 1100
         result.setFXResource(['FX.Cards.Spell.AperionsClaim'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_voidpulse.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.SpecialDelivery
+      card = makeAbilityCard(gameSession, identifier, 'Pupabomb', 'Destroy this minion. Deal 550 damage to all adjacent enemy units.', PhobiesSelfDestruct, Cards.Spell.EggGrenade, (result) ->
+        result.damageAmount = 550
+        result.setFXResource(['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'])
+        result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.Gotcha
+      card = makeAbilityCard(gameSession, identifier, 'Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', PhobiesGotcha, Cards.Spell.FlashFreeze, (result) ->
+        result.setTargetModifiersContextObjects([ModifierCannotMove.createContextObject({durationEndTurn: 2})])
+        result.setFXResource(['FX.Cards.Neutral.Fireblazer', 'FX.Cards.Spell.BlindingSnowstorm'])
+        result.setBaseSoundResource(apply: RSX.sfx_f6_icebeetle_death.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.Poof
+      card = makeAbilityCard(gameSession, identifier, 'Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', PhobiesSelfDestruct, Cards.Spell.EggGrenade, (result) ->
+        result.damageAmount = 1400
+        result.setFXResource(['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'])
+        result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.RaisingHell
+      card = makeAbilityCard(gameSession, identifier, 'Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', PhobiesRaisingHell, Cards.Spell.HolyImmolation, (result) ->
+        result.damageAmount = 600
+        result.setFXResource(['FX.Cards.Spell.FollowupDamage'])
+        result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.CawClaw
+      card = makeAbilityCard(gameSession, identifier, 'Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', PhobiesCawClaw, Cards.Spell.FlashFreeze, (result) ->
+        result.setFXResource(['Factions.Neutral.UnitSpawn', 'FX.Modifiers.ModifierGenericDamage'])
+        result.setBaseSoundResource(apply: RSX.sfx_neutral_bluetipscorpion_attack_impact.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.BullRush
+      card = makeAbilityCard(gameSession, identifier, 'Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', PhobiesBullRush, Cards.Spell.SpiralTechnique, (result) ->
+        result.setFXResource(['Factions.Neutral.UnitSpawn', 'FX.Modifiers.ModifierGenericDamage'])
+        result.setBaseSoundResource(apply: RSX.sfx_spell_spiraltechnique.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.PlaySmashface
+      card = makeAbilityCard(gameSession, identifier, 'Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', PhobiesPlaySmashface, Cards.Spell.CryonicPotential, (result) ->
+        result.damageAmount = 350
+        result.setFXResource(['FX.Cards.Spell.CryonicPotential', 'FX.Modifiers.ModifierGenericDamageIce'])
+        result.setBaseSoundResource(apply: RSX.sfx_f2tank_attack_swing.audio)
       )
     return card
 
