@@ -18,6 +18,7 @@ var ProgressionManager = require('app/ui/managers/progression_manager');
 var InventoryManager = require('app/ui/managers/inventory_manager');
 var CardsCollectionTmpl = require('./templates/cards_collection.hbs');
 var CollectionCardCompositeView = require('./collection_card');
+var uniqueCardModels = require('./uniqueCardModels');
 
 var CARD_BACKS_FACTION_ID = 'card_backs';
 var STANDARD_CARD_SET_FILTER = -1;
@@ -349,7 +350,7 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
    */
   _showCards: function (cards, page) {
     // store showing cards
-    this._currentShowingCards = cards || [];
+    this._currentShowingCards = uniqueCardModels(cards);
 
     // check page
     page = page != null ? Math.min(this.getLastPage(this._currentShowingCards), page) : 0;

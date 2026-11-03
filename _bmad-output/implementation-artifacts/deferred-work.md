@@ -76,3 +76,6 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-restore-phobies-hand-ability.md`
   summary: Verify the repaired active ability sprite in a running Practice/Sandbox client.
   evidence: Validated SDK deployment, hand slot model, animation resources, and all 16 generated inspect packages pass, but the actual Cocos hand node has not been visually inspected.
+- source_spec: `_bmad-output/implementation-artifacts/spec-remove-duplicate-phobies-collection-cards.md`
+  summary: Reproduce and trace the observed duplicate Phobies cards in a running collection view.
+  evidence: The SDK supplies 35 unique Phobies IDs and Backbone removes duplicate model IDs, so current source data does not reproduce the report. The display list now has an ID guard; a running UI is needed to confirm whether duplicates originate later in DOM rendering.
