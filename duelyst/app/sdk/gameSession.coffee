@@ -898,6 +898,9 @@ class _GameSession extends SDKObject
   getIsPracticeSandboxV2: () ->
     return Rulesets.isPracticeSandboxV2(@getRulesetId(), @getRulesetVersion())
 
+  getRulesetConfig: () ->
+    return Rulesets.getRulesetConfig(@getRulesetId(), @getRulesetVersion())
+
   setGameFormat: (val) ->
     @gameFormat = val
 

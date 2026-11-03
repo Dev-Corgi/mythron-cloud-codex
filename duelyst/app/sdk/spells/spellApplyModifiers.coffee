@@ -1,6 +1,8 @@
 Spell = require './spell'
 CardType = require 'app/sdk/cards/cardType'
 SpellFilterType =  require './spellFilterType'
+Cards = require 'app/sdk/cards/cardsLookupComplete'
+UtilsJavascript = require 'app/common/utils/utils_javascript'
 
 class SpellApplyModifiers extends Spell
 
@@ -20,10 +22,10 @@ class SpellApplyModifiers extends Spell
     applyEffectPosition = @getEffectPositionFromCoordinates(x, y)
     entity = board.getCardAtPosition(applyEffectPosition, @targetType)
     if entity?
-      for modifierContextObject in @getAppliedTargetModifiersContextObjects()
+      for modifierContextObject in @getAppliedTargetModifiersContextObjects(sourceAction)
         @getGameSession().applyModifierContextObject(modifierContextObject, entity)
 
-  getAppliedTargetModifiersContextObjects: () ->
+  getAppliedTargetModifiersContextObjects: (sourceAction) ->
     appliedModifiersContextObjects = @getTargetModifiersContextObjects()
     numModifiersToPick = @numModifiersToApply
     if numModifiersToPick > 0 and numModifiersToPick < appliedModifiersContextObjects.length
@@ -35,6 +37,13 @@ class SpellApplyModifiers extends Spell
         modifierContextObject = modifierContextObjectsToPickFrom.splice(@getGameSession().getRandomIntegerForExecution(modifierContextObjectsToPickFrom.length), 1)[0]
         appliedModifiersContextObjects.push(modifierContextObject)
         numModifiersToPick--
+
+    if Cards.getNonPrismaticCardId(@getId()) is Cards.Spell.DebuffBBS and sourceAction?.getIsGeneralAbility?() and sourceAction.getIsGeneralAbility() and @getGameSession().getIsPracticeSandboxV2()
+      effectScale = @getGameSession().getRulesetConfig().bloodboundSpellEffectScale
+      appliedModifiersContextObjects = UtilsJavascript.deepCopy(appliedModifiersContextObjects)
+      for modifierContextObject in appliedModifiersContextObjects
+        if modifierContextObject.attributeBuffs?.atk?
+          modifierContextObject.attributeBuffs.atk *= effectScale
 
     return appliedModifiersContextObjects
 

@@ -32,7 +32,7 @@ class ResolveMethronPointControlDamageAction extends Action
     disadvantagedPlayerId = if player1ControlCount < player2ControlCount then gameSession.getPlayer1Id() else gameSession.getPlayer2Id()
     damageAction = gameSession.createActionForType(DamageAction.type)
     damageAction.setTarget(gameSession.getGeneralForPlayerId(disadvantagedPlayerId))
-    damageAction.setDamageAmount(2 * controlDifference)
+    damageAction.setDamageAmount(gameSession.getRulesetConfig().methronDamagePerControlPoint * controlDifference)
     damageAction.setIsAutomatic(true)
     gameSession.executeAction(damageAction)
 

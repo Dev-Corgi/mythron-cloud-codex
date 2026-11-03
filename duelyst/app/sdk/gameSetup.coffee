@@ -153,6 +153,16 @@ GameSetup.createGeneral = (gameSession, player, generalCardData) ->
   # create general
   general = gameSession.getExistingCardFromIndexOrCreateCardFromData(generalCardData)
   general.setOwner(player)
+  GameSetup.configureRulesetGeneral(gameSession, general, true)
+  return general
+
+GameSetup.configureRulesetGeneral = (gameSession, general, resetDamage = false) ->
+  if gameSession.getIsPracticeSandboxV2() and general?
+    rulesetConfig = gameSession.getRulesetConfig()
+    general.atk = general.getBaseATK() * rulesetConfig.generalAttackScale
+    general.maxHP = rulesetConfig.generalHealth
+    general.flushCachedAttributes()
+    general.setDamage(0) if resetDamage
   return general
 
 GameSetup.addGeneral = (gameSession, player, general, generalX, generalY) ->
@@ -310,6 +320,9 @@ GameSetup.setupNewSessionFromExistingSessionData = (gameSession, existingGameSes
 
   # add all cards to board
   GameSetup.addCardsToBoard(gameSession, gameSetupData.boardCardsData)
+  if gameSession.getIsPracticeSandboxV2()
+    GameSetup.configureRulesetGeneral(gameSession, gameSession.getGeneralForPlayer1())
+    GameSetup.configureRulesetGeneral(gameSession, gameSession.getGeneralForPlayer2())
 
 GameSetup.setupPlayerFromData = (gameSession, player, playerGameSetupData) ->
   GameSetup.setupPlayerBasics(gameSession, player, playerGameSetupData)

@@ -80,6 +80,12 @@ describe('game setup', () => {
       expect(bossBattleSnapshot.rulesetVersion).to.equal(1);
     });
 
+    it('returns an isolated copy of the v2 ruleset config', () => {
+      const config = Rulesets.getRulesetConfig('practice-sandbox-hex', 2);
+      config.generalHealth = 1;
+      expect(Rulesets.getRulesetConfig('practice-sandbox-hex', 2).generalHealth).to.equal(6000);
+    });
+
     it('creates and saves Practice sessions with the server-selected ruleset', () => {
       const originalGenerateGameId = GameManager.generateGameId;
       const originalSaveGameSession = GameManager.saveGameSession;
@@ -149,7 +155,7 @@ describe('game setup', () => {
       expect(SDK.GameSession.getInstance().getGeneralForPlayer1().getPosition()).to.deep.equal({ x: 0, y: 2 });
     });
 
-    it('places exactly nine neutral targetable 10-HP Walls only in version 2 setup', () => {
+    it('uses configured General and Wall stats in version 2 and legacy stats elsewhere', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 2);
       const deck = createHexDeck(SDK.Cards.Faction1.General);
@@ -165,13 +171,20 @@ describe('game setup', () => {
         .map(({ k, c }) => [k, c]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
       expect(rendered).to.deep.equal(expected);
       expect(walls).to.have.length(9);
+      expect(session.getGeneralForPlayer1().getMaxHP()).to.equal(6000);
+      expect(session.getGeneralForPlayer1().getHP()).to.equal(6000);
+      expect(session.getGeneralForPlayer1().getATK()).to.equal(200);
+      expect(session.getGeneralForPlayer2().getMaxHP()).to.equal(6000);
+      expect(session.getGeneralForPlayer2().getHP()).to.equal(6000);
+      expect(session.getGeneralForPlayer2().getATK()).to.equal(200);
       for (const wall of walls) {
-        expect(wall.getHP()).to.equal(10);
+        expect(wall.getHP()).to.equal(2000);
         expect(wall.getIsTargetable()).to.equal(true);
         expect(wall.getIsObstructing()).to.equal(true);
         expect(wall.isOwnedByGameSession()).to.equal(true);
         expect(wall.getInherentModifiers()).to.have.length(0);
       }
+      expect(session.createCardForIdentifier(SDK.Cards.Tile.Wall).getHP()).to.equal(2000);
       expect(session.getBoard().getTileAtPosition(SDK.HexTopology.renderedToAxial(0, 2)) == null).to.equal(true);
       expect(session.getBoard().getTileAtPosition({ q: -2, r: 4 }) == null).to.equal(true);
       expect(session.getBoard().getTileAtPosition({ q: 8, r: 0 }) == null).to.equal(true);
@@ -182,6 +195,19 @@ describe('game setup', () => {
         userId: 'wall-v1-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(legacy.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(0);
+      expect(legacy.getGeneralForPlayer1().getMaxHP()).to.equal(25);
+      expect(legacy.getGeneralForPlayer1().getATK()).to.equal(2);
+      expect(legacy.createCardForIdentifier(SDK.Cards.Tile.Wall).getHP()).to.equal(10);
+
+      const v1 = SDK.GameSession.create();
+      v1.setRuleset('practice-sandbox-hex', 1);
+      SDK.GameSetup.setupNewSession(v1, { userId: 'wall-v1b-1', name: 'Old One', deck }, {
+        userId: 'wall-v1b-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+      }, true);
+      expect(v1.getGeneralForPlayer1().getMaxHP()).to.equal(25);
+      expect(v1.getGeneralForPlayer1().getATK()).to.equal(2);
+      const v1Wall = v1.createCardForIdentifier(SDK.Cards.Tile.Wall);
+      expect(v1Wall.getHP()).to.equal(10);
     });
 
     it('places five neutral non-consuming Methron Points only in version 2 setup', () => {

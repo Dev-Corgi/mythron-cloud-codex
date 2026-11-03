@@ -80,7 +80,7 @@ class CardFactory_Tiles
       card.setDescription("")
       card.setIsHiddenInCollection(true)
       card.manaCost = 0
-      card.maxHP = 10
+      card.maxHP = if gameSession?.getIsPracticeSandboxV2?() and gameSession.getIsPracticeSandboxV2() then gameSession.getRulesetConfig().wallHealth else 10
       card.isTargetable = true
       card.isObstructing = true
       card.setSpriteOptions({

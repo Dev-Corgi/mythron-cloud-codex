@@ -12,12 +12,12 @@ const UtilsSDK = require('../../utils/utils_sdk');
 const EVENTS = require('../../../app/common/event_types');
 const StarterAI = require('../../../server/ai/starter_ai');
 
-const createRulesetFixture = (rulesetId, rulesetVersion) => {
+const createRulesetFixture = (rulesetId, rulesetVersion, general1Id = SDK.Cards.Faction1.General, general2Id = SDK.Cards.Faction4.AltGeneral) => {
   const gameSession = SDK.GameSession.create();
   gameSession.setRuleset(rulesetId, rulesetVersion);
   const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
-  const practiceDeck1 = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
-  const practiceDeck2 = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
+  const practiceDeck1 = [{ id: general1Id }, ...roster.map((id) => ({ id }))];
+  const practiceDeck2 = [{ id: general2Id }, ...roster.map((id) => ({ id }))];
   SDK.GameSetup.setupNewSession(
     gameSession,
     {
@@ -63,6 +63,63 @@ const executeEndTurnWithoutValidation = (gameSession) => {
 };
 
 describe('UtilsGameSession', () => {
+  it('scales General Bloodbound Spell effects through ability resolution in v2', () => {
+    const placeMinion = (session, ownerId, position) => {
+      const minion = session.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+      minion.setOwnerId(ownerId);
+      session.applyCardToBoard(minion, position.q, position.r);
+      return minion;
+    };
+    const resolveAbility = (session, general, effectId, targetPosition) => {
+      const player = general.getOwner();
+      general.setSignatureCardData({ id: effectId });
+      general.getActiveAbilityState().lockdown = 0;
+      general.getActiveAbilityState().cooldown = 0;
+      general.setActionPoints(4);
+      const action = player.actionUseActiveAbility(general.getIndex(), targetPosition);
+      const validators = session.getValidators();
+      session.setValidators([]);
+      try {
+        session.executeAction(action);
+      } finally {
+        session.setValidators(validators);
+      }
+      return action;
+    };
+
+    const debuffSession = createRulesetFixture('practice-sandbox-hex', 2, SDK.Cards.Faction3.ThirdGeneral, SDK.Cards.Faction4.AltGeneral);
+    debuffSession.setIsRunningAsAuthoritative(true);
+    debuffSession.setStatus(SDK.GameStatus.active);
+    debuffSession.setValidators([]);
+    const debuffGeneral = debuffSession.getGeneralForPlayer1();
+    const debuffTarget = placeMinion(debuffSession, debuffSession.getPlayer2Id(), { q: -1, r: 3 });
+    const debuffTargetAttack = debuffTarget.getATK();
+    expect(debuffTarget.getIsActive()).to.equal(true);
+    expect(debuffTarget.getOwnerId()).to.equal(debuffSession.getPlayer2Id());
+    const debuffAction = resolveAbility(debuffSession, debuffGeneral, SDK.Cards.Spell.DebuffBBS, debuffTarget.getPosition());
+    expect(debuffAction.getIsGeneralAbility()).to.equal(true);
+    expect(SDK.Cards.getNonPrismaticCardId(debuffAction.getCard().getId())).to.equal(SDK.Cards.Spell.DebuffBBS);
+    expect(debuffTarget.getActiveModifiers().some((modifier) => modifier.getAttributeBuffs() && modifier.getAttributeBuffs().atk === -200)).to.equal(true);
+    expect(debuffTarget.getATK()).to.equal(Math.max(0, debuffTargetAttack - 200));
+
+    const sacrificeSession = createRulesetFixture('practice-sandbox-hex', 2);
+    sacrificeSession.setIsRunningAsAuthoritative(true);
+    sacrificeSession.setStatus(SDK.GameStatus.active);
+    sacrificeSession.setValidators([]);
+    const sacrificeGeneral = sacrificeSession.getGeneralForPlayer1();
+    const generalHealth = sacrificeGeneral.getHP();
+    const sacrificeTarget = placeMinion(sacrificeSession, sacrificeSession.getPlayer1Id(), { q: -1, r: 3 });
+    resolveAbility(sacrificeSession, sacrificeGeneral, SDK.Cards.Spell.SacrificeBBS, sacrificeTarget.getPosition());
+    expect(sacrificeGeneral.getHP()).to.equal(generalHealth - 200);
+
+    const legacy = createRulesetFixture('practice-sandbox-hex', 1);
+    const legacyDebuff = legacy.createCardForIdentifier(SDK.Cards.Spell.DebuffBBS);
+    const legacySacrifice = legacy.createCardForIdentifier(SDK.Cards.Spell.SacrificeBBS);
+    const generalAbility = { getIsGeneralAbility: () => true };
+    expect(legacyDebuff.getAppliedTargetModifiersContextObjects(generalAbility)[0].attributeBuffs.atk).to.equal(-2);
+    expect(legacySacrifice.getGeneralDamageAmount(generalAbility)).to.equal(2);
+  });
+
   describe('ruleset persistence', () => {
     it('generates, validates, and restores a legal version 2 Practice AI action at each representative difficulty', () => {
       for (const difficulty of [0, 0.1, 0.2, 0.5, 1]) {
@@ -139,7 +196,7 @@ describe('UtilsGameSession', () => {
       const wallPositions = SDK.HexTopology.version2WallPositions;
       const initialWalls = session.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall);
       expect(initialWalls).to.have.length(9);
-      expect(initialWalls.every((wall) => wall.getHP() === 10 && wall.isOwnedByGameSession())).to.equal(true);
+      expect(initialWalls.every((wall) => wall.getHP() === 2000 && wall.isOwnedByGameSession())).to.equal(true);
       const initialSnapshot = JSON.parse(session.serializeToJSON(session));
       const executeWithoutValidation = (targetSession, action) => {
         const validators = targetSession.getValidators();
@@ -155,7 +212,7 @@ describe('UtilsGameSession', () => {
       damageAction.setDamageAmount(3);
       session.setIsRunningAsAuthoritative(true);
       executeWithoutValidation(session, damageAction);
-      expect(initialWalls[0].getHP()).to.equal(7);
+      expect(initialWalls[0].getHP()).to.equal(1997);
       const serializedDamageAction = JSON.parse(session.serializeToJSON(damageAction));
       const destroyedPosition = initialWalls[1].getPosition();
       session.removeCardFromBoard(initialWalls[1], destroyedPosition.q, destroyedPosition.r);
@@ -169,7 +226,7 @@ describe('UtilsGameSession', () => {
       expect(replayedDamageAction.getTarget().getId()).to.equal(SDK.Cards.Tile.Wall);
       executeWithoutValidation(damageReplay, replayedDamageAction);
       const replayedWall = damageReplay.getBoard().getTileAtPosition(wallPositions[0]);
-      expect(replayedWall.getHP()).to.equal(7);
+      expect(replayedWall.getHP()).to.equal(1997);
 
       const restored = SDK.GameSession.create();
       restored.deserializeSessionFromFirebase(serialized);
@@ -177,11 +234,15 @@ describe('UtilsGameSession', () => {
       expect(restored.getRulesetVersion()).to.equal(2);
       expect(restored.getBoard().getTilePositions()).to.have.length(41);
       expect(restored.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(2, 0))).to.equal(false);
+      expect(restored.getGeneralForPlayer1().getMaxHP()).to.equal(6000);
+      expect(restored.getGeneralForPlayer1().getATK()).to.equal(200);
+      expect(restored.getGeneralForPlayer2().getMaxHP()).to.equal(6000);
+      expect(restored.getGeneralForPlayer2().getATK()).to.equal(200);
       expect(restored.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
       expect(restored.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
       const restoredWalls = restored.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall);
       expect(restoredWalls).to.have.length(8);
-      expect(restoredWalls.find((wall) => wall.getPosition().q === wallPositions[0].q && wall.getPosition().r === wallPositions[0].r).getHP()).to.equal(7);
+      expect(restoredWalls.find((wall) => wall.getPosition().q === wallPositions[0].q && wall.getPosition().r === wallPositions[0].r).getHP()).to.equal(1997);
       expect(restored.getBoard().getTileAtPosition(destroyedPosition) == null).to.equal(true);
       expect(restored.getBoard().hasTileAtPosition(destroyedPosition)).to.equal(true);
 
@@ -191,6 +252,10 @@ describe('UtilsGameSession', () => {
       expect(replay.getRulesetVersion()).to.equal(2);
       expect(replay.getBoard().getTilePositions()).to.have.length(41);
       expect(replay.getBoard().hasTileAtPosition(SDK.HexTopology.renderedToAxial(6, 4))).to.equal(false);
+      expect(replay.getGeneralForPlayer1().getMaxHP()).to.equal(6000);
+      expect(replay.getGeneralForPlayer1().getATK()).to.equal(200);
+      expect(replay.getGeneralForPlayer2().getMaxHP()).to.equal(6000);
+      expect(replay.getGeneralForPlayer2().getATK()).to.equal(200);
       expect(replay.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
       expect(replay.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
       expect(replay.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(9);
@@ -245,6 +310,11 @@ describe('UtilsGameSession', () => {
       expect(restoredPoint.getOwnerId()).to.equal(session.getPlayer1Id());
       const replay = SDK.GameSession.create();
       SDK.GameSetup.setupNewSessionFromExistingSessionData(replay, JSON.parse(JSON.stringify(initialSnapshot)));
+      expect(replay.getRulesetId()).to.equal('practice-sandbox-hex');
+      expect(replay.getRulesetVersion()).to.equal(2);
+      expect(replay.getIsPracticeSandboxV2()).to.equal(true);
+      expect(replay.getGeneralForPlayer1().getMaxHP()).to.equal(6000);
+      expect(replay.getGeneralForPlayer1().getATK()).to.equal(200);
       replay.setIsRunningAsAuthoritative(true);
       replay.getGeneralForPlayer1().setPosition(pointPosition);
       replay.syncState();
@@ -298,7 +368,7 @@ describe('UtilsGameSession', () => {
       expect(point.getIsRemoved()).to.equal(false);
     });
 
-    it('deals twice the control-count difference to the disadvantaged General at both turn ends', () => {
+    it('deals configured damage per control-count difference to the disadvantaged General at both turn ends', () => {
       const session = createRulesetFixture('practice-sandbox-hex', 2);
       const controlledPoints = setMethronControlCounts(session, 3, 1);
       expect(controlledPoints.every((point) => point.getOccupant() == null)).to.equal(true);
@@ -312,21 +382,21 @@ describe('UtilsGameSession', () => {
 
       executeEndTurnWithoutValidation(session);
       expect(general1.getHP()).to.equal(general1Hp);
-      expect(general2.getHP()).to.equal(general2Hp - 4);
+      expect(general2.getHP()).to.equal(general2Hp - 400);
       expect(player1.getReserveMana()).to.equal(2);
       expect(player1.getMaximumMana()).to.equal(player1MaximumMana + 3);
       expect(session.getCurrentPlayer().getPlayerId()).to.equal(session.getPlayer2Id());
 
       executeEndTurnWithoutValidation(session);
       expect(general1.getHP()).to.equal(general1Hp);
-      expect(general2.getHP()).to.equal(general2Hp - 8);
+      expect(general2.getHP()).to.equal(general2Hp - 800);
 
       const reverseControl = createRulesetFixture('practice-sandbox-hex', 2);
       setMethronControlCounts(reverseControl, 1, 3);
       const reverseGeneral1Hp = reverseControl.getGeneralForPlayer1().getHP();
       const reverseGeneral2Hp = reverseControl.getGeneralForPlayer2().getHP();
       executeEndTurnWithoutValidation(reverseControl);
-      expect(reverseControl.getGeneralForPlayer1().getHP()).to.equal(reverseGeneral1Hp - 4);
+      expect(reverseControl.getGeneralForPlayer1().getHP()).to.equal(reverseGeneral1Hp - 400);
       expect(reverseControl.getGeneralForPlayer2().getHP()).to.equal(reverseGeneral2Hp);
 
       const equalControl = createRulesetFixture('practice-sandbox-hex', 2);
@@ -346,7 +416,7 @@ describe('UtilsGameSession', () => {
       const disadvantagedGeneralHp = disadvantagedGeneral.getHP();
       executeEndTurnWithoutValidation(maximumControl);
       expect(maximumControl.getGeneralForPlayer1().getHP()).to.equal(advantagedGeneralHp);
-      expect(disadvantagedGeneral.getHP()).to.equal(disadvantagedGeneralHp - 10);
+      expect(disadvantagedGeneral.getHP()).to.equal(disadvantagedGeneralHp - 1000);
     });
 
     it('counts a point captured during the same turn-end before applying deficit damage', () => {
@@ -364,7 +434,7 @@ describe('UtilsGameSession', () => {
 
       expect(neutralPoint.getOwnerId()).to.equal(session.getPlayer1Id());
       expect(general1.getHP()).to.equal(general1Hp);
-      expect(general2.getHP()).to.equal(general2Hp - 2);
+      expect(general2.getHP()).to.equal(general2Hp - 200);
       const resolvedControlAction = session.getActions().find((action) =>
         action instanceof SDK.ResolveMethronPointControlDamageAction);
       expect(resolvedControlAction).to.exist;
@@ -384,11 +454,11 @@ describe('UtilsGameSession', () => {
       const startingHp = general2.getHP();
       const initialSnapshot = JSON.parse(session.serializeToJSON(session));
       executeEndTurnWithoutValidation(session);
-      expect(general2.getHP()).to.equal(startingHp - 4);
+      expect(general2.getHP()).to.equal(startingHp - 400);
 
       const restored = SDK.GameSession.create();
       restored.deserializeSessionFromFirebase(JSON.parse(session.serializeToJSON(session)));
-      expect(restored.getGeneralForPlayer2().getHP()).to.equal(startingHp - 4);
+      expect(restored.getGeneralForPlayer2().getHP()).to.equal(startingHp - 400);
       expect(getMethronPoints(restored).map((point) => point.getOwnerId()))
         .to.deep.equal(points.map((point) => point.getOwnerId()));
       const serializedResolver = JSON.parse(session.serializeToJSON(session.getActions().find((action) =>
@@ -404,7 +474,7 @@ describe('UtilsGameSession', () => {
       expect(getMethronPoints(replay).filter((point) => point.getOwnerId() === replay.getPlayer1Id())).to.have.length(3);
       expect(getMethronPoints(replay).filter((point) => point.getOwnerId() === replay.getPlayer2Id())).to.have.length(1);
       executeEndTurnWithoutValidation(replay);
-      expect(replay.getGeneralForPlayer2().getHP()).to.equal(startingHp - 4);
+      expect(replay.getGeneralForPlayer2().getHP()).to.equal(startingHp - 400);
 
       const lethal = createRulesetFixture('practice-sandbox-hex', 2);
       setMethronControlCounts(lethal, 5, 0);
@@ -449,7 +519,7 @@ describe('UtilsGameSession', () => {
       } finally {
         session.setValidators(validators);
       }
-      expect(general2.getHP()).to.equal(startingHp - 10);
+      expect(general2.getHP()).to.equal(startingHp - 1000);
       expect(session.consumeMethronPointControlDamageAuthorization(authorized)).to.equal(false);
     });
 
