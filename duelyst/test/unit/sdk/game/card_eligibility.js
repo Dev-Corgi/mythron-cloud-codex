@@ -6,8 +6,110 @@ const SDK = require('../../../../app/sdk.coffee');
 const CardEligibility = require('../../../../app/sdk/rulesets/cardEligibility.coffee');
 const CONFIG = require('../../../../app/common/config');
 const UtilsSDK = require('../../../utils/utils_sdk');
+const CardSetFactory = require('../../../../app/sdk/cards/cardSetFactory.coffee');
+const isExcludedFromLegacyCardPools = require('../../../../app/sdk/cards/isExcludedFromLegacyCardPools.coffee');
+const CardFactory = require('../../../../app/sdk/cards/cardFactory.coffee');
+const FactionFactory = require('../../../../app/sdk/cards/factionFactory.coffee');
 
 describe('new-rules card eligibility', () => {
+  it('registers the Phobies set and its reserved roster IDs without defining cards yet', () => {
+    expect(SDK.CardSet.Phobies).to.equal(9);
+    expect(CardSetFactory.cardSetForIdentifier(SDK.CardSet.Phobies)).to.include({ enabled: false, isUnlockableThroughOrbs: false });
+    expect(Object.values(SDK.Cards.Phobies).filter((id) => id >= 50001 && id <= 50035)).to.deep.equal(Array.from({ length: 35 }, (_, index) => 50001 + index));
+    expect(SDK.CardFactory.cardForIdentifier(50001, SDK.GameSession.create())).to.not.exist;
+  });
+
+  it('prefixes only Phobies names and excludes their set from generic legacy pools', () => {
+    const card = new SDK.Card();
+    card.name = 'Ion';
+    card.setCardSetId(SDK.CardSet.Phobies);
+    expect(card.getName()).to.equal('[PB] Ion');
+    card.name = '[PB] Ion';
+    expect(card.getName()).to.equal('[PB] Ion');
+    expect(isExcludedFromLegacyCardPools(card)).to.equal(true);
+
+    card.setCardSetId(SDK.CardSet.Core);
+    card.name = 'Ion';
+    expect(card.getName()).to.equal('Ion');
+    expect(isExcludedFromLegacyCardPools(card)).to.equal(false);
+  });
+
+  it('filters cache pool arrays while retaining direct ID lookup for excluded cards', () => {
+    const oldGetAllCards = CardFactory.getAllCards;
+    const oldGetAllFactions = FactionFactory.getAllFactions;
+    const oldCachedAt = SDK.GameSession._cardsCachedAt;
+    const oldCaches = SDK.GameSession._cardCaches;
+    const makeCard = (id, cardSetId) => ({
+      getId: () => id,
+      getCardSetId: () => cardSetId,
+      getFactionId: () => 1,
+      getIsAvailable: () => true,
+    });
+    const phobiesCard = makeCard(50001, SDK.CardSet.Phobies);
+    const legacyCard = makeCard(1, SDK.CardSet.Core);
+    try {
+      CardFactory.getAllCards = () => [legacyCard, phobiesCard];
+      FactionFactory.getAllFactions = () => [{ id: 1, isInDevelopment: false }];
+      SDK.GameSession._cardsCachedAt = null;
+      SDK.GameSession._cardCaches = null;
+      const caches = SDK.GameSession.getCardCaches();
+      expect(caches.getCards()).to.deep.equal([legacyCard]);
+      expect(caches.getCardById(50001)).to.equal(phobiesCard);
+    } finally {
+      CardFactory.getAllCards = oldGetAllCards;
+      FactionFactory.getAllFactions = oldGetAllFactions;
+      SDK.GameSession._cardsCachedAt = oldCachedAt;
+      SDK.GameSession._cardCaches = oldCaches;
+    }
+  });
+
+  it('allows Phobies and the temporary bot roster in v2 and preserves v1 deck eligibility', () => {
+    const v1 = SDK.GameSession.create();
+    v1.setRuleset('practice-sandbox-hex', 1);
+    const v2 = SDK.GameSession.create();
+    v2.setRuleset('practice-sandbox-hex', 2);
+
+    expect(CardEligibility.isDeckChoiceId(10979, v1)).to.equal(true);
+    expect(CardEligibility.isDeckChoiceId(50001, v1)).to.equal(false);
+    expect(CardEligibility.isDeckChoiceId(50001, v2)).to.equal(true);
+    expect(CardEligibility.isDeckChoiceId(50001, { rulesetId: 'legacy', rulesetVersion: 2 })).to.equal(false);
+    expect(CardEligibility.isDeckChoiceId(10979, v2)).to.equal(true);
+    expect(CardEligibility.isDeckChoiceId(10019, v2)).to.equal(false);
+    expect(CardEligibility.isDeckChoiceId(50036, v2)).to.equal(false);
+    const v1Deck = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id }));
+    const v2Deck = [1, ...Array.from({ length: 8 }, (_, index) => 50001 + index)].map((id) => ({ id }));
+    expect(CardEligibility.validateDeck(v1Deck, v1).valid).to.equal(true);
+    expect(CardEligibility.validateDeck(v2Deck, v2).valid).to.equal(true);
+    expect(CardEligibility.validateDeck(v1Deck, v2).valid).to.equal(true);
+    const v2Context = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
+    expect(CardEligibility.validateSavedDeck({ id: 1, purpose: 'sandbox', cards: v2Deck }, 'sandbox', v2Context).valid).to.equal(true);
+    expect(CardEligibility.validateSavedDeck({ id: 2, purpose: 'sandbox', cards: v1Deck }, 'sandbox', v2Context).valid).to.equal(true);
+  });
+
+  it('allows ability effects only when derived from the acting unit and its owner', () => {
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const sourceUnit = { getOwnerId: () => 'owner' };
+    session.getCardByIndex = () => sourceUnit;
+    const effectCard = new SDK.Card();
+    effectCard.id = 50100;
+    effectCard.ownerId = 'owner';
+    const action = Object.create(SDK.UseActiveAbilityAction.prototype);
+    action.sourceUnitIndex = 7;
+    const originalEffectId = SDK.UseActiveAbilityAction.getEffectCardId;
+    try {
+      SDK.UseActiveAbilityAction.getEffectCardId = () => 50100;
+      expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(true);
+      effectCard.ownerId = 'other';
+      expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(false);
+      effectCard.ownerId = 'owner';
+      SDK.UseActiveAbilityAction.getEffectCardId = () => 50101;
+      expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(false);
+    } finally {
+      SDK.UseActiveAbilityAction.getEffectCardId = originalEffectId;
+    }
+  });
+
   it('allows only audited exact neutral IDs and canonical general/signature pairs', () => {
     const validDeck = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id }));
     expect(CardEligibility.validateDeck(validDeck).valid).to.equal(true);

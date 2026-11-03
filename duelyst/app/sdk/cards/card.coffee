@@ -614,7 +614,10 @@ class Card extends SDKObject
   getName: () ->
     if @name?
       name = if i18next.exists(@name) then i18next.t(@name) else @name
-    return name || ("" + @getId())
+    name = name || ("" + @getId())
+    if @getCardSetId() is CardSet.Phobies and name.indexOf("[PB] ") isnt 0
+      return "[PB] #{name}"
+    return name
 
   getLogName: ()->
     return "#{@.getName().replace(' ','_')}_#{@getBaseCardId()}_SKN#{Cards.getCardSkinNum(@getId())}#{(if Cards.getIsPrismaticCardId(@getId()) then "(PRSM)" else "")}[#{@.getIndex()}]"

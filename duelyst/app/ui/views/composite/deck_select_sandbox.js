@@ -16,6 +16,8 @@ var CosmeticsFactory = require('app/sdk/cosmetics/cosmeticsFactory');
 var _ = require('underscore');
 var DeckSelectCompositeView = require('./deck_select');
 
+var PRACTICE_SANDBOX_V2 = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
+
 var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
 
   className: 'sliding-panel-select deck-select deck-select-sandbox',
@@ -125,7 +127,7 @@ var DeckSelectSandboxCompositeView = DeckSelectCompositeView.extend({
     if (deckModel == null) return false;
     if (this.model.get('developer')) return true;
     return this.filterDecks(deckModel) && deckModel.isValid()
-      && SDK.CardEligibility.validateSavedDeck(deckModel.toJSON(), 'sandbox').valid;
+      && SDK.CardEligibility.validateSavedDeck(deckModel.toJSON(), 'sandbox', PRACTICE_SANDBOX_V2).valid;
   },
 
   onConfirmSelection: function () {

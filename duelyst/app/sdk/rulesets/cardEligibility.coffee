@@ -4,7 +4,6 @@ Cards = require 'app/sdk/cards/cardsLookupComplete'
 UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
-
 # Practice bot deck: one general plus exactly these eight cards (CONFIG.MAX_NEW_RULES_DECK_SIZE).
 BOT_ROSTER_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206]
 # Deck-eligible neutrals: the bot roster plus Planar Scout, the active ability dev placeholder.
@@ -20,10 +19,21 @@ GENERAL_SIGNATURE_IDS =
   527: 20185
   558: 20306
 GENERATED_DEPENDENCY_IDS = [20142, 43, 40004]
+PHOBIES_DECKABLE_IDS = [
+  50001, 50002, 50003, 50004, 50005, 50006, 50007, 50008, 50009, 50010,
+  50011, 50012, 50013, 50014, 50015, 50016, 50017, 50018, 50019, 50020,
+  50021, 50022, 50023, 50024, 50025, 50026, 50027, 50028, 50029, 50030,
+  50031, 50032, 50033, 50034, 50035
+]
 
 CardEligibility =
   isNewRules: (gameSession) ->
     return gameSession?.getRulesetId?() is PRACTICE_SANDBOX_HEX
+
+  isV2Rules: (gameSession) ->
+    if gameSession?.rulesetId? and gameSession?.rulesetVersion?
+      return Rulesets.isPracticeSandboxV2(gameSession.rulesetId, gameSession.rulesetVersion)
+    return Rulesets.isPracticeSandboxV2(gameSession?.getRulesetId?(), gameSession?.getRulesetVersion?())
 
   getPracticeBotRoster: () ->
     return BOT_ROSTER_IDS.slice()
@@ -37,17 +47,22 @@ CardEligibility =
   isSignatureId: (cardId) ->
     return cardId in (value for own key, value of GENERAL_SIGNATURE_IDS)
 
-  isDeckCardId: (cardId) ->
+  isDeckCardId: (cardId, gameSession) ->
+    if @isV2Rules(gameSession)
+      # Keep the current Practice bot deck eligible until its later migration.
+      return cardId in PHOBIES_DECKABLE_IDS or cardId in BOT_ROSTER_IDS or @isGeneralId(cardId) or @isSignatureId(cardId)
     return cardId in NEUTRAL_CARD_IDS or @isGeneralId(cardId) or @isSignatureId(cardId)
 
-  isDeckChoiceId: (cardId) ->
+  isDeckChoiceId: (cardId, gameSession) ->
+    if @isV2Rules(gameSession)
+      return cardId in PHOBIES_DECKABLE_IDS or cardId in BOT_ROSTER_IDS or @isGeneralId(cardId)
     return cardId in NEUTRAL_CARD_IDS or @isGeneralId(cardId)
 
   isGeneratedDependencyId: (cardId) ->
     return cardId in GENERATED_DEPENDENCY_IDS
 
-  isAllowedRuntimeId: (cardId) ->
-    return @isDeckCardId(cardId) or @isGeneratedDependencyId(cardId)
+  isAllowedRuntimeId: (cardId, gameSession) ->
+    return @isDeckCardId(cardId, gameSession) or @isGeneratedDependencyId(cardId)
 
   isAllowedRuntimeCard: (gameSession, card, sourceAction) ->
     return false unless card?
@@ -58,8 +73,8 @@ CardEligibility =
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
-      return sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
-    return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId)
+      return @isV2Rules(gameSession) and sourceUnit? and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
+    return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId, gameSession)
     return false unless @isGeneratedDependencyId(cardId)
 
     rootCard = card.getRootCard?() ? card
@@ -92,7 +107,7 @@ CardEligibility =
     return false
 
   isAllowedRuntimeIdForPlayer: (gameSession, cardId, playerId) ->
-    return false unless @isAllowedRuntimeId(cardId)
+    return false unless @isAllowedRuntimeId(cardId, gameSession)
     if @isGeneralId(cardId)
       return !gameSession.getGeneralForPlayerId(playerId)?
     if @isSignatureId(cardId)
@@ -105,17 +120,17 @@ CardEligibility =
     general = gameSession.getGeneralForPlayerId(playerId)
     return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
 
-  validateSavedDeck: (savedDeck, purpose) ->
+  validateSavedDeck: (savedDeck, purpose, gameSession) ->
     unless savedDeck?.id? and savedDeck.purpose is purpose and purpose in ["practice", "sandbox"]
       return {valid: false, reason: "Select a saved #{purpose} deck."}
     unless Array.isArray(savedDeck.cards)
       return {valid: false, reason: "Saved deck has no cards."}
     deck = savedDeck.cards.map((card) -> if typeof card is "number" then {id: card} else card)
-    result = @validateDeck(deck)
+    result = @validateDeck(deck, gameSession)
     result.deck = deck if result.valid
     return result
 
-  validateDeck: (deck) ->
+  validateDeck: (deck, gameSession) ->
     return {valid: false, reason: "Practice and Sandbox decks must contain exactly one general and eight cards."} unless Array.isArray(deck) and deck.length is CONFIG.MAX_NEW_RULES_DECK_SIZE
     generalId = deck[0]?.id
     return {valid: false, reason: "The general is not audited for Practice and Sandbox."} unless @isGeneralId(generalId)
@@ -127,7 +142,7 @@ CardEligibility =
         return {valid: false, reason: "Card data overrides are not allowed in Practice and Sandbox decks."}
       if index is 0
         continue
-      unless cardId in NEUTRAL_CARD_IDS
+      unless @isDeckChoiceId(cardId, gameSession)
         return {valid: false, reason: "Card #{cardId} is not audited for Practice and Sandbox."}
       cardCounts[cardId] = (cardCounts[cardId] ? 0) + 1
       if cardCounts[cardId] > CONFIG.MAX_DECK_DUPLICATES
@@ -136,17 +151,17 @@ CardEligibility =
 
   validateSetupData: (gameSession, playerData) ->
     return {valid: true} unless @isNewRules(gameSession)
-    result = @validateDeck(playerData?.deck)
+    result = @validateDeck(playerData?.deck, gameSession)
     return result unless result.valid
     generalId = playerData?.generalId ? playerData?.deck?[0]?.id
     if (playerData?.startingHand?.length ? 0) > 8
       return {valid: false, reason: "Starting hand exceeds the eight fixed Practice and Sandbox slots."}
     for cardData in (playerData?.startingHand ? []).concat(playerData?.startingDrawPile ? [])
       continue unless cardData?
-      unless @isDeckChoiceId(cardData?.id)
+      unless @isDeckChoiceId(cardData?.id, gameSession)
         return {valid: false, reason: "Starting hand/draw-pile card #{cardData?.id} is not audited for Practice and Sandbox."}
     for cardData in (playerData?.startingBoardCardsData ? [])
-      unless @isDeckCardId(cardData?.id)
+      unless @isDeckCardId(cardData?.id, gameSession)
         return {valid: false, reason: "Starting board card #{cardData?.id} is not audited for Practice and Sandbox."}
       if @isSignatureId(cardData.id) and GENERAL_SIGNATURE_IDS[generalId] isnt cardData.id
         return {valid: false, reason: "Starting board signature does not match its general."}

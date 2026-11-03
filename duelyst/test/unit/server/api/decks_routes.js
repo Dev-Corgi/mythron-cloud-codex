@@ -47,24 +47,44 @@ describe('/api/me/decks purpose validation', () => {
     };
   }
 
+  function sendDeckRequest(method, url, body, status) {
+    return new Promise((resolve, reject) => {
+      const testRequest = request(app)[method](url);
+      testRequest.send(body).expect(status).end((error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      });
+    });
+  }
+
   it('rejects an invalid Practice deck on POST before persistence', async () => {
     const ids = [1, 10979, 10979, 10979, 10979, 19052, 19038, 10205, 10001];
-    await new Promise((resolve, reject) => request(app).post('/api/me/decks')
-      .send(deckInput('practice', ids)).expect(400).end((error) => error ? reject(error) : resolve()));
+    await sendDeckRequest('post', '/api/me/decks', deckInput('practice', ids), 400);
     expect(addDeckStub.called).to.equal(false);
   });
 
   it('rejects an invalid Sandbox deck on PUT before persistence', async () => {
     const ids = [23, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10980];
-    await new Promise((resolve, reject) => request(app).put('/api/me/decks/deck-id')
-      .send(deckInput('sandbox', ids)).expect(400).end((error) => error ? reject(error) : resolve()));
+    await sendDeckRequest('put', '/api/me/decks/deck-id', deckInput('sandbox', ids), 400);
     expect(updateDeckStub.called).to.equal(false);
+  });
+
+  it('accepts Phobies IDs when saving v2 Practice and Sandbox decks', async () => {
+    const ids = [1, ...Array.from({ length: 8 }, (_, index) => 50001 + index)];
+    addDeckStub.returns(Promise.resolve({ cards: ids, purpose: 'practice' }));
+    updateDeckStub.returns(Promise.resolve({ cards: ids, purpose: 'sandbox' }));
+
+    await sendDeckRequest('post', '/api/me/decks', deckInput('practice', ids), 200);
+    await sendDeckRequest('put', '/api/me/decks/deck-id', deckInput('sandbox', ids), 200);
+
+    expect(addDeckStub.called).to.equal(true);
+    expect(updateDeckStub.called).to.equal(true);
   });
 
   it('normalizes an old row with no purpose to legacy without changing its IDs', async () => {
     const ids = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
     decksForUserStub.returns(Promise.resolve([{ id: 'old-deck', purpose: null, cards: ids }]));
-    const response = await new Promise((resolve, reject) => request(app).get('/api/me/decks').expect(200).end((error, result) => error ? reject(error) : resolve(result)));
+    const response = await sendDeckRequest('get', '/api/me/decks', null, 200);
     expect(response.body[0].purpose).to.equal('legacy');
     expect(response.body[0].cards.map((card) => card.id)).to.deep.equal(ids);
   });

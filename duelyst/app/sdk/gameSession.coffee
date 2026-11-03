@@ -180,6 +180,10 @@ class GameSession
             factionsHash[card.getFactionId()].isInDevelopment != true
       )
 
+      # Cache pools exclude Practice/Sandbox-only cards, but the root ID index
+      # remains complete so v2 deck and board data can resolve imported cards.
+      poolCards = _.reject(allCards, isExcludedFromLegacyCardPools)
+
       # create recursive caching methods
       cacheRecursive = (cacheInto, cacheByMasterKey, cardsToCache, cacheByRemaining) ->
         # cache cards
@@ -262,7 +266,12 @@ class GameSession
           cacheRecursive(subCache, groupKey, cardsGrouped[groupKey], subCacheByRemaining)
 
       # create caches starting with all cards
-      cacheRecursive(GameSession, "_cardCaches", allCards, GameSession._cacheCardsBy)
+      cacheRecursive(GameSession, "_cardCaches", poolCards, GameSession._cacheCardsBy)
+      allCardsById = {}
+      for card in allCards
+        allCardsById[card.getId()] = card
+      GameSession._cardCaches.cardsById = allCardsById
+      GameSession._cardCaches.getCardById = (cardId) -> return allCardsById[cardId]
 
   # endregion CACHES
 
@@ -283,6 +292,7 @@ FactionFactory = require 'app/sdk/cards/factionFactory'
 Factions = require 'app/sdk/cards/factionsLookup'
 Races = require 'app/sdk/cards/racesLookup'
 Rarity = require 'app/sdk/cards/rarityLookup'
+isExcludedFromLegacyCardPools = require 'app/sdk/cards/isExcludedFromLegacyCardPools'
 
 Logger.module('SDK').log 'Finishing SDK initialization...'
 SDKObject = require './object'

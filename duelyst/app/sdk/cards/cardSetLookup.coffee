@@ -24,4 +24,7 @@ class CardSet
   # Trials of Mythron.
   @Coreshatter: 8
 
+  # Practice/Sandbox-only imported Phobies cards.
+  @Phobies: 9
+
 module.exports = CardSet

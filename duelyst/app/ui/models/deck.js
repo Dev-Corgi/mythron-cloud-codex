@@ -3,6 +3,7 @@
 var Logger = require('app/common/logger');
 var CONFIG = require('app/common/config');
 var SDK = require('app/sdk');
+
 var CardEligibility = SDK.CardEligibility;
 var UtilsEnv = require('app/common/utils/utils_env');
 var GameDataManager = require('app/ui/managers/game_data_manager');
@@ -10,6 +11,8 @@ var ProgressionManager = require('app/ui/managers/progression_manager');
 var CardsCollection = require('app/ui/collections/cards');
 var Firebase = require('firebase');
 var i18next = require('i18next');
+
+var PRACTICE_SANDBOX_V2 = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
 
 var DeckModel = Backbone.Model.extend({
 
@@ -153,7 +156,7 @@ var DeckModel = Backbone.Model.extend({
     var factionId = cardModel.get('factionId');
     var purpose = this.getPurpose();
     var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
-    if (isNewRulesDeck && deltaCount > 0 && !CardEligibility.isDeckChoiceId(cardId)) {
+    if (isNewRulesDeck && deltaCount > 0 && !CardEligibility.isDeckChoiceId(cardId, PRACTICE_SANDBOX_V2)) {
       return false;
     }
     if (cardId != null && (this.get('isStarter') || ProgressionManager.getInstance().isFactionUnlocked(factionId))) {
@@ -351,7 +354,7 @@ var DeckModel = Backbone.Model.extend({
       if (!needsGeneral
         && cardModel.get('isUnlocked')
         && (cardModel.get('isNeutral') || factionId === cardModel.get('factionId'))
-        && (!isNewRulesDeck || CardEligibility.isDeckChoiceId(id))
+        && (!isNewRulesDeck || CardEligibility.isDeckChoiceId(id, PRACTICE_SANDBOX_V2))
         && count > 0 && deckCount <= inventoryCount && this.getCountForBaseCardId(id) <= CONFIG.MAX_DECK_DUPLICATES) {
         // add one card data object for each count of the card
         _.times(count, function () {
@@ -423,7 +426,7 @@ var DeckModel = Backbone.Model.extend({
     if (isNewRulesDeck) {
       valid = deckSize === 9 && !needsGeneral && generalCount === 1;
       this._cardModels.each(function (cardModel) {
-        if (!CardEligibility.isDeckChoiceId(cardModel.get('id'))) valid = false;
+        if (!CardEligibility.isDeckChoiceId(cardModel.get('id'), PRACTICE_SANDBOX_V2)) valid = false;
       });
     } else if (!this.get('isStarter') && !process.env.DISABLE_DECK_VALIDATION) {
       // when deck is in production

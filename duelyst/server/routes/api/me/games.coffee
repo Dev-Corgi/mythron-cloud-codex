@@ -347,7 +347,7 @@ router.post "/single_player", (req, res, next) ->
   # Load purpose and cards together from the authenticated user's saved record.
   return DecksModule.deckForUser(userId, result.value.deck_id)
   .then (savedDeck)->
-    eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice")
+    eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice", {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
     unless eligibility.valid
       throw new Errors.InvalidDeckError(eligibility.reason)
     deck = eligibility.deck

@@ -1163,4 +1163,42 @@ class Cards
     AncientKnowledge: 250008
   }
 
+  @Phobies: {
+    Boom: 50001
+    Numbskull: 50002
+    RazorMouth: 50003
+    Cassowary: 50004
+    Cupcake: 50005
+    Droney: 50006
+    K9000: 50007
+    Gesundheit: 50008
+    Rusty: 50009
+    Minotaur: 50010
+    GraveDigger: 50011
+    JarCannon: 50012
+    Kaboom: 50013
+    MurderWing: 50014
+    Blinky: 50015
+    DoctorDermic: 50016
+    GonzoBonzo: 50017
+    Grimes: 50018
+    Hydra: 50019
+    SlammerHead: 50020
+    Morty: 50021
+    Psyclops: 50022
+    Staremaster: 50023
+    WoollyBully: 50024
+    Cerberus: 50025
+    Scritch: 50026
+    Zappy: 50027
+    AlleyGator: 50028
+    Fishtank: 50029
+    Fleshcrawler: 50030
+    Leshy: 50031
+    MrTramples: 50032
+    Ogre: 50033
+    HiFive: 50034
+    Beauty: 50035
+  }
+
 module.exports = Cards

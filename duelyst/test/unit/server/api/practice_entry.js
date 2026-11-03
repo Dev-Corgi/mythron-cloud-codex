@@ -65,6 +65,14 @@ describe('Practice and Sandbox entry', () => {
       expect(availability.firstCall.args[5].purpose).to.equal('practice');
       expect(createGame.firstCall.args[3]).to.deep.equal(cards);
     });
+
+    it('accepts the Phobies roster from a saved v2 Practice deck', async () => {
+      const phobiesIds = [1, ...Array.from({ length: 8 }, (_, index) => 50001 + index)];
+      lookup.returns(Bluebird.resolve({ id: 'saved', purpose: 'practice', cards: phobiesIds }));
+      await post({ deck_id: 'saved', ai_general_id: 23 }, 200);
+      expect(availability.firstCall.args[1]).to.deep.equal(phobiesIds.map((id) => ({ id })));
+      expect(createGame.called).to.equal(true);
+    });
     ['sandbox', 'legacy', null, 'unknown'].forEach((purpose) => {
       it(`rejects saved purpose ${purpose} before availability or setup`, async () => {
         lookup.returns(Bluebird.resolve({ id: 'saved', purpose, cards: ids }));
@@ -102,6 +110,12 @@ describe('Practice and Sandbox entry', () => {
 
     it('accepts a valid saved practice deck', async () => {
       expect(await Users.isAllowedToUseDeck('entry-user', cards, SDK.GameType.SinglePlayer, null, false, { id: 'saved', purpose: 'practice', cards: ids })).to.equal(true);
+    });
+
+    it('accepts Phobies IDs for Practice before the global availability bypass', async () => {
+      const phobiesIds = [1, ...Array.from({ length: 8 }, (_, index) => 50001 + index)];
+      const phobiesCards = phobiesIds.map((id) => ({ id }));
+      expect(await Users.isAllowedToUseDeck('entry-user', phobiesCards, SDK.GameType.SinglePlayer, null, false, { id: 'saved', purpose: 'practice', cards: phobiesIds })).to.equal(true);
     });
 
     it('rejects invalid purpose and excluded cards even when all cards are available', async () => {

@@ -117,4 +117,13 @@ smap[CardSet.Coreshatter] =
   enabled: true
   cardSetUrl: "https://cards.duelyst.com/trials-of-mythron"
 
+# Practice/Sandbox-only set; it is not part of legacy progression or orbs.
+smap[CardSet.Phobies] =
+  id: CardSet.Phobies,
+  name: "Phobies",
+  devName: "phobies",
+  title: "Phobies",
+  enabled: false
+  isUnlockableThroughOrbs: false
+
 module.exports = CardSetFactory

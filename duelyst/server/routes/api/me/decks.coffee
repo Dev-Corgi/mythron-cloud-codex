@@ -59,7 +59,7 @@ router.post "/", (req, res, next) ->
   # map card objects to integer arrays for the database
   cards = _.map cards, (cardData)-> return cardData.id
   if purpose in ['practice', 'sandbox']
-    eligibility = SDK.CardEligibility.validateDeck(deck_input.value.cards)
+    eligibility = SDK.CardEligibility.validateDeck(deck_input.value.cards, {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
     return res.status(400).json({error: eligibility.reason}) unless eligibility.valid
 
   DecksModule.addDeck(user_id,faction_id,name,cards,spell_count,minion_count,artifact_count,color_code,card_back_id,purpose)
@@ -94,7 +94,7 @@ router.put "/:deck_id", (req, res, next) ->
   # map card objects to integer arrays for the database
   cards = _.map cards, (cardData) -> return cardData.id
   if purpose in ['practice', 'sandbox']
-    eligibility = SDK.CardEligibility.validateDeck(deck_input.value.cards)
+    eligibility = SDK.CardEligibility.validateDeck(deck_input.value.cards, {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
     return res.status(400).json({error: eligibility.reason}) unless eligibility.valid
 
   DecksModule.updateDeck(user_id,deck_id,faction_id,name,cards,spell_count,minion_count,artifact_count,color_code,card_back_id,purpose)

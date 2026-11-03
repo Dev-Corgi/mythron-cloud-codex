@@ -5,6 +5,8 @@ CardEligibility = require './../rulesets/cardEligibility'
 PlayModeFactory = require './../playModes/playModeFactory'
 PlayModes = require './../playModes/playModesLookup'
 
+PRACTICE_SANDBOX_V2 = {rulesetId: "practice-sandbox-hex", rulesetVersion: 2}
+
 class Sandbox extends Challenge
 
   @type: "Sandbox"
@@ -34,7 +36,7 @@ class Sandbox extends Challenge
 
   setupSession:(gameSession)->
     if @type is Sandbox.type
-      results = (CardEligibility.validateSavedDeck(savedDeck, "sandbox") for savedDeck in [@player1Deck, @player2Deck])
+      results = (CardEligibility.validateSavedDeck(savedDeck, "sandbox", PRACTICE_SANDBOX_V2) for savedDeck in [@player1Deck, @player2Deck])
       for eligibility in results
         throw new Error(eligibility.reason) unless eligibility.valid
       @player1Deck = Object.assign({}, @player1Deck, {cards: results[0].deck})

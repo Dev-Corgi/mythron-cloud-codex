@@ -745,7 +745,7 @@ class UsersModule
       return Promise.reject(new Errors.InvalidDeckError("invalid user ID or deck - #{userId}"))
 
     if gameType is GameType.SinglePlayer
-      eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice")
+      eligibility = CardEligibility.validateSavedDeck(savedDeck, "practice", {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
       unless eligibility.valid
         return Promise.reject(new Errors.InvalidDeckError(eligibility.reason))
       deck = eligibility.deck
