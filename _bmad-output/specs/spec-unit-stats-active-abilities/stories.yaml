@@ -106,3 +106,23 @@
     modules), single_player.coffee pointer and tracking logic, app/view/Player.js network events, SignatureCardNode, and the
     game layout reminders. Handle prismatic Generals and a changed signature card. Legacy and version 1 keep
     PlaySignatureCardAction. Read SPEC.md, active-ability-rules.md, and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-7) first.
+- id: "15"
+  title: Show hand-slot ability icons and live counters
+  description: >-
+    Show a deployed unit's ability in its emptied hand slot as the effect spell icon with a live Lockdown or
+    Cooldown badge, use it through actionUseActiveAbility, and draw ability faces (including the General's
+    Bloodbound card) with only the nonzero live counter. Version 2 only. Read SPEC.md and active-ability-rules.md first.
+- id: "16"
+  title: Fly and phase follow the movement distance stat
+  description: >-
+    In version 2, Flying and Phasing only decide what a unit may cross; every unit moves its movement distance
+    stat, the stat is shown without the Flying bonus, and movement and attack type keyword text is left out of the
+    version 2 unit face. Read SPEC.md first.
+- id: "17"
+  title: Ranged attacks use center-line geometry with linked-Wall barriers and follow the range stat
+  description: >-
+    Replace the six-axis rule for version 2 ranged attacks with any tile within the attack range stat whose
+    center-to-center line is not blocked by a Wall center or by the line joining two adjacent Walls, and stop the
+    Ranged keyword from granting reach in version 2 so the attack range stat is the range shown and used. Lobbed,
+    area, spell, legacy, and version 1 stay unchanged. Read stories/17-*.md, SPEC.md, the map spec, and
+    ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-8) first.
