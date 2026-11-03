@@ -27,6 +27,46 @@ var RARITY_ICONS = {
   mythron: RSX.collection_card_rarity_mythron.img,
 };
 
+// Sprite atlas frame for each Duelyst skill icon. The imported skills without
+// dedicated art reuse their closest existing game icon or attack indicator.
+var ABILITY_ICONS = {
+  51001: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
+  51002: { atlas: 'icon_f2_phoenixfire', x: 0, y: 196 },
+  51003: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
+  51004: { atlas: 'iconWarSurgeIdle', x: 49, y: 0 },
+  51005: { atlas: 'iconBlindScorchIdle', x: 49, y: 196 },
+  51006: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
+  51007: { atlas: 'iconDivineBondIdle', x: 98, y: 49 },
+  51012: { image: RSX.collection_card_attack_melee.img },
+  51008: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
+  51009: { atlas: 'iconFlashFreezeIdle', x: 49, y: 196 },
+  51010: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
+  51011: { atlas: 'iconHolyImmolationIdle', x: 49, y: 147 },
+  51013: { atlas: 'iconSpiralCounterIdle', x: 49, y: 147 },
+  51014: { atlas: 'iconKoanOfHornsIdle', x: 49, y: 98 },
+  51015: { atlas: 'iconBoulderHurlIdle', x: 49, y: 49 },
+  51016: { atlas: 'iconThunderbombIdle', x: 98, y: 0 },
+};
+
+function getAbilityIcon(effect, effectCardId) {
+  var icon = ABILITY_ICONS[effectCardId];
+  if (icon && icon.image) return { atlas: icon.image, portrait: true };
+  if (icon && RSX[icon.atlas]) {
+    return { atlas: RSX[icon.atlas].img, x: icon.x, y: icon.y };
+  }
+  var portrait = effect && effect.getPortraitResource && effect.getPortraitResource();
+  return portrait ? { atlas: portrait, portrait: true } : null;
+}
+
+function getAbilityArtPresentation(icon) {
+  if (!icon) return null;
+  return {
+    art: icon.atlas,
+    artPosition: icon.portrait ? 'center' : `${-icon.x * 2}px ${-icon.y * 2}px`,
+    artSize: icon.portrait ? 'cover' : '256px 512px',
+  };
+}
+
 function centerAt(element, x, y) {
   element.css({ left: `${(x / UNIT_LAYOUT.canvas.width) * 100}%`, top: `${(y / UNIT_LAYOUT.canvas.height) * 100}%` });
 }
@@ -47,7 +87,7 @@ function addImage($container, className, assetPath, x, y) {
 
 function getAbilityDetail(card) {
   var ability = card && card.activeAbility;
-  if (!ability || ability.effectCardId !== SDK.Cards.Spell.PhoenixFire) return null;
+  if (!ability || !ability.effectCardId) return null;
   var effect;
   try {
     effect = SDK.CardFactory.cardForIdentifier(ability.effectCardId, card.getGameSession && card.getGameSession());
@@ -55,9 +95,13 @@ function getAbilityDetail(card) {
     return null;
   }
   if (!effect) return null;
+  var icon = getAbilityIcon(effect, ability.effectCardId);
+  if (!icon) return null;
   return {
-    name: effect.getName(),
+    name: effect.getName().replace(/^\[PB\]\s*/, ''),
     description: effect.getDescription(),
+    level: effect.getLevel ? effect.getLevel() : 1,
+    icon: icon,
     lockdown: Math.max(0, Math.floor(ability.lockdown || 0)),
     cooldown: Math.max(1, Math.floor(ability.cooldown || 1)),
   };
@@ -160,6 +204,8 @@ module.exports = {
   createFace: createFace,
   getCardFaceType: getCardFaceType,
   getAbilityDetail: getAbilityDetail,
+  getAbilityIcon: getAbilityIcon,
+  getAbilityArtPresentation: getAbilityArtPresentation,
   getStatPositions: getStatPositions,
   getUnitStatData: getUnitStatData,
   render: render,

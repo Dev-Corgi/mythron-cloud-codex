@@ -3,9 +3,9 @@
     {{#if activeAbility}}
         <div class="phobies-active-ability-preview">
             <img class="phobies-active-ability-frame" src="{{activeAbility.frame}}" alt="">
-            <span class="phobies-active-ability-art" role="img" aria-label="{{activeAbility.name}}" style="background-image:url('{{activeAbility.art}}')"></span>
+            <span class="phobies-active-ability-art" role="img" aria-label="{{activeAbility.name}}" style="background-image:url('{{activeAbility.art}}');background-position:{{activeAbility.artPosition}};background-size:{{activeAbility.artSize}}"></span>
             <span class="phobies-active-ability-name">{{activeAbility.name}}</span>
-            <span class="phobies-active-ability-level">LEVEL 1</span>
+            <span class="phobies-active-ability-level">LEVEL {{activeAbility.level}}</span>
             <img class="phobies-active-ability-lockdown-ring" src="{{activeAbility.lockdownRing}}" alt="">
             <img class="phobies-active-ability-lockdown-icon" src="{{activeAbility.lockdownIcon}}" alt="">
             <span class="phobies-active-ability-lockdown-value">{{activeAbility.lockdown}}</span>
