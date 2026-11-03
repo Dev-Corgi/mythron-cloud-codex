@@ -119,6 +119,8 @@ describe('Phobies imported unit factory', () => {
       [SDK.Cards.PhobiesAbility.Gotcha, ['Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', ['FX.Cards.Neutral.Fireblazer', 'FX.Cards.Spell.BlindingSnowstorm'], 'sfx_f6_icebeetle_death', SDK.Cards.Spell.FlashFreeze]],
       [SDK.Cards.PhobiesAbility.Poof, ['Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', ['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.EggGrenade]],
       [SDK.Cards.PhobiesAbility.RaisingHell, ['Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', ['FX.Cards.Spell.FollowupDamage'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.HolyImmolation]],
+      [SDK.Cards.PhobiesAbility.Terrorform, ['Boulder Hurl', 'Create a Wall on an adjacent empty tile or remove an adjacent Wall.', [], 'sfx_spell_naturalselection', SDK.Cards.Spell.BoulderHurl]],
+      [SDK.Cards.PhobiesAbility.Behold, ['Thunderbomb', 'Deal 500 damage to an enemy unit and each enemy unit behind it in a straight line. Walls block this beam.', ['FX.Cards.Spell.Thunderbomb'], 'sfx_spell_phoenixfire', SDK.Cards.Spell.Thunderbomb]],
     ]);
     const entries = [
       [50005, SDK.Cards.PhobiesAbility.FeelGreat, 0, 1, 1, 'Flash Reincarnation'],
@@ -132,6 +134,8 @@ describe('Phobies imported unit factory', () => {
       [50009, SDK.Cards.PhobiesAbility.Gotcha, 1, 1, 1, 'Flash Freeze'],
       [50013, SDK.Cards.PhobiesAbility.Poof, 1, 1, 1, 'Pupabomb'],
       [50030, SDK.Cards.PhobiesAbility.RaisingHell, 1, 2, 2, 'Holy Immolation'],
+      [50011, SDK.Cards.PhobiesAbility.Terrorform, 0, 2, 1, 'Boulder Hurl'],
+      [50035, SDK.Cards.PhobiesAbility.Behold, 1, 1, 2, 'Thunderbomb'],
     ];
 
     entries.forEach(([unitId, effectId, lockdown, cooldown, useRange, effectName]) => {

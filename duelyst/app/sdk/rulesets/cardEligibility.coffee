@@ -3,6 +3,7 @@ CONFIG = require 'app/common/config'
 Cards = require 'app/sdk/cards/cardsLookupComplete'
 CardType = require 'app/sdk/cards/cardType'
 UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
+ApplyCardToBoardAction = require 'app/sdk/actions/applyCardToBoardAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
 # Practice bot deck: one general plus exactly these eight cards (CONFIG.MAX_NEW_RULES_DECK_SIZE).
@@ -73,12 +74,12 @@ CardEligibility =
     if CardType.getIsAbilityEffectCardType(card.getType())
       return false unless sourceAction instanceof UseActiveAbilityAction
     if cardId is Cards.Tile.Wall
-      return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
+      return @isSetupWall(gameSession, card, sourceAction) or @isTerrorformWall(gameSession, card, sourceAction)
     if cardId is Cards.Tile.MethronPoint
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
-      return @isV2Rules(gameSession) and sourceUnit? and (sourceUnit.getIsGeneral() or CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
+      return @isV2Rules(gameSession) and sourceUnit? and ((sourceUnit.getIsGeneral?() or false) or CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId, gameSession)
     return false unless @isGeneratedDependencyId(cardId)
 
@@ -110,6 +111,17 @@ CardEligibility =
     if cardId is 40004
       return rootCardId is 20181
     return false
+
+  isSetupWall: (gameSession, card, sourceAction) ->
+    return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
+
+  isTerrorformWall: (gameSession, card, sourceAction) ->
+    return false unless @isV2Rules(gameSession) and card.getOwnerId() is null and sourceAction instanceof ApplyCardToBoardAction
+    rootAction = sourceAction.getRootAction?() ? sourceAction.getResolveParentAction?()
+    rootAction = sourceAction if rootAction is sourceAction
+    return false unless rootAction instanceof UseActiveAbilityAction
+    sourceUnit = rootAction.getSourceUnit?()
+    return sourceUnit? and sourceUnit.getId() is 50011 and sourceUnit.getOwnerId() is rootAction.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is Cards.PhobiesAbility.Terrorform
 
   isAllowedRuntimeIdForPlayer: (gameSession, cardId, playerId) ->
     return false unless @isAllowedRuntimeId(cardId, gameSession)

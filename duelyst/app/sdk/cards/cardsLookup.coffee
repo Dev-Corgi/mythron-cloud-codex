@@ -1216,6 +1216,8 @@ class Cards
     CawClaw: 51012
     BullRush: 51013
     PlaySmashface: 51014
+    Terrorform: 51015
+    Behold: 51016
   }
 
 module.exports = Cards

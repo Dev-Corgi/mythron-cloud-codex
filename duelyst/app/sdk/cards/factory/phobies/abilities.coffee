@@ -10,6 +10,8 @@ CardSet = require 'app/sdk/cards/cardSetLookup'
 RSX = require 'app/data/resources'
 Modifier = require 'app/sdk/modifiers/modifier'
 HealAction = require 'app/sdk/actions/healAction'
+ApplyCardToBoardAction = require 'app/sdk/actions/applyCardToBoardAction'
+RemoveAction = require 'app/sdk/actions/removeAction'
 DamageAction = require 'app/sdk/actions/damageAction'
 KillAction = require 'app/sdk/actions/killAction'
 AttackAction = require 'app/sdk/actions/attackAction'
@@ -274,6 +276,64 @@ class PhobiesPlaySmashface extends Spell
     rootAction.setAbilityOriginOn(push) if rootAction?.setAbilityOriginOn?
     @getGameSession().executeAction(push)
 
+class PhobiesTerrorform extends Spell
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Tile
+  spellFilterType: SpellFilterType.None
+
+  onApplyToBoardTile: () ->
+    # This effect resolves once so a selected Wall beneath a Unit is removable.
+
+  onApplyOneEffectToBoard: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    position = @getEffectPositionFromCoordinates(x, y)
+    return unless source? and position? and HexTopology.getDistance(source.getPosition(), position) is 1
+    wall = board.getCardsAtPosition(position, CardType.Tile, true).find (tile) -> tile.getId() is Cards.Tile.Wall
+    if wall?
+      remove = new RemoveAction(@getGameSession())
+      remove.setOwnerId(source.getOwnerId())
+      remove.setTarget(wall)
+      remove.setTargetPosition(position)
+      remove.setFXResource(['FX.Cards.Spell.ArtifactDefiler'])
+      runAbilityAction(sourceAction, remove)
+    else
+      return if board.getEntityAtPosition(position, true)
+      wallCard = @getGameSession().createCardForIdentifier(Cards.Tile.Wall)
+      wallData = wallCard.createCardData()
+      wallData.ownerId = null
+      apply = new ApplyCardToBoardAction(@getGameSession(), source.getOwnerId(), position, wallData, true)
+      apply.setFXResource(['FX.Cards.Spell.DropLift'])
+      runAbilityAction(sourceAction, apply)
+
+class PhobiesBehold extends Spell
+  type: CardType.AbilityEffect
+  @type: CardType.AbilityEffect
+  targetType: CardType.Unit
+  canTargetGeneral: true
+  spellFilterType: SpellFilterType.EnemyDirect
+  damageAmount: 500
+
+  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
+    # Beam victims are resolved once below so target positions stay immutable
+    # while earlier DamageActions remove units.
+
+  onApplyOneEffectToBoard: (board, x, y, sourceAction) ->
+    return unless @getGameSession().getIsRunningAsAuthoritative()
+    source = getAbilitySource(sourceAction)
+    target = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y), true)
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
+    victims = HexAttackGeometry.getBeholdVictims(board, source, target).slice()
+    for victim in victims when victim.getIsActive()
+      damage = new DamageAction(@getGameSession())
+      damage.setOwnerId(source.getOwnerId())
+      damage.setSource(source)
+      damage.setTarget(victim)
+      damage.setDamageAmount(@damageAmount)
+      damage.setIsAbilityOrigin(true)
+      @getGameSession().executeAction(damage)
+
 makeAbilityCard = (gameSession, id, name, description, spellClass, sourceSpellId, configure) ->
   card = new spellClass(gameSession)
   card.setId(id)
@@ -382,6 +442,16 @@ class CardFactory_PhobiesAbilities
         result.damageAmount = 350
         result.setFXResource(['FX.Cards.Spell.CryonicPotential', 'FX.Modifiers.ModifierGenericDamageIce'])
         result.setBaseSoundResource(apply: RSX.sfx_f2tank_attack_swing.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.Terrorform
+      card = makeAbilityCard(gameSession, identifier, 'Boulder Hurl', 'Create a Wall on an adjacent empty tile or remove an adjacent Wall.', PhobiesTerrorform, Cards.Spell.BoulderHurl, (result) ->
+        result.setBaseSoundResource(apply: RSX.sfx_spell_naturalselection.audio)
+      )
+    else if identifier is Cards.PhobiesAbility.Behold
+      card = makeAbilityCard(gameSession, identifier, 'Thunderbomb', 'Deal 500 damage to an enemy unit and each enemy unit behind it in a straight line. Walls block this beam.', PhobiesBehold, Cards.Spell.Thunderbomb, (result) ->
+        result.damageAmount = 500
+        result.setFXResource(['FX.Cards.Spell.Thunderbomb'])
+        result.setBaseSoundResource(apply: RSX.sfx_spell_phoenixfire.audio)
       )
     return card
 

@@ -10,6 +10,7 @@ const CardSetFactory = require('../../../../app/sdk/cards/cardSetFactory.coffee'
 const isExcludedFromLegacyCardPools = require('../../../../app/sdk/cards/isExcludedFromLegacyCardPools.coffee');
 const CardFactory = require('../../../../app/sdk/cards/cardFactory.coffee');
 const FactionFactory = require('../../../../app/sdk/cards/factionFactory.coffee');
+const ValidatorExecuteExplicitAction = require('../../../../app/sdk/validators/validatorExecuteExplicitAction.coffee');
 
 describe('new-rules card eligibility', () => {
   it('registers the Phobies set and resolves every reserved roster ID to a unit', () => {
@@ -97,21 +98,20 @@ describe('new-rules card eligibility', () => {
   it('allows ability effects only when derived from the acting unit and its owner', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 2);
-    const sourceUnit = { getOwnerId: () => 'owner' };
+    const sourceUnit = { getOwnerId: () => 'owner', getIsGeneral: () => false };
     session.getCardByIndex = () => sourceUnit;
-    const effectCard = new SDK.Card();
-    effectCard.id = 50100;
+    const effectCard = session.createCardForIdentifier(SDK.Cards.PhobiesAbility.Terrorform);
     effectCard.ownerId = 'owner';
     const action = Object.create(SDK.UseActiveAbilityAction.prototype);
     action.sourceUnitIndex = 7;
     const originalEffectId = SDK.UseActiveAbilityAction.getEffectCardId;
     try {
-      SDK.UseActiveAbilityAction.getEffectCardId = () => 50100;
+      SDK.UseActiveAbilityAction.getEffectCardId = () => SDK.Cards.PhobiesAbility.Terrorform;
       expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(true);
       effectCard.ownerId = 'other';
       expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(false);
       effectCard.ownerId = 'owner';
-      SDK.UseActiveAbilityAction.getEffectCardId = () => 50101;
+      SDK.UseActiveAbilityAction.getEffectCardId = () => SDK.Cards.PhobiesAbility.Behold;
       expect(CardEligibility.isAllowedRuntimeCard(session, effectCard, action)).to.equal(false);
     } finally {
       SDK.UseActiveAbilityAction.getEffectCardId = originalEffectId;
@@ -177,6 +177,59 @@ describe('new-rules card eligibility', () => {
     expect(CardEligibility.isAllowedRuntimeCard(legacyHexSession, legacyWall, null)).to.equal(false);
     const legacyMethronPoint = legacyHexSession.createCardForIdentifier(SDK.Cards.Tile.MethronPoint);
     expect(CardEligibility.isAllowedRuntimeCard(legacyHexSession, legacyMethronPoint, null)).to.equal(false);
+  });
+
+  it('allows an ownerless Wall only from the Terrorform board-application action', () => {
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const caster = session.createCardForIdentifier(50011);
+    caster.ownerId = 'player1_id';
+    session.getCardByIndex = () => caster;
+    const ability = new SDK.UseActiveAbilityAction(session, caster.getOwnerId(), caster.getIndex(), { q: 3, r: 2 });
+    const apply = new SDK.ApplyCardToBoardAction(session, caster.getOwnerId(), { q: 3, r: 2 }, { id: SDK.Cards.Tile.Wall }, true);
+    apply.getRootAction = () => ability;
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    const originalEffectId = SDK.UseActiveAbilityAction.getEffectCardId;
+    try {
+      SDK.UseActiveAbilityAction.getEffectCardId = () => SDK.Cards.PhobiesAbility.Terrorform;
+      expect(CardEligibility.isAllowedRuntimeCard(session, wall, apply)).to.equal(true);
+    } finally {
+      SDK.UseActiveAbilityAction.getEffectCardId = originalEffectId;
+    }
+    wall.ownerId = caster.getOwnerId();
+    expect(CardEligibility.isAllowedRuntimeCard(session, wall, apply)).to.equal(false);
+    wall.ownerId = null;
+
+    const unrelated = new SDK.ApplyCardToBoardAction(session, caster.getOwnerId(), { q: 3, r: 2 }, { id: SDK.Cards.Tile.Wall }, true);
+    expect(CardEligibility.isAllowedRuntimeCard(session, wall, unrelated)).to.equal(false);
+    const otherAbility = session.createCardForIdentifier(50035);
+    otherAbility.ownerId = caster.getOwnerId();
+    const otherRoot = new SDK.UseActiveAbilityAction(session, otherAbility.getOwnerId(), otherAbility.getIndex(), { q: 4, r: 2 });
+    otherRoot.getSourceUnit = () => otherAbility;
+    unrelated.getRootAction = () => otherRoot;
+    expect(CardEligibility.isAllowedRuntimeCard(session, wall, unrelated)).to.equal(false);
+  });
+
+  it('binds Terrorform Wall actions to its selected adjacent tile', () => {
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const caster = session.createCardForIdentifier(50011);
+    caster.ownerId = 'player1_id';
+    caster.setPosition({ q: 2, r: 2 });
+    const selectedPosition = { q: 3, r: 2 };
+    const root = new SDK.UseActiveAbilityAction(session, caster.getOwnerId(), caster.getIndex(), selectedPosition);
+    root.getSourceUnit = () => caster;
+    root.getTargetPosition = () => selectedPosition;
+    const validator = new ValidatorExecuteExplicitAction(session);
+    const apply = new SDK.ApplyCardToBoardAction(session, caster.getOwnerId(), { q: 4, r: 2 }, { id: SDK.Cards.Tile.Wall, ownerId: null }, true);
+    apply.getRootAction = () => root;
+    expect(validator._isTerrorformWallApply(apply)).to.equal(false);
+
+    const remove = new SDK.RemoveAction(session);
+    remove.setTarget(session.createCardForIdentifier(SDK.Cards.Tile.Wall));
+    remove.setTargetPosition({ q: 4, r: 2 });
+    remove.getRootAction = () => root;
+    expect(validator._isTerrorformWallRemove(remove)).to.equal(false);
   });
 
   it('invalidates an excluded authoritative board action before application', () => {

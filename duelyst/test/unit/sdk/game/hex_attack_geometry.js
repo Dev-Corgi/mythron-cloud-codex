@@ -67,6 +67,21 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     expect(attacker.getAttackRange().getValidTargets(board, attacker)).not.to.include(enemy);
   });
 
+  it('BEHOLD: selects only enemy Units on a clear axial ray and stops at a Wall', () => {
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    attacker.setPosition({ q: 2, r: 2 });
+    const selected = addUnit(session.getPlayer2Id(), { q: 4, r: 2 });
+    const behind = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
+    addUnit(session.getPlayer1Id(), { q: 5, r: 1 });
+    const beyondWall = addUnit(session.getPlayer2Id(), { q: 7, r: 2 });
+    expect(HexAttackGeometry.getBeholdVictims(board, attacker, selected)).to.deep.equal([selected, behind, beyondWall]);
+    addWall({ q: 6, r: 2 });
+    expect(HexAttackGeometry.getBeholdVictims(board, attacker, selected)).to.deep.equal([selected, behind]);
+    const offAxis = addUnit(session.getPlayer2Id(), { q: 4, r: 1 });
+    expect(HexAttackGeometry.getBeholdVictims(board, attacker, offAxis)).to.deep.equal([]);
+    expect(beyondWall.getIsActive()).to.equal(true);
+  });
+
   it('RANGED_ENDPOINT_WALL: Walls on the origin or target cell do not block', () => {
     attacker.setReach(3);
     attacker.setAttackType('ranged');

@@ -1,6 +1,7 @@
 CONFIG = require("app/common/config")
 Validator = require("./validator")
 Player = require("app/sdk/player")
+Cards = require("app/sdk/cards/cardsLookupComplete")
 DrawStartingHandAction = require("app/sdk/actions/drawStartingHandAction")
 MoveAction = require("app/sdk/actions/moveAction")
 AttackAction = require("app/sdk/actions/attackAction")
@@ -8,6 +9,8 @@ PlayCardFromHandAction = require("app/sdk/actions/playCardFromHandAction")
 PlaySignatureCardAction = require("app/sdk/actions/playSignatureCardAction")
 UseActiveAbilityAction = require("app/sdk/actions/useActiveAbilityAction")
 ApplyCardToBoardAction = require("app/sdk/actions/applyCardToBoardAction")
+RemoveAction = require("app/sdk/actions/removeAction")
+HexTopology = require("app/sdk/rulesets/hexTopology")
 ReplaceCardFromHandAction = require("app/sdk/actions/replaceCardFromHandAction")
 ResignAction = require("app/sdk/actions/resignAction")
 EndTurnAction = require("app/sdk/actions/endTurnAction")
@@ -55,7 +58,7 @@ class ValidatorExecuteExplicitAction extends Validator
           else if owner.getRemainingMana() < action.getManaCost()
             # player doesn't have enough mana to execute this explicit action
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.not_enough_mana_message"))
-          else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == UseActiveAbilityAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || @_isAbilityPush(action) || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
+          else if !(action.getType() == MoveAction.type || action.getType() == AttackAction.type || action.getType() == PlayCardFromHandAction.type || action.getType() == PlaySignatureCardAction.type || action.getType() == UseActiveAbilityAction.type || action.getType() == ReplaceCardFromHandAction.type || action.getType() == EndTurnAction.type || action.getType() == EndFollowupAction.type || action.getType() == RollbackToSnapshotAction.type || @_isAbilityPush(action) || @_isTerrorformWallApply(action) || @_isTerrorformWallRemove(action) || (action instanceof ApplyCardToBoardAction and action.getCard()?.getIsFollowup()))
             # player is attempting to execute an explicit action that is not one of the allowed types
             @invalidateAction(action, action.getTargetPosition(), i18next.t("validators.cannot_do_that_message"))
         else
@@ -67,5 +70,26 @@ class ValidatorExecuteExplicitAction extends Validator
     rootAction = action.getRootAction?()
     sourceUnit = rootAction?.getSourceUnit?()
     return rootAction instanceof UseActiveAbilityAction and sourceUnit?.activeAbility?.effectCardId is 51014
+
+  _isTerrorformWallApply: (action) ->
+    return false unless action instanceof ApplyCardToBoardAction and @getGameSession().getIsPracticeSandboxV2()
+    return false unless action.getCard()?.getId() is Cards.Tile.Wall and action.getCard()?.getOwnerId() is null
+    rootAction = action.getRootAction?()
+    sourceUnit = rootAction?.getSourceUnit?()
+    return false unless rootAction instanceof UseActiveAbilityAction and sourceUnit?.activeAbility?.effectCardId is Cards.PhobiesAbility.Terrorform
+    position = action.getTargetPosition()
+    selectedPosition = rootAction.getTargetPosition()
+    board = @getGameSession().getBoard()
+    return board.positionsEqual(position, selectedPosition) and HexTopology.getDistance(sourceUnit.getPosition(), position) is 1 and !board.getEntityAtPosition(position, true)
+
+  _isTerrorformWallRemove: (action) ->
+    return false unless action instanceof RemoveAction and @getGameSession().getIsPracticeSandboxV2()
+    return false unless action.getTarget()?.getId() is Cards.Tile.Wall
+    rootAction = action.getRootAction?()
+    sourceUnit = rootAction?.getSourceUnit?()
+    return false unless rootAction instanceof UseActiveAbilityAction and sourceUnit?.activeAbility?.effectCardId is Cards.PhobiesAbility.Terrorform
+    position = action.getTargetPosition()
+    selectedPosition = rootAction.getTargetPosition()
+    return @getGameSession().getBoard().positionsEqual(position, selectedPosition) and HexTopology.getDistance(sourceUnit.getPosition(), position) is 1
 
 module.exports = ValidatorExecuteExplicitAction

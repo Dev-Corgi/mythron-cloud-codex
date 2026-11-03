@@ -60,6 +60,32 @@ HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall = (board, origin, target) ->
       return true if HexTopology.segmentsIntersect(start, finish, linkStart, linkEnd)
   return false
 
+# Behold selects an enemy Unit on one of the three axial axes. Its selected
+# target is range-limited by the caller; the beam continues beyond it to the
+# board edge and stops before the first Wall. Wall visibility to the selected
+# target uses the same center-and-linked-Wall checks as ranged attacks.
+HEX_ATTACK_GEOMETRY.getBeholdVictims = (board, source, target) ->
+  return [] unless board? and source? and target?
+  origin = source.getPosition()
+  targetPosition = target.getPosition()
+  return [] unless HexTopology.isOnHexAxis(origin, targetPosition)
+  return [] if HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall(board, origin, targetPosition)
+  distance = HexTopology.getDistance(origin, targetPosition)
+  dq = (targetPosition.q - origin.q) / distance
+  dr = (targetPosition.r - origin.r) / distance
+  victims = []
+  walls = HEX_ATTACK_GEOMETRY._getBlockingWalls(board)
+  position = {q: targetPosition.q, r: targetPosition.r}
+  while board.isOnBoard(position) and board.hasTileAtPosition(position)
+    break if !board.positionsEqual(position, targetPosition) and HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall(board, origin, position)
+    isWall = walls.some (wall) -> board.positionsEqual(wall.getPosition(), position)
+    unit = board.getUnitAtPosition(position, true)
+    if unit? and unit.getIsActive() and unit.getOwnerId() isnt source.getOwnerId()
+      victims.push(unit)
+    break if isWall
+    position = {q: position.q + dq, r: position.r + dr}
+  return victims
+
 # Direct attacks resolve one canonical entity per position. An enemy Unit has
 # priority; otherwise a neutral Wall can be attacked beneath an allied Unit.
 HEX_ATTACK_GEOMETRY.getTargetAtPosition = (board, entity, position) ->

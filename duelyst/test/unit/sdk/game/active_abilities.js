@@ -6,6 +6,7 @@ const { expect } = require('chai');
 const Logger = require('../../../../app/common/logger.coffee');
 const SDK = require('../../../../app/sdk.coffee');
 const UtilsSDK = require('../../../utils/utils_sdk');
+const HexAttackGeometry = require('../../../../app/sdk/rulesets/hexAttackGeometry.coffee');
 
 Logger.enabled = false;
 
@@ -829,6 +830,132 @@ describe('active ability state', () => {
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
     expect(enemy.getDamage()).to.equal(0);
     expect(caster.getIsActive()).to.equal(false);
+  });
+
+  it('Terrorform creates and removes a neutral configured Wall for one AP', () => {
+    const board = gameSession.getBoard();
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    const caster = deployPhobies(50011, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const target = { q: 3, r: 1 };
+    const create = useUnitAbility(caster, target);
+    expect(create.getIsValid(), create.getValidationMessage()).to.equal(true);
+    const wall = board.getTileAtPosition(target, true);
+    expect(wall.getId()).to.equal(SDK.Cards.Tile.Wall);
+    expect(wall.getOwnerId()).to.equal(null);
+    expect(wall.getMaxHP()).to.equal(gameSession.getRulesetConfig().wallHealth);
+    expect(caster.getActionPoints()).to.equal(1);
+    expect(create.getManaCost()).to.equal(0);
+    const createActions = create.getFlattenedActionTree();
+    expect(createActions.some((action) => action instanceof SDK.ApplyCardToBoardAction && action.getFXResource().includes('FX.Cards.Spell.DropLift'))).to.equal(true);
+
+    caster.setActionPoints(2);
+    caster.getActiveAbilityState().cooldown = 0;
+    const remove = useUnitAbility(caster, target);
+    expect(remove.getIsValid(), remove.getValidationMessage()).to.equal(true);
+    expect(wall.getIsActive()).to.equal(false);
+    expect(remove.getFlattenedActionTree().some((action) => action instanceof SDK.RemoveAction && action.getFXResource().includes('FX.Cards.Spell.ArtifactDefiler'))).to.equal(true);
+    expect(board.getTiles().some((tile) => tile.getId() === SDK.Cards.Tile.Wall && board.positionsEqual(tile.getPosition(), target))).to.equal(false);
+    expect(caster.getActionPoints()).to.equal(1);
+
+    const unitUnderWall = deployPhobies(50003, gameSession.getPlayer1Id(), target);
+    const wallUnderUnit = gameSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wallUnderUnit.setPosition(target);
+    wallUnderUnit.setIsPlayed(true);
+    wallUnderUnit.setIsRemoved(false);
+    board.addCard(wallUnderUnit);
+    caster.setActionPoints(2);
+    caster.getActiveAbilityState().cooldown = 0;
+    const removeUnderUnit = useUnitAbility(caster, target);
+    expect(removeUnderUnit.getIsValid(), removeUnderUnit.getValidationMessage()).to.equal(true);
+    expect(unitUnderWall.getIsActive()).to.equal(true);
+    expect(wallUnderUnit.getIsActive()).to.equal(false);
+  });
+
+  it('Terrorform rejects occupied, non-adjacent, and hole targets without spending AP', () => {
+    const board = gameSession.getBoard();
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    const caster = deployPhobies(50011, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    deployPhobies(50003, gameSession.getPlayer1Id(), { q: 3, r: 2 });
+    for (const target of [{ q: 3, r: 2 }, { q: 5, r: 2 }, { q: 2, r: 0 }]) {
+      const use = useUnitAbility(caster, target);
+      expect(use.getIsValid()).to.equal(false);
+      expect(caster.getActionPoints()).to.equal(2);
+      const tile = board.getTileAtPosition(target, true);
+      expect(!tile || tile.getId() !== SDK.Cards.Tile.Wall).to.equal(true);
+    }
+  });
+
+  it('Behold damages the selected enemy and enemies behind it, stops at Walls, and attributes every hit to Beauty', () => {
+    const board = gameSession.getBoard();
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    const caster = deployPhobies(50035, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const selected = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 2 });
+    const behind = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 5, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), { q: 6, r: 2 });
+    const blocked = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 7, r: 2 });
+    const wall = gameSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition({ q: 6, r: 2 });
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+
+    const use = useUnitAbility(caster, selected.getPosition());
+    expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
+    expect(selected.getDamage()).to.equal(500);
+    expect(behind.getDamage()).to.equal(500);
+    expect(ally.getDamage()).to.equal(0);
+    expect(blocked.getDamage()).to.equal(0);
+    expect(caster.getActionPoints()).to.equal(1);
+    const damageActions = use.getFlattenedActionTree().filter((action) => action instanceof SDK.DamageAction);
+    expect(damageActions).to.have.length(2);
+    expect(damageActions.every((action) => action.getSource() === caster)).to.equal(true);
+    expect(damageActions.every((action) => action.getIsAbilityOrigin())).to.equal(true);
+  });
+
+  it('Behold accepts an enemy General and rejects allies, off-axis, out-of-range, and Wall-blocked targets', () => {
+    const board = gameSession.getBoard();
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    const caster = deployPhobies(50035, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), { q: 4, r: 2 });
+    expect(useUnitAbility(caster, ally.getPosition()).getIsValid()).to.equal(false);
+    const offAxis = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 1 });
+    expect(useUnitAbility(caster, offAxis.getPosition()).getIsValid()).to.equal(false);
+    const tooFar = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 5, r: 2 });
+    expect(useUnitAbility(caster, tooFar.getPosition()).getIsValid()).to.equal(false);
+
+    const enemyGeneral = gameSession.getGeneralForPlayer2();
+    enemyGeneral.setPosition({ q: 4, r: 2 });
+    const generalUse = useUnitAbility(caster, enemyGeneral.getPosition());
+    expect(generalUse.getIsValid(), generalUse.getValidationMessage()).to.equal(true);
+    expect(enemyGeneral.getDamage()).to.equal(500);
+
+    const blockedCaster = deployPhobies(50035, gameSession.getPlayer1Id(), { q: 2, r: 3 });
+    const blockedTarget = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 3 });
+    const wall = gameSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    wall.setPosition({ q: 3, r: 3 });
+    wall.setIsPlayed(true);
+    wall.setIsRemoved(false);
+    board.addCard(wall);
+    expect(HexAttackGeometry.getBeholdVictims(board, blockedCaster, blockedTarget)).to.deep.equal([]);
+    const blockedUse = gameSession.getPlayerById(blockedCaster.getOwnerId()).actionUseActiveAbility(blockedCaster.getIndex(), blockedTarget.getPosition());
+    gameSession.validateAction(blockedUse, false);
+    expect(blockedUse.getIsValid()).to.equal(false);
+    expect(blockedTarget.getDamage()).to.equal(0);
+    expect(blockedCaster.getActionPoints()).to.equal(2);
+  });
+
+  it('Behold continues its snapshotted beam after an earlier victim is destroyed', () => {
+    const board = gameSession.getBoard();
+    for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
+    const caster = deployPhobies(50035, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const selected = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 2 });
+    const behind = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 5, r: 2 });
+    selected.setDamage(selected.getMaxHP() - 100);
+
+    const use = useUnitAbility(caster, selected.getPosition());
+    expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
+    expect(selected.getIsActive()).to.equal(false);
+    expect(behind.getDamage()).to.equal(500);
   });
 
   it('resolves Caw Claw with one embedded move, one real attack, and one total AP', () => {

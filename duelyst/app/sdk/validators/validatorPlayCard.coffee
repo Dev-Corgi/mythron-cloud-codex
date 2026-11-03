@@ -21,12 +21,20 @@ class ValidatorPlayCard extends Validator
   _isInvalidAbilityEffectTarget: (card, sourceUnit, targetPosition) ->
     if card.getId() is Cards.PhobiesAbility.BullRush
       return HexAttackGeometry.getBullRushPath(@getGameSession().getBoard(), sourceUnit, targetPosition).length isnt 4
-    target = @getGameSession().getBoard().getCardAtPosition(targetPosition, card.targetType)
+    board = @getGameSession().getBoard()
+    if card.getId() is Cards.PhobiesAbility.Terrorform
+      return true unless targetPosition? and board.isOnBoard(targetPosition) and board.hasTileAtPosition(targetPosition) and HexTopology.getDistance(sourceUnit.getPosition(), targetPosition) is 1
+      tile = board.getTileAtPosition(targetPosition, true)
+      return false if tile? and tile.getId() is Cards.Tile.Wall
+      return !!board.getEntityAtPosition(targetPosition, true)
+    target = board.getCardAtPosition(targetPosition, card.targetType, true)
     return true unless target?
     return true if target.getIsGeneral() and !card.canTargetGeneral
     if card.spellFilterType is SpellFilterType.AllyDirect
       return target.getOwnerId() isnt sourceUnit.getOwnerId() or target.getIsGeneral()
     if card.spellFilterType is SpellFilterType.EnemyDirect
+      if card.getId() is Cards.PhobiesAbility.Behold
+        return HexAttackGeometry.getBeholdVictims(board, sourceUnit, target).length is 0
       return target.getOwnerId() is sourceUnit.getOwnerId()
     return false
 
