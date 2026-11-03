@@ -802,22 +802,32 @@ const Player = cc.Class.extend({
       if (this.followupCard != null) {
         const rootCard = this.followupCard.getRootCard();
         const playedByAction = rootCard && rootCard.getAppliedToBoardByAction();
-        if (playedByAction instanceof SDK.PlayCardFromHandAction) {
-          SDK.NetworkManager.getInstance().broadcastGameEvent({
-            type: EVENTS.network_game_select, timestamp: Date.now(), handIndex: playedByAction.getIndexOfCardInHand(), intentType: this.getIntentType(),
-          });
-        } else if (SDK.SignaturePlay.matches(playedByAction)) {
-          const selectEventData = {
-            type: EVENTS.network_game_select,
-            timestamp: Date.now(),
-            intentType: this.getIntentType(),
-          };
-          if (this.getIsPlayer2()) {
-            selectEventData.player2SignatureCard = true;
-          } else {
-            selectEventData.player1SignatureCard = true;
+        if (SDK.CardPlayAction.matches(playedByAction)) {
+          if (playedByAction instanceof SDK.PlayCardFromHandAction) {
+            SDK.NetworkManager.getInstance().broadcastGameEvent({
+              type: EVENTS.network_game_select, timestamp: Date.now(), handIndex: playedByAction.getIndexOfCardInHand(), intentType: this.getIntentType(),
+            });
+          } else if (playedByAction instanceof SDK.UseActiveAbilityAction && !playedByAction.getIsGeneralAbility()) {
+            const sourceUnit = playedByAction.getSourceUnit();
+            const abilityState = sourceUnit && sourceUnit.getActiveAbilityState && sourceUnit.getActiveAbilityState();
+            if (abilityState && abilityState.handSlotIndex != null) {
+              SDK.NetworkManager.getInstance().broadcastGameEvent({
+                type: EVENTS.network_game_select, timestamp: Date.now(), handIndex: abilityState.handSlotIndex, intentType: this.getIntentType(),
+              });
+            }
+          } else if (SDK.CardPlayAction.matchesSignature(playedByAction)) {
+            const selectEventData = {
+              type: EVENTS.network_game_select,
+              timestamp: Date.now(),
+              intentType: this.getIntentType(),
+            };
+            if (this.getIsPlayer2()) {
+              selectEventData.player2SignatureCard = true;
+            } else {
+              selectEventData.player1SignatureCard = true;
+            }
+            SDK.NetworkManager.getInstance().broadcastGameEvent(selectEventData);
           }
-          SDK.NetworkManager.getInstance().broadcastGameEvent(selectEventData);
         }
       } else {
         SDK.NetworkManager.getInstance().broadcastGameEvent({ type: EVENTS.network_game_select, timestamp: Date.now(), intentType: this.getIntentType() });

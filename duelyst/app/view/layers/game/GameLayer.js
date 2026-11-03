@@ -1212,7 +1212,7 @@ var GameLayer = FXCompositeLayer.extend({
         // show my played card when step is done loading
         // but not if in spectate mode, as the played card will be instead shown in sequence
         if (!SDK.GameSession.getInstance().getIsSpectateMode()
-          && (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action))
+          && SDK.CardPlayAction.matches(action)
           && action.getCard().getHasFollowups()) {
           sdkStepInterface.loadPromise.then(() => {
             this.showPlayCard(action, CONFIG.MY_PLAYED_CARD_TRANSITION_DURATION, CONFIG.MY_PLAYED_CARD_SHOW_DURATION, true);
@@ -2207,7 +2207,7 @@ var GameLayer = FXCompositeLayer.extend({
           if (currentAction instanceof SDK.ApplyCardToBoardAction && !currentAction.getIsImplicit()) {
             const owner = this.getPlayerById(currentAction.getOwnerId());
             const playerActor = SDK.GameSession.getInstance().getIsSpectateMode() ? this._altPlayer : this._player;
-            if ((owner === this._player && !playerActor.getHasCardsWithFollowup()) || (owner === this._opponent && (currentAction instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(currentAction)))) {
+            if ((owner === this._player && !playerActor.getHasCardsWithFollowup()) || (owner === this._opponent && SDK.CardPlayAction.matches(currentAction))) {
               const general = SDK.GameSession.getInstance().getGeneralForPlayerId(currentAction.getOwnerId());
               const generalNode = general && this.getNodeForSdkCard(general);
               if (generalNode != null) {
@@ -2940,7 +2940,7 @@ var GameLayer = FXCompositeLayer.extend({
     // ensure if first action is play card from hand that next action is root of new sequence
     const firstActionInterface = actionInterfaceSequence[0];
     const firstAction = firstActionInterface.getSdkAction();
-    if (firstAction instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(firstAction)) {
+    if (SDK.CardPlayAction.matches(firstAction)) {
       const secondActionInterface = actionInterfaceSequence[1];
       if (secondActionInterface != null && !secondActionInterface.isSequenceRoot) {
         secondActionInterface.isSequenceRoot = true;
@@ -3218,28 +3218,10 @@ var GameLayer = FXCompositeLayer.extend({
     // show the current action
     if (sdkActionInterface != null) {
       var action = sdkActionInterface.getSdkAction();
-      const myAction = action.getOwnerId() === this._player.getPlayerId();
 
       // show explicit play card and delay showing of action
-      if (!action.getIsImplicit()
-        && (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action))
-        && (SDK.GameSession.getInstance().getIsSpectateMode() || !myAction)) {
-        let animateDuration;
-        let showDuration;
-        if (SDK.GameSession.getInstance().getIsSpectateMode()) {
-          animateDuration = CONFIG.REPLAY_PLAYED_CARD_TRANSITION_DURATION;
-          showDuration = CONFIG.REPLAY_PLAYED_CARD_SHOW_DURATION;
-          actionShowDelay += CONFIG.REPLAY_PLAYED_CARD_DELAY;
-        } else if (!myAction) {
-          animateDuration = CONFIG.OPPONENT_PLAYED_CARD_TRANSITION_DURATION;
-          showDuration = CONFIG.OPPONENT_PLAYED_CARD_SHOW_DURATION;
-          actionShowDelay += CONFIG.OPPONENT_PLAYED_CARD_DELAY;
-        }
-
-        // show skippable play card
-        this.showSkippablePlayCard(action, animateDuration, showDuration, actionShowDelay, () => {
-          this._showAction(sdkActionInterface);
-        });
+      if (this._showPlayedCardIfNeeded(action, sdkActionInterface, actionShowDelay)) {
+        // the reveal callback continues the action sequence
       } else if (actionShowDelay > 0.0) {
         this._setupActionForShowSequence = this.runAction(cc.sequence(
           cc.delayTime(actionShowDelay),
@@ -3255,6 +3237,32 @@ var GameLayer = FXCompositeLayer.extend({
     } else {
       this.showNextStep();
     }
+  },
+
+  _showPlayedCardIfNeeded(action, sdkActionInterface, actionShowDelay) {
+    const isSpectating = SDK.GameSession.getInstance().getIsSpectateMode();
+    if (action.getIsImplicit()
+      || !SDK.CardPlayAction.matches(action)
+      || (!isSpectating && !SDK.CardPlayAction.shouldRevealToPlayer(action, this._player.getPlayerId()))) {
+      return false;
+    }
+
+    let animateDuration;
+    let showDuration;
+    if (isSpectating) {
+      animateDuration = CONFIG.REPLAY_PLAYED_CARD_TRANSITION_DURATION;
+      showDuration = CONFIG.REPLAY_PLAYED_CARD_SHOW_DURATION;
+      actionShowDelay += CONFIG.REPLAY_PLAYED_CARD_DELAY;
+    } else if (action.getOwnerId() !== this._player.getPlayerId()) {
+      animateDuration = CONFIG.OPPONENT_PLAYED_CARD_TRANSITION_DURATION;
+      showDuration = CONFIG.OPPONENT_PLAYED_CARD_SHOW_DURATION;
+      actionShowDelay += CONFIG.OPPONENT_PLAYED_CARD_DELAY;
+    }
+
+    this.showSkippablePlayCard(action, animateDuration, showDuration, actionShowDelay, () => {
+      this._showAction(sdkActionInterface);
+    });
+    return true;
   },
 
   /**
@@ -4042,7 +4050,7 @@ var GameLayer = FXCompositeLayer.extend({
 
   _showActionAutoFX(action) {
     let showDuration = 0.0;
-    if (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action)) {
+    if (SDK.CardPlayAction.matches(action)) {
       const card = action.getCard();
 
       // get applied effect positions

@@ -372,7 +372,7 @@ var GameLayout = Backbone.Marionette.LayoutView.extend({
 
       // reset reminder counters on my actions
       if (action.getOwnerId() === SDK.GameSession.getInstance().getMyPlayerId()) {
-        if (SDK.SignaturePlay.matches(action)) {
+        if (SDK.CardPlayAction.matchesSignature(action)) {
           this._numTurnsSinceSignatureCardUsed = -1;
         } else if (action instanceof SDK.ReplaceCardFromHandAction) {
           this._numTurnsSinceReplaceUsed = -1;

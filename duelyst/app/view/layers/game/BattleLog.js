@@ -157,7 +157,7 @@ const BattleLog = BaseLayer.extend({
     if (step != null) {
       if (!_.contains(this._stepsProcessed, step)) {
         const action = step.getAction();
-        return action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action);
+        return SDK.CardPlayAction.matches(action);
       }
     }
     return false;

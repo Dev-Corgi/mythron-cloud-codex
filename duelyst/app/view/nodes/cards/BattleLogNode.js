@@ -156,7 +156,7 @@ const BattleLogNode = SdkNode.extend({
 
         // set sdk card
         let sdkCard;
-        if (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action)) {
+        if (SDK.CardPlayAction.matches(action)) {
           sdkCard = action.getCard();
         } else if (action instanceof SDK.MoveAction) {
           sdkCard = action.getSource();
@@ -245,7 +245,7 @@ const BattleLogNode = SdkNode.extend({
         const action = this.step.getAction();
 
         // show by type
-        if (action instanceof SDK.PlayCardFromHandAction || SDK.SignaturePlay.matches(action)) {
+        if (SDK.CardPlayAction.matches(action)) {
           // show inspect
           const sdkCard = this.getSdkCard();
           if (sdkCard != null) {
