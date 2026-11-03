@@ -70,7 +70,7 @@ const ArenaDeckCardNode = SdkNode.extend({
    * @see SdkNode.getCardResourcePackageId
    */
   getCardResourcePackageId(sdkCard) {
-    return PKGS.getCardInspectPkgIdentifier(sdkCard.getId());
+    return PKGS.getCardInspectPkgIdentifier(sdkCard);
   },
 
   setSdkCard(sdkCard, count) {

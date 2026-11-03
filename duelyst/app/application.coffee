@@ -2258,7 +2258,7 @@ App._startGame = () ->
     if card?
       # get unique id for card preload
       card_id = card.id
-      card_pkg_id = PKGS.getCardGamePkgIdentifier(card_id)
+      card_pkg_id = PKGS.getCardGamePkgIdentifier(card)
       card_preload_pkg_id = card_pkg_id + "_preload_" + UtilsJavascript.generateIncrementalId()
       preloaded_package_ids.push(card_preload_pkg_id)
       load_promises.push(PackageManager.getInstance().loadMinorPackage(card_preload_pkg_id, PKGS.getPkgForIdentifier(card_pkg_id), "game"))
@@ -2267,7 +2267,7 @@ App._startGame = () ->
   for card in gameSession.getBoard().getCards(null, allowUntargetable=true)
     # get unique id for card preload
     card_id = card.getId()
-    card_pkg_id = PKGS.getCardGamePkgIdentifier(card_id)
+    card_pkg_id = PKGS.getCardGamePkgIdentifier(card)
     card_resources_pkg = PKGS.getPkgForIdentifier(card_pkg_id)
     card_preload_pkg_id = card_pkg_id + "_preload_" + UtilsJavascript.generateIncrementalId()
     preloaded_package_ids.push(card_preload_pkg_id)
@@ -2277,7 +2277,7 @@ App._startGame = () ->
       referenceSignatureCard = card.getReferenceSignatureCard()
       if referenceSignatureCard?
         signature_card_id = referenceSignatureCard.getId()
-        signature_card_pkg_id = PKGS.getCardGamePkgIdentifier(signature_card_id)
+        signature_card_pkg_id = PKGS.getCardGamePkgIdentifier(referenceSignatureCard)
         signature_card_resources_pkg = PKGS.getPkgForIdentifier(signature_card_pkg_id)
         card_resources_pkg = [].concat(card_resources_pkg, signature_card_resources_pkg)
 
@@ -2299,7 +2299,7 @@ App._startGame = () ->
           if artifact_card?
             # get unique id for artifact card preload
             artifact_card_id = artifact_card.getId()
-            artifact_card_pkg_id = PKGS.getCardInspectPkgIdentifier(artifact_card_id)
+            artifact_card_pkg_id = PKGS.getCardInspectPkgIdentifier(artifact_card)
             artifact_card_preload_pkg_id = artifact_card_pkg_id + "_preload_" + UtilsJavascript.generateIncrementalId()
             preloaded_package_ids.push(artifact_card_preload_pkg_id)
             load_promises.push(PackageManager.getInstance().loadMinorPackage(artifact_card_preload_pkg_id, PKGS.getPkgForIdentifier(artifact_card_pkg_id), "game"))

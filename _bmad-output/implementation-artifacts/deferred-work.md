@@ -57,3 +57,16 @@
 - source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/10-implement-the-self-destruct-and-adjacent-area-actives.md`
   summary: Add multi-target self-destruct coverage for source death during area resolution.
   evidence: Existing Story 10 tests cover one adjacent enemy, not whether all selected targets resolve before the source is destroyed.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
+  summary: Resolve the stale Rush uniqueness question in Story 19 against the settled Phobies-only decision.
+  evidence: Story 19 still asks whether uniqueness includes original Duelyst cards, while the active-ability SPEC and memlog explicitly limit the passive to the Phobies roster and preserve original Duelyst Rush cards.
+- source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
+  summary: Clarify Story 10's v2 move and attack-action contract directly in its description.
+  evidence: Story 10 delegates behavior to CAP-6 without stating the current one-move plus shared attack-or-ability slot sequence, leaving implementers to cross-reference the main spec.
+- source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
+  summary: Decide how historical action-point snapshots and replays are handled by the current saved-state format.
+  evidence: Story 18 requires reconstructed state consistency within the current format but leaves older action-point state migration behavior open.
+- source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
+  summary: State whether the Phobies collection filter shows every imported card or only cards eligible for Practice/Sandbox decks.
+  evidence: The visual correction adds a Phobies set filter, while the current collection specification does not distinguish set membership from deck eligibility.

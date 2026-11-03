@@ -1452,8 +1452,16 @@
       PKGS_CONTENT += 'PKGS.addToPkgForIdentifier = function (pkgIdentifier, pkgAdditions) { PKGS[pkgIdentifier] = (PKGS[pkgIdentifier] || []).concat(pkgAdditions || []); };\n';
       PKGS_CONTENT += `PKGS.getFactionGamePkgIdentifier = function (factionIdentifier) { return '${FACTION_GAME_PKG_PREFIX}' + factionIdentifier; };\n`;
       PKGS_CONTENT += `PKGS.getFactionInspectPkgIdentifier = function (factionIdentifier) { return '${FACTION_INSPECT_PKG_PREFIX}' + factionIdentifier; };\n`;
-      PKGS_CONTENT += `PKGS.getCardGamePkgIdentifier = function (cardIdentifier) { return '${CARD_GAME_PKG_PREFIX}' + Cards.getNonPrismaticCardId(cardIdentifier); };\n`;
-      PKGS_CONTENT += `PKGS.getCardInspectPkgIdentifier = function (cardIdentifier) { return '${CARD_INSPECT_PKG_PREFIX}' + Cards.getNonPrismaticCardId(cardIdentifier); };\n`;
+      PKGS_CONTENT += 'PKGS.getCardResourceIdentifier = function (cardOrIdentifier) {\n';
+      PKGS_CONTENT += '  if (cardOrIdentifier != null && typeof cardOrIdentifier === "object") {\n';
+      PKGS_CONTENT += '    if (cardOrIdentifier.originalCardId != null) return cardOrIdentifier.originalCardId;\n';
+      PKGS_CONTENT += '    if (typeof cardOrIdentifier.getId === "function") return cardOrIdentifier.getId();\n';
+      PKGS_CONTENT += '    if (cardOrIdentifier.id != null) return cardOrIdentifier.id;\n';
+      PKGS_CONTENT += '  }\n';
+      PKGS_CONTENT += '  return cardOrIdentifier;\n';
+      PKGS_CONTENT += '};\n';
+      PKGS_CONTENT += `PKGS.getCardGamePkgIdentifier = function (cardIdentifier) { return '${CARD_GAME_PKG_PREFIX}' + Cards.getNonPrismaticCardId(PKGS.getCardResourceIdentifier(cardIdentifier)); };\n`;
+      PKGS_CONTENT += `PKGS.getCardInspectPkgIdentifier = function (cardIdentifier) { return '${CARD_INSPECT_PKG_PREFIX}' + Cards.getNonPrismaticCardId(PKGS.getCardResourceIdentifier(cardIdentifier)); };\n`;
       PKGS_CONTENT += `PKGS.getCardBackPkgIdentifier = function (cardBackIdentifier) { return '${CARD_BACK_PKG_PREFIX}' + parseInt(cardBackIdentifier); };\n`;
       PKGS_CONTENT += `PKGS.getBattleMapPkgIdentifier = function (battleMapIdentifier) { return '${BATTLE_MAP_PKG_PREFIX}' + battleMapIdentifier; };\n`;
       PKGS_CONTENT += `PKGS.getChapterPkgIdentifier = function (chapterIdentifier) { return '${CHAPTER_PKG_PREFIX}' + chapterIdentifier; };\n`;

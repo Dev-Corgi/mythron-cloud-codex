@@ -2312,13 +2312,13 @@ var GameLayer = FXCompositeLayer.extend({
       // get resources for source
       const source = sequenceAction.getSource();
       if (source != null) {
-        loadActionResourcePackage(PKGS.getCardGamePkgIdentifier(source.getId()));
+        loadActionResourcePackage(PKGS.getCardGamePkgIdentifier(source));
       }
 
       // get resources for target
       const target = sequenceAction.getTarget();
       if (target != null) {
-        loadActionResourcePackage(PKGS.getCardGamePkgIdentifier(target.getId()));
+        loadActionResourcePackage(PKGS.getCardGamePkgIdentifier(target));
       }
 
       // get resources for modifier

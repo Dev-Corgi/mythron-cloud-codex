@@ -83,7 +83,9 @@ var WatchGameItemView = Backbone.Marionette.ItemView.extend({
     var keyCardIds = [].concat(player1KeyCardIds, player2KeyCardIds);
     for (var i = 0, il = keyCardIds.length; i < il; i++) {
       var cardId = keyCardIds[i];
-      var cardPkgId = PKGS.getCardInspectPkgIdentifier(cardId);
+      var cardModel = GameDataManager.getInstance().getCardModelById(cardId);
+      var card = cardModel && cardModel.get('card');
+      var cardPkgId = PKGS.getCardInspectPkgIdentifier(card || cardId);
       var cardPkg = PKGS.getPkgForIdentifier(cardPkgId);
       requiredResources = requiredResources.concat(cardPkg);
     }

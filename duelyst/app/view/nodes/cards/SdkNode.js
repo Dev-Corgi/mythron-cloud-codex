@@ -108,7 +108,7 @@ const SdkNode = cc.Node.extend({
    * @returns {String}
    */
   getCardResourcePackageId(sdkCard) {
-    return PKGS.getCardGamePkgIdentifier(sdkCard.getId());
+    return PKGS.getCardGamePkgIdentifier(sdkCard);
   },
 
   /* endregion RESOURCES */
