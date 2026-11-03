@@ -384,8 +384,15 @@ class Entity extends Card
       return "fly"
     return @movementType or "walk"
 
+  # The movement distance stat: speed without the legacy "move anywhere" grant that Flying
+  # adds, so Flying units show and (in Practice/Sandbox version 2) use their own stat.
   getMovementDistance: (withAuras) ->
-    return @getSpeed(withAuras)
+    distance = @getSpeed(withAuras)
+    for modifier in @getActiveModifiers()
+      if modifier instanceof ModifierFlying
+        grant = modifier.getAttributeBuffs()?.speed
+        distance -= grant if grant?
+    return Math.max(0, distance)
 
   setAttackType: (type) ->
     if type in ["melee", "ranged", "lobbed", "area"]

@@ -561,9 +561,28 @@ var BottomDeckLayer = BaseLayer.extend({
    * Binds the usability of the hand from the current deck as set in the model (SDK layer). Immediately will update all cards to show mana cost and whether can be used.
    */
   bindHandUsability() {
+    this.refreshAbilitySlots();
     const cardNodes = this.getCardNodes();
     for (let i = 0, il = cardNodes.length; i < il; i++) {
       cardNodes[i].updateUsability();
+    }
+  },
+
+  /** *
+   * Practice/Sandbox v2 only: shows or updates the active ability of each deployed unit in its fixed, emptied
+   * hand slot. Slots that hold a card or have no ability are left untouched. Legacy and version 1 matches
+   * never have ability slots, so nothing happens there.
+   */
+  refreshAbilitySlots() {
+    const gameSession = SDK.GameSession.getInstance();
+    if (!gameSession.getIsPracticeSandboxV2 || !gameSession.getIsPracticeSandboxV2()) return;
+
+    const cardNodes = this.getCardNodes();
+    for (let i = 0, il = cardNodes.length; i < il; i++) {
+      // like bindCardNodeAtIndex, leave a slot alone while its draw, remove, or burn animation runs
+      if (!cardNodes[i].getActionByTag(CONFIG.CARD_TAG)) {
+        cardNodes[i].syncAbilitySlot(i);
+      }
     }
   },
 

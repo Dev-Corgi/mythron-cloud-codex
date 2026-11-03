@@ -17,6 +17,12 @@ class ModifierFlying extends Modifier
   attributeBuffs:
     speed: CONFIG.SPEED_INFINITE
 
+  constructor: (gameSession) ->
+    super(gameSession)
+    # Practice/Sandbox version 2: fly and phase only change what a unit may cross; the unit still
+    # moves its movement distance stat, so the "move anywhere" speed grant does not apply.
+    @attributeBuffs = null if gameSession?.getIsPracticeSandboxV2?()
+
   fxResource: ["FX.Modifiers.ModifierFlying"]
 
 module.exports = ModifierFlying

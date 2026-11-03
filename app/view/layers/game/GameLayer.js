@@ -65,6 +65,7 @@ const Player1Layer = require('./Player1Layer');
 const BottomDeckLayer = require('./BottomDeckLayer');
 const TileLayer = require('./TileLayer');
 const InspectCardResolver = require('./InspectCardResolver');
+const HandAbilitySlot = require('./handAbilitySlot');
 
 function getBoardPositionXY(position) {
   if (!position) return { x: null, y: null };
@@ -5305,6 +5306,9 @@ var GameLayer = FXCompositeLayer.extend({
         const usePhobiesUnitFace = gameSession.getRulesetId() === 'practice-sandbox-hex'
           && gameSession.getRulesetVersion() === 2;
         this._inspectCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && sdkCard instanceof SDK.Unit);
+        // a hand ability slot and the General's Bloodbound card show the ability face with the live counter
+        const abilitySlotModel = isInspectingBottomDeckCardNode && node.getAbilitySlotModel ? node.getAbilitySlotModel() : null;
+        this._inspectCardNode.setPhobiesAbilityFaceEnabled(HandAbilitySlot.getPrimaryInspectFaceData({ sdkCard, slotModel: abilitySlotModel, session: gameSession }));
         this._referencedCardNode.setPhobiesUnitFaceEnabled(false);
         this._referencedCardNode.setPhobiesAbilityFaceEnabled(null);
 
@@ -5317,8 +5321,8 @@ var GameLayer = FXCompositeLayer.extend({
           if (referencedCard != null) {
             referencedCard.setOwner(sdkCard.getOwner());
             this._referencedCardNode.setPhobiesUnitFaceEnabled(usePhobiesUnitFace && referencedCard instanceof SDK.Unit);
-            const activeAbility = usePhobiesUnitFace && sdkCard.activeAbility
-              && sdkCard.activeAbility.effectCardId === relatedCardId ? sdkCard.activeAbility : null;
+            // a deployed unit shows its live counter, a unit that is not on the board shows the base counters
+            const activeAbility = usePhobiesUnitFace ? HandAbilitySlot.getUnitAbilityFaceData(sdkCard, relatedCardId) : null;
             this._referencedCardNode.setPhobiesAbilityFaceEnabled(activeAbility);
             this._referencedCardNode.showInspect(referencedCard, true, actionToShowStateFor, actionEventTypeToShowStateFor, showAsIfOwnedByPlayer2, null, this.getShouldShowCardInstructionals());
           }
@@ -6169,7 +6173,7 @@ var GameLayer = FXCompositeLayer.extend({
 
     // hover replace node
     let mouseOverReplaceNode;
-    if (this._player.getSelectedCardIndexInHand() != null) {
+    if (this._player.getSelectedCardIndexInHand() != null && !this._getIsAbilitySlotSelected()) {
       // hover replace
       const replaceNode = this.getNodeUnderMouse(this.bottomDeckLayer.getReplaceNode(), mouseScreenPosition.x, mouseScreenPosition.y);
       if (replaceNode != null && !replaceNode.getIsDisabled()) {
@@ -6614,7 +6618,10 @@ var GameLayer = FXCompositeLayer.extend({
     const cardNode = this.getNodeUnderMouse(cardNodes, screenPosition.x, screenPosition.y);
     if (cardNode) {
       const sdkCard = cardNode.getSdkCard();
-      if (sdkCard) {
+      if (sdkCard && cardNode.getIsAbilitySlot && cardNode.getIsAbilitySlot() && !cardNode.getAbilitySlotModel().usable) {
+        // an ability that is not ready cannot be selected, like a card that cannot be played
+        this.showInstructionAtPosition(cardNode.getPosition(), i18next.t('validators.card_isnt_ready_message'));
+      } else if (sdkCard) {
         // do not allow card and entity to be selected at same time
         this._player.setSelectedEntityNode(null);
 
@@ -6698,8 +6705,50 @@ var GameLayer = FXCompositeLayer.extend({
     return actionToExecute;
   },
 
+  /**
+   * Returns the bottom deck node of a hand slot showing a unit ability, or null for any normal hand slot.
+   * @param {Number} handIndex
+   */
+  _getAbilitySlotNodeForHandIndex(handIndex) {
+    const cardNode = handIndex != null ? this.bottomDeckLayer.getCardNodeByHandIndex(handIndex) : null;
+    return cardNode != null && cardNode.getIsAbilitySlot && cardNode.getIsAbilitySlot() ? cardNode : null;
+  },
+
+  _getIsAbilitySlotSelected() {
+    return this._getAbilitySlotNodeForHandIndex(this._player.getSelectedCardIndexInHand()) != null;
+  },
+
+  /**
+   * Uses the ability of the selected hand slot at the board position under the mouse.
+   * Abilities cannot replace cards and cost no mana.
+   */
+  _actionSelectedAbilitySlot(abilitySlotNode) {
+    let actionToExecute;
+
+    const unit = abilitySlotNode.getAbilitySlotUnit();
+    const mouseBoardPosition = this._player.getMouseBoardPosition();
+    if (unit != null && SDK.GameSession.getInstance().getBoard().isOnBoard(mouseBoardPosition)) {
+      actionToExecute = this._player.getSdkPlayer().actionUseActiveAbility(unit.getIndex(), getActionPositionArgs(mouseBoardPosition));
+    }
+
+    return actionToExecute;
+  },
+
   _actionSelectedCardFromHand(selectedHandIndex) {
     let actionToExecute;
+
+    const abilitySlotNode = this._getAbilitySlotNodeForHandIndex(selectedHandIndex);
+    if (abilitySlotNode != null) {
+      return this._actionSelectedAbilitySlot(abilitySlotNode);
+    }
+    if (selectedHandIndex != null && SDK.GameSession.getInstance().getIsPracticeSandboxV2()) {
+      // the selected slot may have emptied since it was selected (an ability's unit died): drop the stale selection
+      const selectedCardNode = this.bottomDeckLayer.getCardNodeByHandIndex(selectedHandIndex);
+      if (selectedCardNode == null || selectedCardNode.getSdkCard() == null) {
+        this._player.setSelectedCard(null);
+        return undefined;
+      }
+    }
 
     if (selectedHandIndex != null) {
       const mouseBoardPosition = this._player.getMouseBoardPosition();

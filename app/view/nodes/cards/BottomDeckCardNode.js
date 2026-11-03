@@ -6,6 +6,7 @@ const RSX = require('app/data/resources');
 const PKGS = require('app/data/packages');
 const UtilsEngine = require('app/common/utils/utils_engine');
 const UtilsPosition = require('app/common/utils/utils_position');
+const ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 const audio_engine = require('../../../audio/audio_engine');
 const TweenTypes = require('../../actions/TweenTypes');
 const SdkNode = require('./SdkNode');
@@ -16,6 +17,7 @@ const CausticPrismaticGlowSprite = require('../fx/CausticPrismaticGlowSprite');
 const NodeFactory = require('../../helpers/NodeFactory');
 const CardNodeVisualStateTag = require('../visualStateTags/CardNodeVisualStateTag');
 const StatsChangeNode = require('./StatsChangeNode');
+const HandAbilitySlot = require('../../layers/game/handAbilitySlot');
 
 /** **************************************************************************
 BottomDeckCardNode
@@ -38,6 +40,11 @@ const BottomDeckCardNode = SdkNode.extend({
   manaTokenSprite: null,
   _prismaticGlow: null,
   _usable: null,
+  // Practice/Sandbox v2: set while this slot shows a deployed unit's active ability
+  // ({model, effectCard}); null for every normal hand card and empty slot.
+  _abilitySlot: null,
+  _abilityBadgeKey: null,
+  _abilityBadgeNodes: null,
   sdkCard: null,
   selected: false,
   _showingMulligan: null,
@@ -158,11 +165,214 @@ const BottomDeckCardNode = SdkNode.extend({
     this.handIndex = handIndex;
     if (this.handIndex != null) {
       const sdkCard = SDK.GameSession.getInstance().getMyPlayer().getDeck().getCardInHandAtIndex(this.handIndex);
+      if (sdkCard == null) {
+        // the unit that left this fixed slot may still be on the board with an ability
+        const abilityModel = this._resolveAbilityModel(this.handIndex);
+        if (abilityModel != null) {
+          this.setAbilitySlot(abilityModel, cardFadeDuration);
+          return;
+        }
+      }
+      this._clearAbilitySlotState();
       this.setSdkCard(sdkCard, cardFadeDuration);
     } else {
+      this._clearAbilitySlotState();
       this.setSdkCard(null, cardFadeDuration);
     }
   },
+
+  /** region ABILITY SLOT * */
+
+  getIsAbilitySlot() {
+    return this._abilitySlot != null;
+  },
+
+  /**
+   * Returns the model of the ability shown in this slot.
+   * @see handAbilitySlot.describeHandAbilitySlot
+   */
+  getAbilitySlotModel() {
+    return this._abilitySlot != null ? this._abilitySlot.model : null;
+  },
+
+  /**
+   * Returns the unit granting the ability shown in this slot.
+   */
+  getAbilitySlotUnit() {
+    return this._abilitySlot != null ? this._abilitySlot.model.unit : null;
+  },
+
+  _getAbilityContext() {
+    const scene = this.getScene();
+    const gameLayer = scene && scene.getGameLayer();
+    if (gameLayer == null) return { isMyTurn: false, selectionLocked: true };
+    return { isMyTurn: !!gameLayer.getIsMyTurn(), selectionLocked: !!gameLayer.getIsPlayerSelectionLocked() };
+  },
+
+  /**
+   * Resolves the ability of the hand slot at index, or null outside Practice/Sandbox v2
+   * and for slots that hold a card or have no ability.
+   */
+  _resolveAbilityModel(handIndex) {
+    const gameSession = SDK.GameSession.getInstance();
+    if (!gameSession.getIsPracticeSandboxV2 || !gameSession.getIsPracticeSandboxV2()) return null;
+    const player = gameSession.getMyPlayer();
+    if (player == null || player.getDeck().getCardInHandAtIndex(handIndex) != null) return null;
+    return HandAbilitySlot.getHandAbilitySlot(player, handIndex, () => this._getAbilityContext());
+  },
+
+  /**
+   * Makes this slot show an ability, the same way a spell is shown in hand. Does not redraw the
+   * icon when only counters or usability changed.
+   * @param {Object} model
+   * @param {Number} [cardFadeDuration]
+   */
+  setAbilitySlot(model, cardFadeDuration) {
+    const current = this._abilitySlot;
+    if (current != null && current.model.effectCardId === model.effectCardId
+      && current.model.unitIndex === model.unitIndex && this.sdkCard === current.effectCard) {
+      current.model = model;
+      this._syncAbilityBadge();
+      this.updateUsability();
+      return;
+    }
+
+    const gameSession = SDK.GameSession.getInstance();
+    const effectCard = gameSession.createCardForIdentifier(model.effectCardId);
+    if (effectCard == null) {
+      this._clearAbilitySlotState();
+      this.setSdkCard(null, cardFadeDuration);
+      return;
+    }
+    // Using an ability costs no mana and the card is owned by the player, like a card in hand.
+    effectCard.setOwner(gameSession.getMyPlayer());
+    effectCard.setBaseManaCost(0);
+
+    this._abilitySlot = { model, effectCard };
+    // the badge replaces the mana token because using an ability never costs mana
+    this.manaTokenSprite.setVisible(false);
+    this._removeAbilityBadge();
+    this.setSdkCard(effectCard, cardFadeDuration);
+    this._syncAbilityBadge();
+  },
+
+  /**
+   * Re-reads the ability of this slot from the SDK and applies counter, usability and removal changes.
+   * Called from updateUsability so every usability refresh keeps the slot accurate.
+   */
+  _refreshAbilitySlotFromSdk() {
+    if (this._abilitySlot == null) return;
+    const model = this.handIndex != null ? this._resolveAbilityModel(this.handIndex) : null;
+    if (model == null) {
+      // unit left the board or the slot got a card: the slot empties
+      this._clearAbilitySlotState();
+      this.handIndex = null;
+      this.setSdkCard(null);
+    } else if (model.effectCardId !== this._abilitySlot.model.effectCardId || model.unitIndex !== this._abilitySlot.model.unitIndex) {
+      this.setAbilitySlot(model);
+    } else {
+      this._abilitySlot.model = model;
+      // spell valid target positions are cached per card, so drop stale ones before a selection
+      this._abilitySlot.effectCard.flushCachedValidTargetPositions();
+      this._syncAbilityBadge();
+    }
+  },
+
+  /**
+   * Called by the bottom deck layer for each slot whenever usability is rebound.
+   * Only touches slots that are empty or already showing an ability.
+   * @param {Number} handIndex
+   */
+  syncAbilitySlot(handIndex) {
+    if (handIndex == null) return;
+    if (this.sdkCard != null && this._abilitySlot == null) return; // normal hand card (or one still animating out)
+    const model = this._resolveAbilityModel(handIndex);
+    if (model == null) {
+      if (this._abilitySlot != null) {
+        this._clearAbilitySlotState();
+        this.handIndex = null;
+        this.setSdkCard(null);
+      }
+      return;
+    }
+    this.handIndex = handIndex;
+    this.setAbilitySlot(model);
+  },
+
+  _clearAbilitySlotState() {
+    if (this._abilitySlot == null) return;
+    this._abilitySlot = null;
+    this._removeAbilityBadge();
+    this.manaTokenSprite.setVisible(true);
+  },
+
+  getRequiredResources() {
+    // the ability counter badge assets are part of every hand node's required resources
+    return cc.Node.prototype.getRequiredResources.call(this).concat([
+      RSX.collection_card_ability_lockdown_ring,
+      RSX.collection_card_ability_lockdown_icon,
+      RSX.collection_card_ability_cooldown_ring,
+      RSX.collection_card_ability_cooldown_icon,
+    ]);
+  },
+
+  /**
+   * Shows the live nonzero counter on the mana token position using the approved phobies_ability
+   * assets scaled from ability-layout.json, or nothing when the ability is ready.
+   */
+  _syncAbilityBadge() {
+    const model = this.getAbilitySlotModel();
+    const counter = model != null ? model.counter : null;
+    const key = counter != null ? `${counter.type}:${counter.value}` : null;
+    if (key === this._abilityBadgeKey) return;
+
+    this._removeAbilityBadge();
+    this._abilityBadgeKey = key;
+    if (counter == null) return;
+
+    this.whenRequiredResourcesReady().then((requestId) => {
+      if (!this.getAreResourcesValid(requestId)) return; // resources invalidated
+      if (this._abilityBadgeKey !== key || this._abilityBadgeNodes != null) return; // badge changed or already shown
+
+      const style = HandAbilitySlot.COUNTER_STYLES[counter.type];
+      const geometry = HandAbilitySlot.getBadgeGeometry(ABILITY_LAYOUT, counter.type);
+      const center = this.manaTokenSprite.getPosition();
+      const nodes = [];
+
+      const ring = BaseSprite.create(RSX[style.ringResource].img);
+      ring.setPosition(center);
+      ring.setScale(geometry.ringSize / ring.getContentSize().width);
+      nodes.push(ring);
+
+      const icon = BaseSprite.create(RSX[style.iconResource].img);
+      icon.setPosition(cc.p(center.x + geometry.iconOffset.x, center.y + geometry.iconOffset.y));
+      icon.setScale(geometry.iconSize / icon.getContentSize().width);
+      nodes.push(icon);
+
+      const value = new cc.LabelTTF(`${counter.value}`, RSX.font_bold.name, 18, cc.size(44, 44), cc.TEXT_ALIGNMENT_CENTER);
+      value.setFontFillColor(cc.color(style.color.r, style.color.g, style.color.b));
+      value.setAnchorPoint(0.5, 0.5);
+      value.setPosition(center);
+      nodes.push(value);
+
+      for (let i = 0; i < nodes.length; i++) {
+        this._containerNode.addChild(nodes[i], 1);
+      }
+      this._abilityBadgeNodes = nodes;
+    });
+  },
+
+  _removeAbilityBadge() {
+    this._abilityBadgeKey = null;
+    if (this._abilityBadgeNodes != null) {
+      for (let i = 0; i < this._abilityBadgeNodes.length; i++) {
+        this._abilityBadgeNodes[i].removeFromParent(true);
+      }
+      this._abilityBadgeNodes = null;
+    }
+  },
+
+  /** endregion ABILITY SLOT * */
 
   getHandIndex() {
     return this.handIndex;
@@ -575,6 +785,17 @@ const BottomDeckCardNode = SdkNode.extend({
   /** region USABILITY * */
 
   updateUsability() {
+    if (this._abilitySlot != null) {
+      this._refreshAbilitySlotFromSdk();
+      if (this._abilitySlot != null) {
+        // an ability costs no mana, so no cost is shown
+        if (this.manaCostLabel.getString() !== '') {
+          this.manaCostLabel.setString('', true);
+        }
+        return this._abilitySlot.model.usable ? this.showUsable() : this.showUnusable();
+      }
+    }
+
     if (this.sdkCard) {
       const gameLayer = this.getScene().getGameLayer();
 
@@ -601,6 +822,14 @@ const BottomDeckCardNode = SdkNode.extend({
 
     // fall back to unusable
     this.showUnusable();
+  },
+
+  /**
+   * An ability slot is playable when its ability is usable; any other card when it is my turn and mana allows.
+   */
+  _getIsPlayableNow() {
+    if (this._abilitySlot != null) return this._abilitySlot.model.usable;
+    return this.sdkCard && this.getScene().getGameLayer().getIsMyTurn() && this.sdkCard.getDoesOwnerHaveEnoughManaToPlay();
   },
 
   getCanShowMulliganState() {
@@ -737,7 +966,7 @@ const BottomDeckCardNode = SdkNode.extend({
           }
         }
       } else if (!this.selected) {
-        const playable = this.sdkCard && this.getScene().getGameLayer().getIsMyTurn() && this.sdkCard.getDoesOwnerHaveEnoughManaToPlay();
+        const playable = this._getIsPlayableNow();
         if (!this.highlighted) {
           this.showInactiveAnimState();
 
@@ -780,7 +1009,7 @@ const BottomDeckCardNode = SdkNode.extend({
           this.removeMulliganState();
         }
       } else {
-        const playable = this.sdkCard && this.getScene().getGameLayer().getIsMyTurn() && this.sdkCard.getDoesOwnerHaveEnoughManaToPlay();
+        const playable = this._getIsPlayableNow();
 
         if (this.selected) {
           // update by selected
@@ -996,7 +1225,10 @@ const BottomDeckCardNode = SdkNode.extend({
           cc.fadeTo(CONFIG.FADE_FAST_DURATION, 0.0),
           cc.callFunc(() => {
             // clear out sdk card and index
+            const removedHandIndex = this.handIndex;
             this.setSdkCardFromHandIndex(null);
+            // a unit played from this fixed slot leaves its ability behind in the emptied slot
+            this.syncAbilitySlot(removedHandIndex);
           }),
         );
         this.addAnimationAction(spriteBurnAction);

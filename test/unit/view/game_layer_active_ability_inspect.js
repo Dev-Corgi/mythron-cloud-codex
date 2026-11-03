@@ -21,6 +21,7 @@ describe('GameLayer active ability inspect card', () => {
       getGSIWinLeft: () => 0,
       getGSIWinTop: () => 800,
       getGSIWinBottom: () => 0,
+      getGSINodeCenterScreenPosition: () => ({ x: 300, y: 100 }),
     };
     Module._load = (request, parent, isMain) => {
       if (parent && parent.filename.endsWith(`${path.sep}GameLayer.js`)) {
@@ -37,7 +38,7 @@ describe('GameLayer active ability inspect card', () => {
             },
           };
         }
-        if (request === './InspectCardResolver') return originalLoad.call(this, request, parent, isMain);
+        if (request === './InspectCardResolver' || request === './handAbilitySlot') return originalLoad.call(this, request, parent, isMain);
         if (request.endsWith('EntityNode') || request.endsWith('BottomDeckCardNode')
           || request.endsWith('ArtifactNode') || request.endsWith('BattleLogNode')
           || request.endsWith('SignatureCardNode')) return FakeNode;
@@ -99,5 +100,106 @@ describe('GameLayer active ability inspect card', () => {
     expect(relatedCalls[0][0]).to.equal(effectCard);
     expect(relatedCalls[0][1]).to.equal(true);
     expect(effectCard.owner).to.equal(owner);
+  });
+
+  describe('live counters on the ability face', () => {
+    const owner = { playerId: 'player1', getPlayerId: () => 'player1' };
+    const makeSession = (extra = {}) => Object.assign({
+      getRulesetId: () => 'practice-sandbox-hex',
+      getRulesetVersion: () => 2,
+      getIsPracticeSandboxV2: () => true,
+      createCardForIdentifier: () => ({ setOwner() {} }),
+    }, extra);
+    const run = (sdkCard, node, sessionOverride) => {
+      session = sessionOverride;
+      const faces = { primary: [], related: [] };
+      const makeInspectNode = (faceCalls) => ({
+        getSdkCard: () => null,
+        showInspect() {},
+        getCardContentSize: () => ({ width: 100, height: 100 }),
+        getModifiersContentSize: () => ({ width: 0, height: 0 }),
+        getKeywordsShowing: () => false,
+        getHasKeywords: () => false,
+        setPhobiesUnitFaceEnabled() {},
+        setPhobiesAbilityFaceEnabled(data) { faceCalls.push(data); },
+        setPosition() {},
+      });
+      const gameLayer = {
+        _player: { getFollowupCard: () => null },
+        _inspectCardNode: makeInspectNode(faces.primary),
+        _referencedCardNode: makeInspectNode(faces.related),
+        stopShowingInspectCard() {},
+        getShouldShowCardInstructionals: () => false,
+        getPlayer2: () => ({}),
+        getMyPlayer: () => ({}),
+        getEventBus: () => ({ trigger() {} }),
+      };
+      GameLayer.prototype.showInspectCard.call(gameLayer, sdkCard, node);
+      return faces;
+    };
+    const cardBase = (extra) => Object.assign({
+      getOwner: () => owner,
+      isOwnedByPlayer2: () => false,
+      isOwnedByGameSession: () => false,
+    }, extra);
+
+    it('gives a deployed unit ability card its live nonzero counter', () => {
+      const unit = Object.assign(new FakeUnit(), cardBase({
+        activeAbility: { effectCardId: 701, lockdown: 1, cooldown: 1 },
+        getActiveAbilityState: () => ({ lockdown: 0, cooldown: 1 }),
+      }));
+      const faces = run(unit, {}, makeSession());
+      expect(faces.related[faces.related.length - 1].live).to.equal(true);
+      expect(faces.related[faces.related.length - 1].liveCounter).to.deep.equal({ type: 'cooldown', value: 1 });
+      expect(faces.primary[0]).to.equal(null);
+    });
+
+    it('keeps the base counters for a unit that is not on the board', () => {
+      const definition = { effectCardId: 701, lockdown: 1, cooldown: 1 };
+      const unit = Object.assign(new FakeUnit(), cardBase({
+        activeAbility: definition,
+        getActiveAbilityState: () => null,
+      }));
+      const faces = run(unit, {}, makeSession());
+      expect(faces.related[faces.related.length - 1]).to.equal(definition);
+    });
+
+    it('gives the General signature card an ability face with the General live counter', () => {
+      const signature = cardBase({
+        isSignatureCard: () => true,
+        getId: () => 20174,
+        getReferencedCardData: () => null,
+      });
+      const general = { getActiveAbilityState: () => ({ lockdown: 2, cooldown: 0 }), activeAbility: { lockdown: 2, cooldown: 2 } };
+      const faces = run(signature, {}, makeSession({ getGeneralForPlayerId: () => general }));
+      expect(faces.primary[0].effectCardId).to.equal(20174);
+      expect(faces.primary[0].liveCounter).to.deep.equal({ type: 'lockdown', value: 2 });
+    });
+
+    it('leaves the signature card unchanged in legacy matches', () => {
+      const signature = cardBase({
+        isSignatureCard: () => true,
+        getId: () => 20174,
+        getReferencedCardData: () => null,
+      });
+      const general = { getActiveAbilityState: () => ({ lockdown: 2, cooldown: 0 }) };
+      const faces = run(signature, {}, makeSession({
+        getRulesetId: () => 'ranked',
+        getRulesetVersion: () => 1,
+        getIsPracticeSandboxV2: () => false,
+        getGeneralForPlayerId: () => general,
+      }));
+      expect(faces.primary[0]).to.equal(null);
+    });
+
+    it('shows the effect card of a hand ability slot with the live counter of its unit', () => {
+      const unit = { activeAbility: { lockdown: 1, cooldown: 1 }, getActiveAbilityState: () => ({ lockdown: 1, cooldown: 0 }) };
+      const effectCard = cardBase({ getReferencedCardData: () => null, getId: () => 701 });
+      const node = new global.cc.Node();
+      node.getAbilitySlotModel = () => ({ unit, effectCardId: 701 });
+      const faces = run(effectCard, node, makeSession());
+      expect(faces.primary[0].effectCardId).to.equal(701);
+      expect(faces.primary[0].liveCounter).to.deep.equal({ type: 'lockdown', value: 1 });
+    });
   });
 });

@@ -18,7 +18,7 @@
 	"flying_name":"Flying",
 	"flying_def":"Move anywhere on the battlefield.",
 	"phasing_name":"Phasing",
-	"phasing_def":"Can move to any location on the battlefield, including through enemy units. Cannot stop on an occupied tile.",
+	"phasing_def":"Can move over holes and Walls and through enemy units. Cannot stop on an occupied tile.",
 
 	"blast_name":"Blast",
 	"blast_def":"Attack all enemy minions and Generals in one straight line.",

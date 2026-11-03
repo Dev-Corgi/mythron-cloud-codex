@@ -11,7 +11,7 @@ const modifierStrings = require('../../../../app/localization/locales/en/modifie
 
 Logger.enabled = false;
 
-const PHASING_DEF = 'Can move to any location on the battlefield, including through enemy units. Cannot stop on an occupied tile.';
+const PHASING_DEF = 'Can move over holes and Walls and through enemy units. Cannot stop on an occupied tile.';
 
 // Keyword statics are resolved when a modifier module loads. Load fresh copies so they see the i18next.t
 // stub that the card factories install on the server (it returns the locale key).
@@ -53,7 +53,8 @@ describe('phasing keyword', () => {
 
     expect(unit.hasActiveModifierClass(SDK.ModifierPhasing)).to.equal(true);
     expect(unit.getMovementType()).to.equal('phase');
-    expect(unit.getSpeed()).to.equal(baseSpeed + CONFIG.SPEED_INFINITE);
+    expect(unit.getSpeed()).to.equal(baseSpeed);
+    expect(unit.getMovementDistance()).to.equal(baseSpeed);
     expect(unit.hasActiveModifierClass(SDK.ModifierFlying)).to.equal(false);
   });
 
@@ -104,5 +105,61 @@ describe('phasing keyword', () => {
     expect(new SDK.ModifierPhasing(gameSession).fxResource).to.deep.equal(['FX.Modifiers.ModifierPhasing']);
     const FX = require('../../../../app/data/fx.js');
     expect(FX.Modifiers.ModifierPhasing).to.be.an('object');
+  });
+
+  describe('fly and phase follow the movement distance stat', () => {
+    const maxSteps = (unit) => Math.max(0, ...unit.getMovementRange().getValidPositions(gameSession.getBoard(), unit)
+      .map((path) => path.length - 1));
+    const place = (ruleset, version, modifierClass) => {
+      gameSession.setRuleset(ruleset, version);
+      const unit = getUnit();
+      unit.setPosition({ q: 4, r: 2 });
+      unit.setSpeed(2);
+      gameSession.applyModifierContextObject(modifierClass.createContextObject(), unit);
+      unit.getMovementRange().flushCachedState();
+      return unit;
+    };
+
+    it('limits a version 2 Flying unit to its movement distance and shows that stat', () => {
+      const unit = place('practice-sandbox-hex', 2, SDK.ModifierFlying);
+      expect(unit.getMovementType()).to.equal('fly');
+      expect(unit.getSpeed()).to.equal(2);
+      expect(unit.getMovementDistance()).to.equal(2);
+      expect(maxSteps(unit)).to.equal(2);
+    });
+
+    it('limits a version 2 Phasing unit to its movement distance', () => {
+      const unit = place('practice-sandbox-hex', 2, SDK.ModifierPhasing);
+      expect(unit.getMovementType()).to.equal('phase');
+      expect(unit.getMovementDistance()).to.equal(2);
+      expect(maxSteps(unit)).to.equal(2);
+    });
+
+    it('keeps Flying unlimited in version 1 but still reports the stat as the distance', () => {
+      const unit = place('practice-sandbox-hex', 1, SDK.ModifierFlying);
+      expect(unit.getSpeed()).to.equal(2 + CONFIG.SPEED_INFINITE);
+      expect(maxSteps(unit)).to.be.above(2);
+      expect(unit.getMovementDistance()).to.equal(2);
+    });
+
+    it('keeps Flying unlimited in legacy matches', () => {
+      gameSession.setRuleset('legacy', 1);
+      const unit = getUnit();
+      gameSession.applyModifierContextObject(SDK.ModifierFlying.createContextObject(), unit);
+      expect(unit.getSpeed()).to.equal(unit.getMovementDistance() + CONFIG.SPEED_INFINITE);
+    });
+
+    it('still lets a version 2 Flying unit cross terrain that blocks walkers within its distance', () => {
+      const unit = place('practice-sandbox-hex', 2, SDK.ModifierFlying);
+      const board = gameSession.getBoard();
+      const wall = gameSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
+      wall.setPosition({ q: 5, r: 2 });
+      wall.setIsPlayed(true);
+      wall.setIsRemoved(false);
+      board.addCard(wall);
+      unit.getMovementRange().flushCachedState();
+      const endpoints = unit.getMovementRange().getValidPositions(board, unit).map((path) => path[path.length - 1]);
+      expect(endpoints.some((p) => p.q === 6 && p.r === 2), 'two steps past the Wall').to.equal(true);
+    });
   });
 });

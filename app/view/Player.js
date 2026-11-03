@@ -922,7 +922,8 @@ const Player = cc.Class.extend({
 
           gameLayer.stopShowingInspectCard();
           gameLayer.updateShowingSdkNodeStats();
-          if (this.selectedHandIndex != null && sdkPlayer.getDeck().getCanReplaceCardThisTurn()) {
+          if (this.selectedHandIndex != null && sdkPlayer.getDeck().getCanReplaceCardThisTurn()
+            && !(cardNode && cardNode.getIsAbilitySlot && cardNode.getIsAbilitySlot())) {
             gameLayer.getBottomDeckLayer().getReplaceNode().setTemporarilyEmphasized(true);
           }
         }

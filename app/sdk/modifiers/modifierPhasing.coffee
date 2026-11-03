@@ -1,4 +1,3 @@
-CONFIG = require 'app/common/config'
 Modifier = require './modifier'
 i18next = require 'i18next'
 
@@ -16,9 +15,6 @@ class ModifierPhasing extends Modifier
   @keywordDefinition: i18next.t("modifiers.phasing_def")
 
   maxStacks: 1
-
-  attributeBuffs:
-    speed: CONFIG.SPEED_INFINITE
 
   fxResource: ["FX.Modifiers.ModifierPhasing"]
 

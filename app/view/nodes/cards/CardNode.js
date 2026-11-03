@@ -9,7 +9,7 @@ const SDK = require('app/sdk');
 const RSX = require('app/data/resources');
 const PKGS = require('app/data/packages');
 const UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
-const STAT_ICON_SIZE_2X = 35;
+const { removeStatKeywordText } = require('app/view/nodes/cards/statKeywordText');
 const ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
 const UtilsJavascript = require('app/common/utils/utils_javascript');
 const UtilsEngine = require('app/common/utils/utils_engine');
@@ -33,6 +33,10 @@ const FXFbmPolarFlareSprite = require('app/view/nodes/fx/FXFbmPolarFlareSprite')
 const i18next = require('i18next');
 const EntityNode = require('./EntityNode');
 const SdkNode = require('./SdkNode');
+
+const STAT_ICON_SIZE_2X = 35;
+// Version 2 unit faces show movement and attack types as stat icons, so their keyword text is left out.
+const STAT_REPLACED_KEYWORD_TYPES = ['ModifierFlying', 'ModifierBandedFlying', 'ModifierPhasing', 'ModifierRanged', 'ModifierBlastAttack'];
 
 /** **************************************************************************
  CardNode
@@ -445,6 +449,11 @@ var CardNode = SdkNode.extend({
   setPhobiesAbilityFaceEnabled(abilityData) {
     const next = abilityData || null;
     if (next === this._phobiesAbilityFaceData) return;
+    // equal live data needs no rebuild; hover and inspect pass a fresh object each time
+    if (next != null && this._phobiesAbilityFaceData != null && next.live && this._phobiesAbilityFaceData.live
+      && next.effectCardId === this._phobiesAbilityFaceData.effectCardId
+      && next.lockdown === this._phobiesAbilityFaceData.lockdown
+      && next.cooldown === this._phobiesAbilityFaceData.cooldown) return;
     this._phobiesAbilityFaceData = next;
     this._phobiesAbilityFaceEnabled = next != null;
     if (this.sdkCard != null) {
@@ -704,18 +713,27 @@ var CardNode = SdkNode.extend({
       sprite.setScale((size[0] / 2) / sprite.getContentSize().width);
       return sprite;
     };
-    addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
-    addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
-    addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
-    addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
-
     const activeAbility = this._phobiesAbilityFaceData;
-    const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);
-    lockdownValue.setString(`${activeAbility.lockdown || 0}`, true);
-    lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
-    const cooldownValue = addValue(18, cc.color(123, 230, 245), 44, 44);
-    cooldownValue.setString(`${activeAbility.cooldown || 1}`, true);
-    cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
+    // Live data (a unit on the board or a General's Bloodbound card in a match) shows only the
+    // nonzero counter and nothing when ready. Otherwise both rings show the definition's base counters.
+    const isLive = !!activeAbility.live;
+    const liveCounter = isLive ? activeAbility.liveCounter : null;
+    const showLockdown = isLive ? (liveCounter != null && liveCounter.type === 'lockdown') : true;
+    const showCooldown = isLive ? (liveCounter != null && liveCounter.type === 'cooldown') : true;
+    if (showLockdown) {
+      addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
+      addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
+      const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);
+      lockdownValue.setString(`${isLive ? liveCounter.value : (activeAbility.lockdown || 0)}`, true);
+      lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
+    }
+    if (showCooldown) {
+      addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
+      addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
+      const cooldownValue = addValue(18, cc.color(123, 230, 245), 44, 44);
+      cooldownValue.setString(`${isLive ? liveCounter.value : (activeAbility.cooldown || 1)}`, true);
+      cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
+    }
 
     const name = addValue(14, cc.color.WHITE, this.getCardBackgroundContentSize().width - 20, 24);
     name.setString(sdkCard.getName().toUpperCase(), true);
@@ -981,7 +999,15 @@ var CardNode = SdkNode.extend({
         this.cardTypeLabel.setFontFillColor(cardTypeColor);
 
         // description
-        const description = sdkCard.getDescription(CONFIG.FORMATTING_ENGINE);
+        let description = sdkCard.getDescription(CONFIG.FORMATTING_ENGINE);
+        if (this._phobiesUnitFaceEnabled && sdkCard instanceof SDK.Unit) {
+          const classNameFor = (type) => sdkCard.getGameSession().getModifierClassForType(type);
+          description = removeStatKeywordText(
+            description,
+            STAT_REPLACED_KEYWORD_TYPES.map((type) => (classNameFor(type) || {}).modifierName).filter(Boolean),
+            sdkCard.getKeywordClasses().map((keywordClass) => keywordClass.modifierName).filter(Boolean),
+          );
+        }
         let descriptionLength = description.length;
         if (description.includes('\n')) {
           descriptionLength += 15;
@@ -991,7 +1017,7 @@ var CardNode = SdkNode.extend({
         } else {
           this.cardDescriptionLabel.setFontSize(13);
         }
-        this.cardDescriptionLabel.setString(sdkCard.getDescription(CONFIG.FORMATTING_ENGINE), true);
+        this.cardDescriptionLabel.setString(description, true);
 
         // faction name
         const faction = SDK.FactionFactory.factionForIdentifier(sdkCard.getFactionId());
@@ -1650,6 +1676,9 @@ var CardNode = SdkNode.extend({
       keywordClasses = stateAtAction.keywordClasses;
     } else {
       keywordClasses = this.sdkCard.getKeywordClasses(true);
+    }
+    if (keywordClasses != null && this._phobiesUnitFaceEnabled && this.sdkCard instanceof SDK.Unit) {
+      keywordClasses = keywordClasses.filter((keywordClass) => !STAT_REPLACED_KEYWORD_TYPES.includes(keywordClass.type));
     }
     if (keywordClasses != null && keywordClasses.length > 0) {
       this._hasKeywords = true;
