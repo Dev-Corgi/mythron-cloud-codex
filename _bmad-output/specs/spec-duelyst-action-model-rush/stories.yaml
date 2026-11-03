@@ -1,0 +1,28 @@
+- id: "1"
+  title: Restore the Duelyst move-then-attack action model
+  description: >-
+    Replace the two action points with the original move/attack slots in
+    Practice/Sandbox v2 (CAP-1). Read the companion ARCHITECTURE-SPINE.md and
+    follow AD-18 to AD-20 and AD-22 exactly. Core rules: readiness comes only
+    from movesMade/attacksMade; ONE ability gate, Entity.getCanUseActiveAbility
+    (not exhausted and attacksMade < getAttacks(), no ATK/reach/attack-type
+    requirement), validated then recorded with Entity.recordAttack, then
+    embedded actions run; embedded moves/attacks (isAbilityOrigin) pass the
+    readiness checks and skip recordMove/recordAttack; only an executed move
+    consumes the move slot; exhaustion is changed only via Entity
+    applyExhaustion/refreshExhaustion/setExhausted. Remove every action-point
+    field, accessor and caller (including SetExhaustionAction fields and the
+    ModifierTransformed.createContextObject parameters at all call sites);
+    ignore old action-point keys on read, no migration, ruleset stays v2.
+    Confirm stored snapshots carry exhausted/movesMade/attacksMade first.
+- id: "2"
+  title: Rework Rock Pulverizer with Rush
+  description: >-
+    Depends on story 1. Remove Rock Pulverizer's (Phobies 50004, Cassowary)
+    move_and_strike active and give it ModifierFirstBlood as its Rush passive
+    (CAP-2), following ARCHITECTURE-SPINE.md AD-21. Rush clears only summon
+    exhaustion: stun still applies and ModifierTransformed state is not
+    overridden; stats and Lifegain unchanged; no other Phobies card gets Rush.
+    Retire effect 51012 only after checking every reference: effect factory,
+    validatorEntityAction movement-attack id list, AI card-intent data,
+    PhobiesCollectionCardVisual, abilities.coffee, cardsLookup, tests.

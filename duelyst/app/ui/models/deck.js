@@ -81,7 +81,7 @@ var DeckModel = Backbone.Model.extend({
 
   addCardIds: function (cardIds) {
     var changed = false;
-    var cardModels = GameDataManager.getInstance().visibleCardsCollection.getCardModelsFromCardIds(cardIds);
+    var cardModels = this.getCardCollection().getCardModelsFromCardIds(cardIds);
     if (cardModels.length > 0) {
       for (var i = 0, il = cardModels.length; i < il; i++) {
         changed = this.changeCardModel(cardModels[i], 1) || changed;
@@ -95,7 +95,7 @@ var DeckModel = Backbone.Model.extend({
 
   addCardsData: function (cardsData) {
     var changed = false;
-    var cardModels = GameDataManager.getInstance().visibleCardsCollection.getCardModelsFromCardsData(cardsData);
+    var cardModels = this.getCardCollection().getCardModelsFromCardsData(cardsData);
     if (cardModels.length > 0) {
       for (var i = 0, il = cardModels.length; i < il; i++) {
         changed = this.changeCardModel(cardModels[i], 1) || changed;
@@ -156,6 +156,7 @@ var DeckModel = Backbone.Model.extend({
     var factionId = cardModel.get('factionId');
     var purpose = this.getPurpose();
     var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
+    var isPresetNewRulesDeck = isNewRulesDeck && this.get('isStarter');
     if (isNewRulesDeck && deltaCount > 0 && !CardEligibility.isDeckChoiceId(cardId, PRACTICE_SANDBOX_V2)) {
       return false;
     }
@@ -172,11 +173,11 @@ var DeckModel = Backbone.Model.extend({
       // validate card type and deck size
       var deckSize = this.get('cards').length;
       var isGeneral = deckCardModel.get('isGeneral');
-      var validCard = (isGeneral || this.hasGeneral()) && deckCardModel.get('isNeutral') || this.get('faction_id') === factionId;
+      var validCard = isPresetNewRulesDeck || ((isGeneral || this.hasGeneral()) && deckCardModel.get('isNeutral')) || this.get('faction_id') === factionId;
       var deckCount = this.getCountForCardId(cardId);
       var inventoryCount = cardModel.get('inventoryCount');
       if (deltaCount > 0) {
-        deltaCount = Math.min(deckCount + deltaCount, inventoryCount) - deckCount;
+        deltaCount = Math.min(deckCount + deltaCount, isPresetNewRulesDeck ? CONFIG.MAX_DECK_DUPLICATES : inventoryCount) - deckCount;
       }
       var maxDeckSize = isNewRulesDeck ? CONFIG.MAX_NEW_RULES_DECK_SIZE : CONFIG.MAX_DECK_SIZE;
       if (isGeneral || deltaCount < 0 || (deltaCount > 0 && deckSize < maxDeckSize && validCard)) {
@@ -185,7 +186,7 @@ var DeckModel = Backbone.Model.extend({
         var maxDeckDuplicates = isGeneral ? 1 : CONFIG.MAX_DECK_DUPLICATES;
         var newCount = Math.max(Math.min(totalCount + deltaCount, maxDeckDuplicates), 0);
         deltaCount = newCount - totalCount;
-        if (newCount !== totalCount && ((deltaCount < 0 && deckCount > 0) || (inventoryCount >= deckCount + deltaCount))) {
+        if (newCount !== totalCount && ((deltaCount < 0 && deckCount > 0) || isPresetNewRulesDeck || (inventoryCount >= deckCount + deltaCount))) {
           // update card count in deck
           var cardDeckCount = deckCardModel.get('deckCount');
           var newCardDeckCount = cardDeckCount + deltaCount;
@@ -225,7 +226,7 @@ var DeckModel = Backbone.Model.extend({
       var skinIds = SDK.CosmeticsFactory.cardSkinIdsForCard(baseCardId);
       var removeAllSkins = false;
       if (skinIds.length > 1) {
-        var gameDataCardModel = GameDataManager.getInstance().getVisibleCardModelById(cardId);
+        var gameDataCardModel = this.getCardModelById(cardId);
         if (gameDataCardModel.get('inventoryCount') < this.getCountForCardId(cardId)) {
           removeAllSkins = true;
         }
@@ -240,7 +241,7 @@ var DeckModel = Backbone.Model.extend({
         if (removeAllSkins) {
           var skinnedDeckCardModel = this._cardModels.get(skinnedCardId);
           if (skinnedDeckCardModel != null && skinnedDeckCardModel.get('deckCount') > 0) {
-            var skinnedGameDataCardModel = GameDataManager.getInstance().getVisibleCardModelById(skinnedCardId);
+            var skinnedGameDataCardModel = this.getCardModelById(skinnedCardId);
             this.changeCardModel(skinnedGameDataCardModel, -skinnedDeckCardModel.get('deckCount'));
             changed = true;
           }
@@ -268,7 +269,7 @@ var DeckModel = Backbone.Model.extend({
     var deckCardModel = this._cardModels.get(cardId);
     if (deckCardModel != null) {
       // card is in deck
-      var gameDataCardModel = GameDataManager.getInstance().getVisibleCardModelById(cardId);
+      var gameDataCardModel = this.getCardModelById(cardId);
       var inventoryCount = gameDataCardModel.get('inventoryCount');
       var deckCount = deckCardModel.get('deckCount');
       var totalCount = this.getCountForCardId(cardId);
@@ -310,6 +311,17 @@ var DeckModel = Backbone.Model.extend({
     return purpose === 'practice' || purpose === 'sandbox' ? purpose : 'legacy';
   },
 
+  getCardCollection: function () {
+    var gameDataManager = GameDataManager.getInstance();
+    return this.getPurpose() === 'practice' || this.getPurpose() === 'sandbox'
+      ? gameDataManager.getCardsCollection()
+      : gameDataManager.getVisibleCardsCollection();
+  },
+
+  getCardModelById: function (cardId) {
+    return this.getCardCollection().get(cardId);
+  },
+
   isLegacy: function () {
     return this._isLegacy;
   },
@@ -341,6 +353,7 @@ var DeckModel = Backbone.Model.extend({
     var modelsToRemove = [];
     var hasLegacyCard = false;
     var generalCount = 0;
+    var isPresetNewRulesDeck = (this.getPurpose() === 'practice' || this.getPurpose() === 'sandbox') && this.get('isStarter');
     this._cardModels.forEach(function (cardModel) {
       if (cardModel.get('isGeneral')) generalCount += cardModel.get('deckCount') || 0;
       // we must have a general and the card must either be neutral or of the same faction as the general
@@ -350,12 +363,13 @@ var DeckModel = Backbone.Model.extend({
       var isNewRulesDeck = this.getPurpose() === 'practice' || this.getPurpose() === 'sandbox';
       var inventoryCount = cardModel.get('inventoryCount');
       var deckCount = cardModel.get('deckCount');
-      var count = Math.min(deckCount, inventoryCount);
+      var isAllowedPresetCard = isPresetNewRulesDeck && CardEligibility.isDeckChoiceId(id, PRACTICE_SANDBOX_V2);
+      var count = isAllowedPresetCard ? deckCount : Math.min(deckCount, inventoryCount);
       if (!needsGeneral
-        && cardModel.get('isUnlocked')
-        && (cardModel.get('isNeutral') || factionId === cardModel.get('factionId'))
+        && (isAllowedPresetCard || cardModel.get('isUnlocked'))
+        && (isAllowedPresetCard || cardModel.get('isNeutral') || factionId === cardModel.get('factionId'))
         && (!isNewRulesDeck || CardEligibility.isDeckChoiceId(id, PRACTICE_SANDBOX_V2))
-        && count > 0 && deckCount <= inventoryCount && this.getCountForBaseCardId(id) <= CONFIG.MAX_DECK_DUPLICATES) {
+        && count > 0 && (isAllowedPresetCard || deckCount <= inventoryCount) && this.getCountForBaseCardId(id) <= CONFIG.MAX_DECK_DUPLICATES) {
         // add one card data object for each count of the card
         _.times(count, function () {
           cards.push(cardModel.getCardDataForDeck());
@@ -424,7 +438,7 @@ var DeckModel = Backbone.Model.extend({
     var purpose = this.getPurpose();
     var isNewRulesDeck = purpose === 'practice' || purpose === 'sandbox';
     if (isNewRulesDeck) {
-      valid = deckSize === 9 && !needsGeneral && generalCount === 1;
+      valid = cards.length === CONFIG.MAX_NEW_RULES_DECK_SIZE && !needsGeneral && generalCount === 1;
       this._cardModels.each(function (cardModel) {
         if (!CardEligibility.isDeckChoiceId(cardModel.get('id'), PRACTICE_SANDBOX_V2)) valid = false;
       });
@@ -464,7 +478,7 @@ var DeckModel = Backbone.Model.extend({
 
     // get card models from cards
     var cards = this.get('cards');
-    var cardModels = GameDataManager.getInstance().visibleCardsCollection.getCardModelsFromCardsData(cards);
+    var cardModels = this.getCardCollection().getCardModelsFromCardsData(cards);
     if (cardModels.length > 0) {
       for (var i = 0, il = cardModels.length; i < il; i++) {
         var cardModel = cardModels[i];

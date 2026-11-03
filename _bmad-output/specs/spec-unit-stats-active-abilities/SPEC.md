@@ -36,8 +36,11 @@ A vision to realize: make unit cards carry explicit movement, attack, and level 
   - **intent:** The hand slot and card detail view present the new stats and the ability's counters.
   - **success:** Unit cards render movement type/distance, attack type/range, level, and attack/health per the `phobies_unit` layout; an ability card renders a violet padlock ring for nonzero Lockdown (image 1) or a cyan hourglass ring for nonzero Cooldown (image 2) per `phobies_ability`. Detail view of an ability-bearing unit shows the unit and, in the related-card position (where a spell like Phoenix Fire appears for Lantern Fox), the ability card.
 - **CAP-6**
-  - **intent:** Each unit acts through a per-turn action-point budget, as in Phobies, instead of Duelyst's one move plus one attack.
-  - **success:** Every unit has 2 action points per turn. Its moves, attacks, and ability use are limited by that budget rather than by the old one-move-one-attack allowance; each move, attack, and ability use costs 1 action point in any combination, and points refresh to 2 at the start of the owner's turn. The existing exhausted state is treated as 0 action points. A newly summoned unit starts exhausted (0 points) and gains 2 at the start of its owner's next turn. Details in `active-ability-rules.md`. Outside Practice and Sandbox the old allowance is unchanged.
+  - **intent:** Each unit follows Duelyst's move-then-attack turn sequence, with an active ability using the attack action.
+  - **success:** In Practice/Sandbox v2, a unit may move once, and only before it attacks or uses an active ability; it may attack or use one ready ability, but not both. It may also take either action without moving, or do nothing. A summoned unit is exhausted through its summon turn and refreshes at its owner's next turn start. Embedded moves and attacks within an ability consume no additional action. Details in `active-ability-rules.md`.
+- **CAP-7**
+  - **intent:** Rock Pulverizer has a summon-turn Rush passive instead of its active ability.
+  - **success:** In Practice/Sandbox v2, Rock Pulverizer is not exhausted when summoned and can move once, then attack once that turn. It has no active ability; its stats and Lifegain remain unchanged. No other Phobies card receives this passive; original Duelyst cards using `ModifierFirstBlood` are unchanged.
 
 ## Constraints
 
@@ -54,7 +57,9 @@ A vision to realize: make unit cards carry explicit movement, attack, and level 
 - Phase differs from fly only by passing through enemy units; hole and Wall permissions are identical.
 - A silenced unit's ability keeps its counters; removing silence re-enables it with the same values.
 - Every active ability has Cooldown ≥ 1, so no ability can be used more than once per turn by Cooldown alone.
+- In Practice/Sandbox v2, an active ability is the unit's attack action; Lockdown and Cooldown timing and values do not change.
 - Each general's Bloodbound Spell is an active ability with Lockdown 2 and Cooldown 2 and costs no mana, replacing its existing mana-costed use in Practice and Sandbox. It stays in its existing dedicated Bloodbound slot (not a hand slot) and starts counting from match start, since the general is on the field from the beginning.
+- Rock Pulverizer's Phobies card data removes active ability effect 51012 (`move_and_strike`) and adds its Rush passive; retire that effect only if no other card references it.
 - Ability data (effect, Lockdown, Cooldown, use range) is attached per card through a general structure so later cards can add unique abilities without engine changes.
 - Development placeholder: Planar Scout carries Phoenix Fire with Lockdown 1, Cooldown 1.
 
@@ -63,11 +68,14 @@ A vision to realize: make unit cards carry explicit movement, attack, and level 
 - Level mechanics (progression, stat scaling); all cards stay level 1.
 - Designing the ability roster or new abilities now; unique abilities arrive with future cards. Only the structure and the Planar Scout placeholder are in scope.
 - Rebalancing cards.
-- Changing action points per unit (all units have 2 for now).
-- Displaying action points on cards; a later spec handles it. Until then only the existing exhausted indicator is shown.
+- Adding a general action-point system; the Practice/Sandbox v2 rule returns to the move/attack sequence.
 - Changing the existing 40-card deck modes' rules beyond what the shared stat model requires.
 - New unit art or UI asset redesign.
 
 ## Success signal
 
-A Practice match shows a unit card with its move, attack, and level stats; after it is summoned, its slot shows e.g. Phoenix Fire with a padlock or hourglass counter. The ability becomes castable only after the counter reaches 0, shows the other counter after use, and the detail view shows unit plus ability together.
+A Practice match shows the original move-then-attack sequence: after a unit moves it can attack or use an ability, but cannot move again; after an attack or ability it cannot move or use the other attack action. Ordinary summons stay exhausted until their next owner turn; Rock Pulverizer can move and attack on its summon turn. Existing ability counters retain their Lockdown/Cooldown behavior.
+
+## Open Questions
+
+- How should saved snapshots or replays recorded under the two-action-point rule be interpreted after this rules change?

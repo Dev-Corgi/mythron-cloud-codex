@@ -18,19 +18,12 @@
     explode centered on the attacker with the range stat as radius, excluding allies (CAP-2). Reuse the map
     spec geometry and Wall-blocking rules in map-layout.md and add no separate radius stat.
     Read SPEC.md and its companions first.
-- id: "4"
-  title: Replace move and attack allowance with action points
-  description: >-
-    Every unit has 2 action points; move, attack, and ability use cost 1 each in any combination and refresh
-    to 2 at the owner's turn start (CAP-6). Exhausted equals 0 points, and summoned units start exhausted
-    and gain 2 at the owner's next turn start. Practice and Sandbox only; no action-point UI.
-    Read SPEC.md and its companions first.
 - id: "5"
   title: Build the hand-slot active ability structure
   description: >-
     Generic per-card ability data with base Lockdown and Cooldown, end-of-owner-turn decrement, use rules,
     slot lifecycle, and death and silence handling (CAP-4); defaults are Lockdown 0 and Cooldown 1, Cooldown
-    is always at least 1, and use costs 1 action point and no mana. Dev placeholder is Phoenix Fire with Lockdown 1
+    is always at least 1, and use consumes the unit's attack action at no mana cost. Dev placeholder is Phoenix Fire with Lockdown 1
     and Cooldown 1 on Cards.Neutral.PlanarScout, and each general's Bloodbound Spell is an ability with Lockdown 2,
     Cooldown 2, no mana, in its existing dedicated slot. Read SPEC.md and active-ability-rules.md first.
 - id: "6"
@@ -70,8 +63,8 @@
     Remove the action-point branches from ModifierFirstBlood, ModifierPseudoRush, ModifierBuilding,
     ModifierTransformed, SetExhaustionAction, and the move and attack actions and validators, so that only Entity
     accessors decide whether a unit can move or attack and any version check goes through the AD-1 helper (AD-6).
-    In version 2 a unit is exhausted exactly when it has zero action points, and refresh runs through the entity
-    refresh path at the owner's turn start. Behavior in version 1 and legacy must be identical, and the existing
+    In version 2, movement and attack-action state follows CAP-6 and refresh runs through the entity refresh path
+    at the owner's turn start. Behavior in version 1 and legacy must be identical, and the existing
     tests must pass unchanged. Read SPEC.md and ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-6) first.
 - id: "11"
   title: Resolve ranged, lobbed, and area geometry in one shared resolver
@@ -126,3 +119,16 @@
     Ranged keyword from granting reach in version 2 so the attack range stat is the range shown and used. Lobbed,
     area, spell, legacy, and version 1 stay unchanged. Read stories/17-*.md, SPEC.md, the map spec, and
     ../../planning-artifacts/architecture/architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md (AD-8) first.
+- id: "18"
+  title: Restore Duelyst's move-then-attack action model
+  description: >-
+    Replace the Practice/Sandbox v2 two-action-point rule in CAP-6 and active-ability-rules.md with one move
+    before one attack action, where an active ability uses the attack action; preserve owner-turn refresh,
+    summon exhaustion, saved-state/replay consistency, legality, AI, and readiness UI (Story 4's AP contract is superseded).
+    Read SPEC.md and its companions first.
+- id: "19"
+  title: Give Rock Pulverizer summon-turn Rush
+  description: >-
+    After Story 18, remove Rock Pulverizer's active ability effect 51012 and give it Rush so it can move then
+    attack on its summon turn; preserve stats and Lifegain and ensure no other card receives this passive.
+    Retire move_and_strike only if no other card uses it. Read SPEC.md and its companions first.

@@ -264,7 +264,10 @@ var CardCompositeView = Backbone.Marionette.CompositeView.extend({
       var card = this.model.get('card');
       if (card instanceof SDK.Card) {
         var cardId = this.model.get('id');
-        var cardPkgId = PKGS.getCardInspectPkgIdentifier(cardId);
+        var spriteCardId = card.getCardSetId() === SDK.CardSet.Phobies && card.originalCardId != null
+          ? card.originalCardId
+          : cardId;
+        var cardPkgId = PKGS.getCardInspectPkgIdentifier(spriteCardId);
         if (cardPkgId != null) {
           // we have to make each load pkg id unique in case more than one card loads the same assets
           // we don't want one to unload those assets and have another card that also uses the assets break

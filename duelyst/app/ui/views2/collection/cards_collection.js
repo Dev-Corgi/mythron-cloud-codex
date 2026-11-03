@@ -20,6 +20,7 @@ var CardsCollectionTmpl = require('./templates/cards_collection.hbs');
 var CollectionCardCompositeView = require('./collection_card');
 
 var CARD_BACKS_FACTION_ID = 'card_backs';
+var STANDARD_CARD_SET_FILTER = -1;
 
 var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
 
@@ -484,7 +485,7 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
         return cardModel.get('inventoryCount') > 0
           && (!cardModel.get('isPrismatic') || showPrismaticsInCollection)
           && (!cardModel.get('isSkinned') || (showSkinsInCollection && cardModel.get('canShowSkin')))
-          && (cardSet == 0 || cardSet == 9 || cardModel.get('cardSetId') === cardSet);
+          && (cardSet == 0 || cardSet == STANDARD_CARD_SET_FILTER || cardModel.get('cardSetId') === cardSet);
       });
 
       generalCards = _.sortBy(generalCards, function (cardModel) {
@@ -521,7 +522,7 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
             });
           }
           // filter shim'zar cards when "standard cards" is chosen
-          if (cardSet == 9) {
+          if (cardSet == STANDARD_CARD_SET_FILTER) {
             factionCards = _.filter(factionCards, function (cardModel) {
               return (cardModel.get('cardSetId') != SDK.CardSet.Shimzar);
             });
@@ -543,15 +544,15 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
               return !cardModel.get('isSkinned')
                 // don't show prismatics unless allowed or has copies
                 && ((showPrismaticsInCollection && showPrismaticsWhileCrafting) || !cardModel.get('isPrismatic') || cardModel.get('inventoryCount') > 0)
-                && (cardSet == 0 || cardSet == 9 || cardModel.get('cardSetId') === cardSet);
+                && (cardSet == 0 || cardSet == STANDARD_CARD_SET_FILTER || cardModel.get('cardSetId') === cardSet);
             });
           } else {
             // filter prismatics/skins as needed
             factionCards = _.filter(factionCards, function (cardModel) {
-              return cardModel.get('inventoryCount') > 0
+              return (cardModel.get('inventoryCount') > 0 || cardSet === SDK.CardSet.Phobies)
                 && (!cardModel.get('isPrismatic') || showPrismaticsInCollection)
                 && (!cardModel.get('isSkinned') || (showSkinsInCollection && cardModel.get('canShowSkin')))
-                && (cardSet == 0 || cardSet == 9 || cardModel.get('cardSetId') === cardSet);
+                && (cardSet == 0 || cardSet == STANDARD_CARD_SET_FILTER || cardModel.get('cardSetId') === cardSet);
             });
           }
 

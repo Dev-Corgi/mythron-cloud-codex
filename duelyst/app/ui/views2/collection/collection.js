@@ -35,6 +35,8 @@ var CraftingCompositeView = require('./crafting');
 var DeckCardBackSelectView = require('./deck_card_back_select');
 var SelectedCardLayout = require('./selected_card');
 
+var STANDARD_CARD_SET_FILTER = -1;
+
 var CollectionLayout = Backbone.Marionette.LayoutView.extend({
 
   _deck: null,
@@ -466,7 +468,7 @@ var CollectionLayout = Backbone.Marionette.LayoutView.extend({
 
       // if currently selected filter isn't "all cards" or "standard cards"
       var currentSetSelected = ProfileManager.getInstance().profile.get('filterCollectionCardSet');
-      if ((currentSetSelected != 0) && (currentSetSelected != 9)) {
+      if ((currentSetSelected != 0) && (currentSetSelected != STANDARD_CARD_SET_FILTER)) {
         // reset card set filters upon starting a new deck (to make sure all Generals and owned cards are visible)
         ProfileManager.getInstance().profile.set('filterCollectionCardSet', 0);
       }

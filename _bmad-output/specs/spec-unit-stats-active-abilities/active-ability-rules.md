@@ -41,6 +41,12 @@ Reuse the existing card-inspect layout (card plus related card). For an ability-
 
 Both asset kits are standalone previews and not yet wired to CardNode or the resource loader. Verify integration in the running game, not in the preview HTML.
 
-## Action points
+## Turn actions
 
-Units have 2 action points per turn (Phobies-style), replacing one move plus one attack in Practice and Sandbox. Move, attack, and ability use each cost 1, in any combination. Points refresh to 2 at the start of the owner's turn. A newly summoned unit starts exhausted (0 points) and gets 2 at its owner's next turn start. The existing exhausted state equals 0 action points; no separate action-point display yet. Abilities always have Cooldown ≥ 1.
+In Practice/Sandbox v2, each unit may move once and may take one attack action per turn. A move must happen before the attack action. The attack action is either a direct attack or one usable active ability; a unit cannot take both. A unit may move only, move then attack, move then use an ability, attack only, use an ability only, or take no action. After an attack or ability use, the unit cannot move.
+
+An ability's embedded movement or attack effects do not consume an additional action. This does not grant a separate player-selected move or attack after the ability. Lockdown/Cooldown values, decrement timing, and use conditions above remain unchanged.
+
+Newly summoned units remain exhausted during the summon turn and refresh at their owner's next turn start. Rock Pulverizer's summon-turn Rush exception is defined in `SPEC.md`; it can move and then attack that turn.
+
+The action sequence, its consumed state, and exhausted/readiness presentation must agree across validation, turn refresh, AI decisions, saved state/replays where present, and tests. Migration of historical two-action-point snapshots or replays remains open in `SPEC.md`.

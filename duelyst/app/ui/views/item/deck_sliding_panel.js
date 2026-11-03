@@ -38,7 +38,8 @@ var DeckSlidingPanelItemView = SlidingPanelItemView.extend({
     // determine if this deck is unlocked
     var factionId = this.model.get('faction_id');
     var isUnlocked = ProgressionManager.getInstance().isFactionUnlocked(factionId);
-    this.model.set('_isUnlocked', isUnlocked);
+    var isPracticeStarter = !!this.model.get('isStarter') && this.model.getPurpose && this.model.getPurpose() === 'practice';
+    this.model.set('_isUnlocked', isUnlocked || isPracticeStarter);
   },
 
   onRender: function () {

@@ -154,6 +154,43 @@ var DeckSelectSinglePlayerCompositeView = DeckSelectCompositeView.extend({
     return EVENTS.start_single_player;
   },
 
+  _getSavedPracticeDeckForStarter: function (starterDeck) {
+    var deckIds = _.map(starterDeck.get('cards') || [], function (card) { return card.id; });
+    var savedDecks = InventoryManager.getInstance().getDecksCollection();
+    var existingDeck = savedDecks.find(function (deck) {
+      var savedCardIds = _.map(deck.get('cards') || [], function (card) { return card.id; });
+      return deck.getPurpose() === 'practice'
+        && deck.get('faction_id') === starterDeck.get('faction_id')
+        && _.isEqual(savedCardIds, deckIds);
+    });
+
+    if (existingDeck) return Promise.resolve(existingDeck);
+
+    var faction = SDK.FactionFactory.factionForIdentifier(starterDeck.get('faction_id'));
+    var deckData = {
+      name: 'Practice - ' + ((faction && faction.name) || starterDeck.get('name')),
+      faction_id: starterDeck.get('faction_id'),
+      cards: starterDeck.get('cards'),
+      card_back_id: starterDeck.get('card_back_id'),
+      color_code: starterDeck.get('color_code') || 0,
+      minion_count: starterDeck.get('minion_count') || 0,
+      spell_count: starterDeck.get('spell_count') || 0,
+      artifact_count: starterDeck.get('artifact_count') || 0,
+      purpose: 'practice',
+    };
+
+    return new Promise(function (resolve, reject) {
+      savedDecks.create(deckData, {
+        wait: true,
+        success: function (savedDeck) { resolve(savedDeck); },
+        error: function (savedDeck, response) {
+          var responseData = response && response.responseJSON;
+          reject(new Error((responseData && (responseData.error || responseData.message)) || 'Could not save the Practice starter deck.'));
+        },
+      });
+    });
+  },
+
   onConfirmSelection: function () {
     var selectedDeckModel = this._selectedDeckModel;
     var selectedOpponentId = this._selectedOpponentId;
@@ -171,18 +208,32 @@ var DeckSelectSinglePlayerCompositeView = DeckSelectCompositeView.extend({
         if (aiDifficulty < 0.0) aiDifficulty = null;
         if (aiNumRandomCards < 0) aiNumRandomCards = null;
       }
-      EventBus.getInstance().trigger(
-        this.getConfirmSelectionEvent(),
-        UtilsJavascript.deepCopy(selectedDeckModel.get('cards')),
-        selectedDeckModel.get('faction_id'),
-        selectedDeckModel.get('cards')[0].id,
-        selectedDeckModel.get('card_back_id'),
-        ProfileManager.getInstance().get('battle_map_id'),
-        selectedOpponentId,
-        aiDifficulty,
-        aiNumRandomCards,
-        selectedDeckModel.get('id'),
-      );
+
+      var startPracticeGame = function (savedDeck) {
+        EventBus.getInstance().trigger(
+          this.getConfirmSelectionEvent(),
+          UtilsJavascript.deepCopy(savedDeck.get('cards')),
+          savedDeck.get('faction_id'),
+          savedDeck.get('cards')[0].id,
+          savedDeck.get('card_back_id'),
+          ProfileManager.getInstance().get('battle_map_id'),
+          selectedOpponentId,
+          aiDifficulty,
+          aiNumRandomCards,
+          savedDeck.get('id'),
+        );
+      }.bind(this);
+
+      if (selectedDeckModel.get('isStarter')) {
+        this._getSavedPracticeDeckForStarter(selectedDeckModel)
+          .then(startPracticeGame)
+          .catch(function (error) {
+            this.ui.$deckSelectConfirm.removeClass('disabled');
+            this._showSelectDeckWarningPopover(this.ui.$deckSelectConfirm, error.message);
+          }.bind(this));
+      } else {
+        startPracticeGame(selectedDeckModel);
+      }
     } else if (selectedDeckModel != null) {
       audio_engine.current().play_effect_for_interaction(RSX.sfx_ui_error.audio, CONFIG.ERROR_SFX_PRIORITY);
       this._showSelectDeckWarningPopover(this.ui.$deckSelectConfirm, i18next.t('game_setup.must_select_opponent_message'));

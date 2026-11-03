@@ -63,7 +63,14 @@ var CardsCollection = Backbone.Collection.extend({
    * Adds all cards from card factory to this collection as card models.
    */
   addAllCardsToCollection: function () {
-    var cards = SDK.GameSession.getCardCaches().getCards();
+    var cards = SDK.GameSession.getCardCaches().getCards().slice(0);
+    var practiceSandboxGameSession = SDK.GameSession.create();
+    _.each(SDK.Cards.Phobies, function (cardId) {
+      var card = SDK.CardFactory.cardForIdentifier(cardId, practiceSandboxGameSession);
+      if (card != null && card.getCardSetId() === SDK.CardSet.Phobies) {
+        cards.push(card);
+      }
+    });
 
     var factionProgressionCardIds = [];
 
@@ -115,6 +122,13 @@ var CardsCollection = Backbone.Collection.extend({
         isUnlockableWithSpiritOrbs = card.getIsUnlockableThroughSpiritOrbs();
         isUnlockablePrismaticWithSpiritOrbs = card.getIsUnlockablePrismaticWithSpiritOrbs();
         unlockMessage = card.getUnlockDescription();
+      }
+
+      // Phobies cards are practice-only and do not belong to a Duelyst faction
+      // progression track, even though their imported card data marks them as
+      // progression-unlockable.
+      if (card.getCardSetId() === SDK.CardSet.Phobies) {
+        isUnlockableThroughProgression = false;
       }
 
       // get unlock faction and level
