@@ -2,7 +2,7 @@
 title: 'Story 17: Ranged attacks use center-line geometry with linked-Wall barriers and follow the range stat'
 type: 'feature'
 created: '2026-11-03'
-status: 'ready-for-dev'
+status: 'done'
 baseline_commit: '2783d4de'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -137,11 +137,11 @@ Range 4, a linked diagonal Wall chain, then the same chain with a gap:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `duelyst/test/unit/sdk/game/hex_attack_geometry.js` -- add the fixtures above as table-driven tests (including `getValidTargets` and `getIsValidTarget` agreement, a removed Wall, a 0-health Wall, a Wall target, and the supporting-Wall exception); update the axis-only ranged tests; add `KEYWORD_NO_RANGE` -- fixes the agreed behavior first.
-- [ ] `duelyst/app/sdk/rulesets/hexAttackGeometry.coffee` (and `hexTopology.coffee` for geometry helpers) -- implement the ranged rule in `canDeliver`; leave area, spell, lobbed, and melee untouched.
-- [ ] `duelyst/app/sdk/modifiers/modifierRanged.coffee`, `modifierBandedRanged.coffee`, `duelyst/app/sdk/entities/entity.coffee` -- in v2 the Ranged keyword grants no reach; `getAttackRangeValue` equals the stat; legacy and v1 unchanged.
-- [ ] `duelyst/app/sdk/ai` and view range display -- confirm they read the stat and `canDeliver`; fix any path that assumes the six axes or `REACH_RANGED` in v2.
-- [ ] `_bmad-output/specs/spec-practice-sandbox-map/SPEC.md` (ranged rules around the six-axis and Wall-blocking wording), `.../spec-unit-stats-active-abilities/SPEC.md`, and `ARCHITECTURE-SPINE.md` AD-8 -- replace the six-axis wording with this rule; keep the area-effect wording.
+- [x] `duelyst/test/unit/sdk/game/hex_attack_geometry.js` -- add the fixtures above as table-driven tests (including `getValidTargets` and `getIsValidTarget` agreement, a removed Wall, a 0-health Wall, a Wall target, and the supporting-Wall exception); update the axis-only ranged tests; add `KEYWORD_NO_RANGE` -- fixes the agreed behavior first.
+- [x] `duelyst/app/sdk/rulesets/hexAttackGeometry.coffee` (and `hexTopology.coffee` for geometry helpers) -- implement the ranged rule in `canDeliver`; leave area, spell, lobbed, and melee untouched.
+- [x] `duelyst/app/sdk/modifiers/modifierRanged.coffee`, `modifierBandedRanged.coffee`, `duelyst/app/sdk/entities/entity.coffee` -- in v2 the Ranged keyword grants no reach; `getAttackRangeValue` equals the stat; legacy and v1 unchanged.
+- [x] `duelyst/app/sdk/ai` and view range display -- confirm they read the stat and `canDeliver`; fix any path that assumes the six axes or `REACH_RANGED` in v2.
+- [x] `_bmad-output/specs/spec-practice-sandbox-map/SPEC.md` (ranged rules around the six-axis and Wall-blocking wording), `.../spec-unit-stats-active-abilities/SPEC.md`, and `ARCHITECTURE-SPINE.md` AD-8 -- replace the six-axis wording with this rule; keep the area-effect wording.
 
 **Acceptance Criteria:**
 - Given each fixture, when a v2 ranged attacker with that range is evaluated, then exactly the `#` and `W` tiles are legal targets.
@@ -151,9 +151,24 @@ Range 4, a linked diagonal Wall chain, then the same chain with a gap:
 
 ## Implementation Notes
 
+- The previous ranged branch treated any segment entering a Wall's hex interior as blocked. Story 17 requires center-only Wall blocking, so the ranged path now tests the Wall center; area and spell obstruction retain the existing interior rule.
+- Added the six story ASCII fixtures as table-driven resolver tests. The existing live-board checks still verify range/target agreement, target-supporting Walls, removed Walls, zero-health Walls, and Ranged keyword stat behavior.
+- `npx mocha --exit -t 3000 test/unit/sdk/game/hex_attack_geometry.js test/unit/sdk/game/board.js test/unit/sdk/ai/board_geometry.js test/unit/sdk/game/phase_keyword.js`: 111 passing.
+- CoffeeLint passes the changed CoffeeScript files when run with the checkout-specific `line_endings` rule omitted; the repo rule requires LF but these Windows checkout files are CRLF. ESLint with parserOptions `ecmaVersion: 2022` reports five pre-existing errors in `test/unit/sdk/game/board.js` (lines 415, 434, 843, 873, 874); the changed geometry test has warnings only.
+- Manual Practice match verification was not available in this CLI session.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| Finding | Verdict | Evidence / route |
+|---|---|---|
+| Blind Hunter: no `getValidTargets`/`getIsValidTarget` agreement coverage | false | `getValidTargets and getIsValidTarget agree for ranged attackers` compares both paths for enemies and Walls and checks a blocked target is omitted. |
+| Blind Hunter: ASCII fixtures only use a fake board | false | The table-driven cases target the pure shared `canDeliver` resolver; a separate live-board test verifies valid-target selection and validation agree through that resolver, and each fixture candidate's range is asserted. |
+| Blind Hunter: no explicit `ModifierBandedRanged` reach regression test | low / patch | The class inherits `ModifierRanged`; added a focused v2 subclass test asserting attack type and reach/range remain 2. |
+| Blind Hunter: `KEYWORD_NO_RANGE` missing | false | The Ranged-keyword test verifies attack type, `getReach()`, `getAttackRangeValue()`, an in-range target, and rejection beyond distance 2. |
+| Blind Hunter: removed-Wall behavior not asserted | false | The separate `RANGED: a Wall no longer on the board stops blocking` test checks the target becomes valid after removal. |
+| Blind Hunter: endpoint Wall exception unclear for linked barriers | false | Both map specs state that Walls on attacker/target tiles do not block; ranged code excludes endpoint Walls from center and linked-Wall checks. |
 
 ## Verification
 

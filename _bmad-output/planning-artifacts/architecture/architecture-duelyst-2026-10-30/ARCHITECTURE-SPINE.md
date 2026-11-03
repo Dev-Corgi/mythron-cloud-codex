@@ -88,7 +88,7 @@ flowchart LR
 
 - **Binds:** Map CAP-4; area and ranged attacks, spell area effects, Wall obstruction, and AI targeting in version 2.
 - **Prevents:** Spells and area-attack units applying different Wall blocking, and attack actions carrying private geometry.
-- **Rule:** Target selection for ranged, lobbed, and area attacks and spell area effects, including Wall obstruction and the target-supporting-Wall exception, is computed by one shared SDK resolver over the shared topology. `AttackAction` calls it and does not compute geometry itself. Lobbed attacks ignore intervening obstructions.
+- **Rule:** Target selection for ranged, lobbed, and area attacks and spell area effects, including Wall obstruction and the target-supporting-Wall exception, is computed by one shared SDK resolver over the shared topology. Direct ranged attacks use the attacker's range stat and a Cartesian center segment; intervening Wall centers and center-to-center links between adjacent Walls block, while corner clips and Units do not. The Ranged keyword grants no range. `AttackAction` calls the resolver and does not compute geometry itself. Lobbed attacks ignore intervening obstructions.
 
 ### AD-9 — Methron Points and Walls are neutral tile entities [ADOPTED]
 

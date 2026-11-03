@@ -47,9 +47,9 @@ The approximate 180-degree symmetry description is reference context, not an ins
 - The Wall directly beneath the target unit does not shield that unit from melee attacks, ranged attacks, or area effects. Existing range and targeting conditions still apply, and any other intervening Wall can still block the attack or effect.
 - Examples: an adjacent attacker can melee an otherwise legal enemy unit on a Wall; a ranged attack or area effect can reach a unit on a Wall if no other Wall obstructs it; adding an intervening Wall blocks that ranged attack or area effect.
 
-## Ranged axes and circular area delivery
+## Ranged center-line and circular area delivery
 
-- Ranged attacks follow only the six center-to-center hex axes, perpendicular to the attacker's six tile edges. An in-range target off those axes cannot be hit by a ranged attack. Intervening Wall cells on the selected axis block it.
+- A ranged target is legal at hex distance 1 through the attacker's attack-range stat when the segment between tile centers is not blocked. It is blocked when it passes through the center of a Wall strictly between the ends or crosses the center-to-center link of two hex-adjacent Walls. Corner or edge clips do not block; Units do not block; Walls on the attacker or target tile do not block. A Wall can be a target when the segment to its center is clear. Zero-health Walls continue blocking while they remain on the board. A segment along an edge shared by two Walls is blocked; a segment flanked by one Wall is not.
 - All area effects are circular in hex-grid distance, with an effect-specific explosion radius measured from the explosion center. Radius is not the distance from caster to explosion center. Candidate targets need not lie on the six axes.
 - For each candidate area target, test direct delivery along the segment from the explosion center to the target tile center. Do not propagate around Walls. An intervening Wall blocks only when that segment enters the interior of its hex; touching only a boundary or vertex does not block.
 - A Wall directly beneath the target unit remains excluded from obstruction for melee, ranged attacks, and area effects. Other intervening Walls still apply.
