@@ -12,11 +12,19 @@ const CardFactory = require('../../../../app/sdk/cards/cardFactory.coffee');
 const FactionFactory = require('../../../../app/sdk/cards/factionFactory.coffee');
 
 describe('new-rules card eligibility', () => {
-  it('registers the Phobies set and its reserved roster IDs without defining cards yet', () => {
+  it('registers the Phobies set and resolves every reserved roster ID to a unit', () => {
     expect(SDK.CardSet.Phobies).to.equal(9);
     expect(CardSetFactory.cardSetForIdentifier(SDK.CardSet.Phobies)).to.include({ enabled: false, isUnlockableThroughOrbs: false });
     expect(Object.values(SDK.Cards.Phobies).filter((id) => id >= 50001 && id <= 50035)).to.deep.equal(Array.from({ length: 35 }, (_, index) => 50001 + index));
-    expect(SDK.CardFactory.cardForIdentifier(50001, SDK.GameSession.create())).to.not.exist;
+    const session = SDK.GameSession.create();
+    for (let id = 50001; id <= 50035; id += 1) {
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(card, `card ${id}`).to.exist;
+      expect(card.getId()).to.equal(id);
+      expect(card.getCardSetId()).to.equal(SDK.CardSet.Phobies);
+      expect(card.getFactionId()).to.equal(SDK.Factions.Neutral);
+      expect(card.type).to.equal(SDK.CardType.Unit);
+    }
   });
 
   it('prefixes only Phobies names and excludes their set from generic legacy pools', () => {

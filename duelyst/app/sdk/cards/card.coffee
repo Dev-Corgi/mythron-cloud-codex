@@ -60,6 +60,7 @@ class Card extends SDKObject
   modifiersAppliedFromContextObjects: false # whether modifiers have been applied from modifiers context objects
   modifiersContextObjects: null # array of context objects describing the inherent modifiers of this card
   ownerId: null # set to player id that owns card, when null the card is owned by the game session
+  originalCardId: null # optional source-card link for imported cards
   parentCardIndex:null # index of card that caused this card to be played, null if played by player
   position: null # position of the card on the board
   raceId: Races.Neutral
@@ -455,6 +456,7 @@ class Card extends SDKObject
       "removedFromSignatureCardsByActionIndex"
       "subCardIndices"
       "activeAbility"
+      "originalCardId"
     ]
 
   ###*
