@@ -87,6 +87,7 @@ CardFactory_CoreshatterSet_Faction5 = require './factory/coreshatter/faction5.co
 CardFactory_CoreshatterSet_Faction6 = require './factory/coreshatter/faction6.coffee'
 CardFactory_CoreshatterSet_Neutral = require './factory/coreshatter/neutral.coffee'
 CardFactory_Phobies = require './factory/phobies/neutral.coffee'
+CardFactory_PhobiesAbilities = require './factory/phobies/abilities.coffee'
 
 class CardFactory
 
@@ -201,6 +202,7 @@ class CardFactory
 
     # Phobies set (definitions are registered in the following story)
     if !card? then card = CardFactory_Phobies.cardForIdentifier(identifier, gameSession)
+    if !card? then card = CardFactory_PhobiesAbilities.cardForIdentifier(identifier, gameSession)
 
     if card?
       # set the card id to what was passed in

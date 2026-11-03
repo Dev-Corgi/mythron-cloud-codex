@@ -3,6 +3,8 @@ require('app-module-path').addPath(path.join(__dirname, '../../../../'));
 require('coffeescript/register');
 const { expect } = require('chai');
 const SDK = require('../../../../app/sdk.coffee');
+const CardEligibility = require('../../../../app/sdk/rulesets/cardEligibility.coffee');
+const RSX = require('../../../../app/data/resources');
 const source = require(path.join(__dirname, '../../../../../PhobiesGallery/cards-data.json'));
 
 const sourceNames = [
@@ -92,5 +94,69 @@ describe('Phobies imported unit factory', () => {
       const card = SDK.CardFactory.cardForIdentifier(id, session);
       expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type.startsWith('ModifierPhobies'))).to.equal(false);
     }
+  });
+
+  it('registers runtime-only ability effects and the exact owner metadata', () => {
+    const session = SDK.GameSession.create();
+    const effectExpectations = new Map([
+      [SDK.Cards.PhobiesAbility.FeelGreat, ['Flash Reincarnation', 'Restore 650 Health to a friendly minion and give it +300 Attack this turn.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.Monty, ['Phoenix Fire', 'Deal 450 damage to an enemy unit or General.', ['FX.Cards.Spell.PhoenixFire'], 'phoenixfire', SDK.Cards.Spell.PhoenixFire]],
+      [SDK.Cards.PhobiesAbility.PureAdrenaline, ['Flash Reincarnation', 'Restore 1500 Health to a friendly minion.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.ClangClang, ['War Surge', 'Give a friendly minion +300 Attack this turn.', ['FX.Cards.Spell.WarSurge'], 'warsurge', SDK.Cards.Spell.WarSurge]],
+      [SDK.Cards.PhobiesAbility.PeekABoo, ['Blindscorch', 'Give an enemy unit or General -300 Attack for 2 turns.', ['FX.Cards.Spell.DropLift', 'FX.Cards.Spell.Polarity'], 'blindscorch', SDK.Cards.Spell.Blindscorch]],
+      [SDK.Cards.PhobiesAbility.HelpingHand, ['Flash Reincarnation', 'Give a friendly minion +300 Attack this turn.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.GroupHug, ['Aperion\'s Claim', 'Restore 1100 Health to all adjacent friendly minions.', ['FX.Cards.Spell.AperionsClaim'], 'voidpulse', SDK.Cards.Spell.AperionsClaim]],
+    ]);
+    const entries = [
+      [50005, SDK.Cards.PhobiesAbility.FeelGreat, 0, 1, 1, 'Flash Reincarnation'],
+      [50014, SDK.Cards.PhobiesAbility.Monty, 0, 1, 2, 'Phoenix Fire'],
+      [50016, SDK.Cards.PhobiesAbility.PureAdrenaline, 0, 3, 1, 'Flash Reincarnation'],
+      [50017, SDK.Cards.PhobiesAbility.ClangClang, 1, 2, 2, 'War Surge'],
+      [50024, SDK.Cards.PhobiesAbility.PeekABoo, 1, 2, 2, 'Blindscorch'],
+      [50026, SDK.Cards.PhobiesAbility.HelpingHand, 0, 2, 2, 'Flash Reincarnation'],
+      [50031, SDK.Cards.PhobiesAbility.GroupHug, 1, 3, 1, 'Aperion\'s Claim'],
+    ];
+
+    entries.forEach(([unitId, effectId, lockdown, cooldown, useRange, effectName]) => {
+      const unit = SDK.CardFactory.cardForIdentifier(unitId, session);
+      expect(unit.activeAbility).to.deep.equal({
+        effectCardId: effectId,
+        lockdown,
+        cooldown,
+        useRange,
+      });
+      const effect = SDK.CardFactory.cardForIdentifier(effectId, session);
+      expect(effect, effectName).to.exist;
+      expect(effect.name).to.equal(effectName);
+      expect(effect.getType()).to.equal(SDK.CardType.AbilityEffect);
+      expect(effect.getManaCost()).to.equal(0);
+      expect(CardEligibility.isDeckChoiceId(effectId, { getIsPracticeSandboxV2: () => true })).to.equal(false);
+      expect(CardEligibility.isAllowedRuntimeCard(session, effect, null)).to.equal(false);
+      const [expectedName, description, fx, sound, sourceSpellId] = effectExpectations.get(effectId);
+      expect(effect.name).to.equal(expectedName);
+      expect(effect.getDescription()).to.equal(description);
+      expect(effect.getFXResource()).to.deep.equal(['FX.Factions.Neutral', ...fx]);
+      expect(effect.getBaseSoundResource().apply).to.equal(RSX[`sfx_spell_${sound}`].audio);
+      const sourceSpell = SDK.CardFactory.cardForIdentifier(sourceSpellId, session);
+      expect(effect.getBaseAnimResource()).to.deep.equal(sourceSpell.getBaseAnimResource());
+      expect(effect.getPortraitResource()).to.equal(sourceSpell.getPortraitResource());
+      expect(effect.getPortraitHexResource()).to.equal(sourceSpell.getPortraitHexResource());
+    });
+
+    expect(SDK.CardFactory.cardForIdentifier(SDK.Cards.PhobiesAbility.Monty, session).damageAmount).to.equal(450);
+    expect(SDK.CardFactory.cardForIdentifier(SDK.Cards.PhobiesAbility.PureAdrenaline, session).healModifier).to.equal(1500);
+    expect(SDK.CardFactory.cardForIdentifier(SDK.Cards.PhobiesAbility.GroupHug, session).healModifier).to.equal(1100);
+    const attackBuffs = [
+      SDK.Cards.PhobiesAbility.FeelGreat,
+      SDK.Cards.PhobiesAbility.ClangClang,
+      SDK.Cards.PhobiesAbility.HelpingHand,
+    ].map((id) => SDK.CardFactory.cardForIdentifier(id, session).getTargetModifiersContextObjects()[0]);
+    attackBuffs.forEach((modifier) => {
+      expect(modifier.attributeBuffs.atk).to.equal(300);
+      expect(modifier.durationEndTurn).to.equal(1);
+    });
+    const debuff = SDK.CardFactory.cardForIdentifier(SDK.Cards.PhobiesAbility.PeekABoo, session).getTargetModifiersContextObjects()[0];
+    expect(debuff.attributeBuffs.atk).to.equal(-300);
+    expect(debuff.durationEndTurn).to.equal(2);
   });
 });

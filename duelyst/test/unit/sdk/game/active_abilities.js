@@ -42,6 +42,170 @@ describe('active ability state', () => {
     expect(data.activeAbilityState).to.deep.equal(deployed.getActiveAbilityState());
   });
 
+  it('resolves Monty against an enemy General with the caster as damage source', () => {
+    const caster = deployPhobies(50014, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const allyPosition = findOpenPosition(caster.getPosition(), 1, 1);
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), allyPosition);
+    const enemyGeneral = gameSession.getGeneralForPlayer2();
+    enemyGeneral.setPosition({ q: 4, r: 2 });
+    caster.setDamage(500);
+
+    const valid = useUnitAbility(caster, enemyGeneral.getPosition());
+    expect(valid.getIsValid(), valid.getValidationMessage()).to.equal(true);
+    expect(enemyGeneral.getDamage()).to.equal(450);
+    const damageAction = valid.getFlattenedActionTree().find((subAction) => subAction instanceof SDK.DamageAction);
+    expect(damageAction.getSource()).to.equal(caster);
+  });
+
+  it('rejects Monty allies and enemy units outside its range', () => {
+    const caster = deployPhobies(50014, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const allyPosition = findOpenPosition(caster.getPosition(), 1, 1);
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), allyPosition);
+    const allyUse = useUnitAbility(caster, ally.getPosition());
+    expect(allyUse.getIsValid()).to.equal(false);
+    const distantPosition = findOpenPosition(caster.getPosition(), 3, 6);
+    const distantEnemy = deployPhobies(50003, gameSession.getPlayer2Id(), distantPosition);
+    const distantUse = useUnitAbility(caster, distantEnemy.getPosition());
+    expect(distantUse.getIsValid()).to.equal(false);
+  });
+
+  it('heals and buffs only a friendly minion for I feel great!', () => {
+    const caster = deployPhobies(50005, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    ally.setDamage(500);
+    const attack = ally.getATK();
+
+    const action = useUnitAbility(caster, ally.getPosition());
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(ally.getDamage()).to.equal(0);
+    expect(ally.getATK()).to.equal(attack + 300);
+    const healAction = action.getFlattenedActionTree().find((subAction) => subAction instanceof SDK.HealAction);
+    expect(healAction.getSource()).to.equal(caster);
+    const attackBuff = ally.getActiveModifiers().find((modifier) => modifier.attributeBuffs && modifier.attributeBuffs.atk === 300);
+    expect(attackBuff.durationEndTurn).to.equal(1);
+    expect(attackBuff.durationEndTurnPlayerId).to.equal(gameSession.getPlayer1Id());
+
+    caster.getActiveAbilityState().cooldown = 0;
+    const enemyUse = useUnitAbility(caster, enemy.getPosition());
+    expect(enemyUse.getIsValid()).to.equal(false);
+  });
+
+  it('restores the full 650 and 1500 Health amounts, and rejects a General for Pure Adrenaline', () => {
+    const feelGreat = deployPhobies(50005, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(feelGreat.getPosition(), 1, 1));
+    ally.setDamage(1000);
+    const first = useUnitAbility(feelGreat, ally.getPosition());
+    expect(first.getIsValid(), first.getValidationMessage()).to.equal(true);
+    expect(ally.getDamage()).to.equal(350);
+
+    const pure = deployPhobies(50016, gameSession.getPlayer1Id(), { q: 1, r: 2 });
+    const secondAlly = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(pure.getPosition(), 1, 1));
+    secondAlly.setDamage(2000);
+    const second = useUnitAbility(pure, secondAlly.getPosition());
+    expect(second.getIsValid(), second.getValidationMessage()).to.equal(true);
+    expect(secondAlly.getDamage()).to.equal(500);
+    pure.getActiveAbilityState().cooldown = 0;
+    const generalUse = useUnitAbility(pure, gameSession.getGeneralForPlayer1().getPosition());
+    expect(generalUse.getIsValid()).to.equal(false);
+  });
+
+  it('resolves Clang! Clang! and Helping Hand for +300 Attack through one owner turn', () => {
+    for (const [casterId, targetDistance] of [[50017, 1], [50026, 2]]) {
+      SDK.GameSession.reset();
+      UtilsSDK.setupSession(
+        [{ id: SDK.Cards.Faction1.General }, { id: SDK.Cards.Neutral.GolemMetallurgist }, { id: SDK.Cards.Neutral.PlanarScout }],
+        [{ id: SDK.Cards.Faction2.General }],
+        true,
+        true,
+      );
+      gameSession = SDK.GameSession.getInstance();
+      gameSession.setRuleset('practice-sandbox-hex', 2);
+      const caster = deployPhobies(casterId, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+      const target = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(caster.getPosition(), targetDistance, targetDistance));
+      const baseAttack = target.getATK();
+      const action = useUnitAbility(caster, target.getPosition());
+      expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+      expect(target.getATK()).to.equal(baseAttack + 300);
+      const modifier = target.getActiveModifiers().find((item) => item.attributeBuffs && item.attributeBuffs.atk === 300);
+      expect(modifier.durationEndTurn).to.equal(1);
+      expect(modifier.durationEndTurnPlayerId).to.equal(gameSession.getPlayer1Id());
+      for (let turn = 0; turn < 4; turn++) {
+        const endingPlayerId = gameSession.getCurrentPlayerId();
+        gameSession.executeAction(gameSession.actionEndTurn());
+        if (endingPlayerId === gameSession.getPlayer1Id()) break;
+      }
+      expect(target.getATK()).to.equal(baseAttack);
+    }
+  });
+
+  it('rejects invalid side and range targets for friendly abilities and Peek-a-booOO!', () => {
+    const clang = deployPhobies(50017, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const helping = deployPhobies(50026, gameSession.getPlayer1Id(), { q: 1, r: 2 });
+    const feelGreat = deployPhobies(50005, gameSession.getPlayer1Id(), { q: 0, r: 2 });
+    const peek = deployPhobies(50024, gameSession.getPlayer1Id(), { q: 3, r: 2 });
+    const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), findOpenPosition(clang.getPosition(), 1, 1));
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(peek.getPosition(), 1, 1));
+    expect(useUnitAbility(clang, enemy.getPosition()).getIsValid()).to.equal(false);
+    expect(useUnitAbility(helping, enemy.getPosition()).getIsValid()).to.equal(false);
+    expect(useUnitAbility(peek, ally.getPosition()).getIsValid()).to.equal(false);
+    expect(useUnitAbility(feelGreat, findOpenPosition(feelGreat.getPosition(), 2, 2)).getIsValid()).to.equal(false);
+    expect(useUnitAbility(clang, findOpenPosition(clang.getPosition(), 3, 3)).getIsValid()).to.equal(false);
+  });
+
+  it('centers Group Hug on Zurael, excluding the caster and enemy units', () => {
+    const caster = deployPhobies(50031, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50019, gameSession.getPlayer1Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    const ally2 = deployPhobies(50019, gameSession.getPlayer1Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    caster.setDamage(200);
+    ally.setDamage(1500);
+    ally2.setDamage(1700);
+    enemy.setDamage(300);
+
+    const action = useUnitAbility(caster, caster.getPosition());
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(ally.getDamage()).to.equal(400);
+    expect(ally2.getDamage()).to.equal(600);
+    const healActions = action.getFlattenedActionTree().filter((subAction) => subAction instanceof SDK.HealAction);
+    expect(healActions).to.have.length(2);
+    healActions.forEach((healAction) => expect(healAction.getSource()).to.equal(caster));
+    expect(caster.getDamage()).to.equal(200);
+    expect(enemy.getDamage()).to.equal(300);
+
+    caster.getActiveAbilityState().cooldown = 0;
+    const otherCenter = useUnitAbility(caster, ally.getPosition());
+    expect(otherCenter.getIsValid()).to.equal(false);
+  });
+
+  it('applies Peek-a-booOO! to an enemy General for two affected-owner turns', () => {
+    const caster = deployPhobies(50024, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const enemyGeneral = gameSession.getGeneralForPlayer2();
+    enemyGeneral.setPosition({ q: 4, r: 2 });
+    const attack = enemyGeneral.getATK();
+
+    const action = useUnitAbility(caster, enemyGeneral.getPosition());
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(enemyGeneral.getATK()).to.equal(Math.max(0, attack - 300));
+    const debuff = enemyGeneral.getActiveModifiers().find((modifier) => modifier.attributeBuffs && modifier.attributeBuffs.atk === -300);
+    expect(debuff).to.exist;
+    expect(debuff.durationEndTurn).to.equal(2);
+    expect(debuff.durationEndTurnPlayerId).to.equal(gameSession.getPlayer2Id());
+
+    const endOwnerTurn = (ownerId) => {
+      for (let turn = 0; turn < 4; turn++) {
+        const endingPlayerId = gameSession.getCurrentPlayerId();
+        gameSession.executeAction(gameSession.actionEndTurn());
+        if (endingPlayerId === ownerId) return;
+      }
+      throw new Error(`Could not reach end turn for ${ownerId}`);
+    };
+    endOwnerTurn(gameSession.getPlayer2Id());
+    expect(enemyGeneral.getATK()).to.equal(Math.max(0, attack - 300));
+    endOwnerTurn(gameSession.getPlayer2Id());
+    expect(enemyGeneral.getATK()).to.equal(attack);
+  });
+
   it('starts a non-General unit with fresh ability state even when it carries copied state', () => {
     const copy = gameSession.createCardForIdentifier(SDK.Cards.Neutral.PlanarScout);
     copy.setOwnerId(gameSession.getPlayer1Id());

@@ -48,3 +48,6 @@
 - source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/8-implement-the-five-phobies-passives.md`
   summary: Add a poison-state regression once the SDK models poison as a unit status or modifier.
   evidence: Current SDK search finds no poison unit status/modifier; Regatorate only executes `HealAction`, but the current test cannot assert the poison-specific acceptance behavior.
+- source_spec: `_bmad-output/specs/spec-phobies-card-import/stories/9-implement-the-damage-heal-buff-and-debuff-actives.md`
+  summary: Make ability-origin movement bypass immobilize consistently in non-action-point rulesets.
+  evidence: Review traced the non-action-point `Entity.getCanMove` branch to ordinary speed; that branch is part of the pre-existing Story 5 infrastructure diff, not Story 9.

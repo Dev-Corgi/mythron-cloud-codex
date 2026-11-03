@@ -49,6 +49,14 @@ ROSTER = [
 ]
 
 LIFEGAIN_CARD_IDS = [50002, 50004, 50011, 50014, 50015, 50018, 50030, 50034]
+ACTIVE_ABILITY_BY_CARD_ID =
+  50005: {effectCardId: 51001, lockdown: 0, cooldown: 1, useRange: 1}
+  50014: {effectCardId: 51002, lockdown: 0, cooldown: 1, useRange: 2}
+  50016: {effectCardId: 51003, lockdown: 0, cooldown: 3, useRange: 1}
+  50017: {effectCardId: 51004, lockdown: 1, cooldown: 2, useRange: 2}
+  50024: {effectCardId: 51005, lockdown: 1, cooldown: 2, useRange: 2}
+  50026: {effectCardId: 51006, lockdown: 0, cooldown: 2, useRange: 2}
+  50031: {effectCardId: 51007, lockdown: 1, cooldown: 3, useRange: 1}
 
 class CardFactory_Phobies
   @cardForIdentifier: (identifier, gameSession) ->
@@ -70,6 +78,7 @@ class CardFactory_Phobies
     card.setMovementType(movementType)
     card.setReach(reach)
     card.setAttackType(attackType)
+    card.activeAbility = ACTIVE_ABILITY_BY_CARD_ID[id] if ACTIVE_ABILITY_BY_CARD_ID[id]?
 
     modifiers = []
     if id in LIFEGAIN_CARD_IDS

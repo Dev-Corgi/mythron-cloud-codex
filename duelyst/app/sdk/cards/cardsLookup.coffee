@@ -1201,4 +1201,14 @@ class Cards
     Beauty: 50035
   }
 
+  @PhobiesAbility: {
+    FeelGreat: 51001
+    Monty: 51002
+    PureAdrenaline: 51003
+    ClangClang: 51004
+    PeekABoo: 51005
+    HelpingHand: 51006
+    GroupHug: 51007
+  }
+
 module.exports = Cards
