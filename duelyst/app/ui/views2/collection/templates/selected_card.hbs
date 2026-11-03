@@ -1,0 +1,90 @@
+<div class="card-preview-stack">
+    <ul class="card-region"></ul>
+    {{#if activeAbility}}
+        <div class="phobies-active-ability-preview">
+            <img class="phobies-active-ability-frame" src="{{activeAbility.frame}}" alt="">
+            <span class="phobies-active-ability-art" role="img" aria-label="{{activeAbility.name}}" style="background-image:url('{{activeAbility.art}}')"></span>
+            <span class="phobies-active-ability-name">{{activeAbility.name}}</span>
+            <span class="phobies-active-ability-level">LEVEL 1</span>
+            <img class="phobies-active-ability-lockdown-ring" src="{{activeAbility.lockdownRing}}" alt="">
+            <img class="phobies-active-ability-lockdown-icon" src="{{activeAbility.lockdownIcon}}" alt="">
+            <span class="phobies-active-ability-lockdown-value">{{activeAbility.lockdown}}</span>
+            <img class="phobies-active-ability-cooldown-ring" src="{{activeAbility.cooldownRing}}" alt="">
+            <img class="phobies-active-ability-cooldown-icon" src="{{activeAbility.cooldownIcon}}" alt="">
+            <span class="phobies-active-ability-cooldown-value">{{activeAbility.cooldown}}</span>
+            <p class="phobies-active-ability-effect">{{activeAbility.description}}</p>
+        </div>
+    {{/if}}
+</div>
+
+<div class="card-information">
+	<h1 class="card-name">{{name}}</h1>
+	<div class="card-attribute card-type">
+		<!-- <h4>Type:</h4> -->
+		{{#if isArtifact}}
+			<p>{{localize 'common.artifact_label'}}</p>
+			<p class="card-type-description">{{localize 'collection.artifact_desc'}}</p>
+		{{/if}}
+			{{#if isUnit}}
+				{{#if isGeneral}}
+            <p>{{localize 'common.general_label'}}</p>
+            <p class="card-type-description">{{localize 'collection.general_desc'}}</p>
+				{{else}}
+            <p>{{localize 'common.unit_label'}}</p>
+            <p class="card-type-description">{{localize 'collection.minion_desc'}}</p>
+				{{/if}}
+			{{/if}}
+			{{#if isSpell}}
+          <p>{{localize 'common.spell_label'}}</p>
+          <p class="card-type-description">{{localize 'collection.spell_desc'}}</p>
+			{{/if}}
+    </div>
+    <div class="card-attribute card-rarity">
+        <h4>{{localize 'common.rarity_label'}}:</h4>
+        <p {{#compare rarityName "!==" "Basic"}}style="color:{{rarityColor}};"{{/compare}}>{{rarityName}}</p>
+    </div>
+    <div class="card-attribute card-count">
+        <h4>{{localize 'collection.copies_label'}}</h4>
+        <p>{{inventoryCount}}/{{#if isGeneral}}1{{else}}3{{/if}}</p>
+    </div>
+    {{#if activeAbility}}
+        <div class="card-attribute card-active-ability">
+            <h4>{{localize 'collection.active_ability_label'}}</h4>
+            <p>{{activeAbility.name}}</p>
+            <p>{{activeAbility.description}}</p>
+            <p>{{localize 'collection.lockdown_label'}} {{activeAbility.lockdown}} / {{localize 'collection.cooldown_label'}} {{activeAbility.cooldown}}</p>
+        </div>
+    {{/if}}
+    <div class="card-help">
+			{{#if keywordDescriptions}}
+          <hr class="shine">
+          <div class="keyword-descriptions">
+						{{#keywordDescriptions}}
+                <div class="keyword-description">
+                    <h6 class="keyword-name">{{name}}</h6>
+                    <p class="keyword-definition">{{description}}</p>
+                </div>
+						{{/keywordDescriptions}}
+          </div>
+			{{/if}}
+    </div>
+</div>
+
+{{#if lore}}
+	{{#lore}}
+		<div class="card-lore">
+			{{#if name}}
+				<h1 class="card-lore-name">{{name}}</h1>{{/if}}
+			{{#if description}}
+				<p class="card-lore-description">{{{description}}}</p>
+			{{/if}}
+			{{#compare name "||" description}}
+				<hr class="shine shine-above">
+			{{/compare}}
+			<p class="card-lore-text">{{{text}}}</p>
+			{{#compare name "||" description}}
+				<hr class="shine shine-below">
+			{{/compare}}
+		</div>
+	{{/lore}}
+{{/if}}

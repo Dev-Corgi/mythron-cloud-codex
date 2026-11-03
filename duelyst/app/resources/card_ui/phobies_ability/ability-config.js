@@ -1,0 +1,114 @@
+// Generated from ability-layout.json.
+window.ABILITY_CARD_CONFIG = {
+  "canvas": {
+    "normal": [
+      226,
+      296
+    ],
+    "retina": [
+      452,
+      592
+    ]
+  },
+  "background": "ability_card_frame@2x.png",
+  "coordinates": "2x pixels, top-left origin",
+  "art": {
+    "center": [
+      226,
+      156
+    ],
+    "size": [
+      192,
+      192
+    ],
+    "atlas": "../../icons/icon_f2_phoenixfire.png",
+    "frame": [
+      49,
+      98,
+      48,
+      48
+    ],
+    "filter": "nearest"
+  },
+  "name": {
+    "center": [
+      226,
+      262
+    ],
+    "fontSize": 24,
+    "color": "#ffffff"
+  },
+  "effect": {
+    "center": [
+      226,
+      490
+    ],
+    "maxWidth": 360,
+    "fontSize": 18,
+    "lineHeight": 24,
+    "color": "#9bced8"
+  },
+  "counters": {
+    "lockdown": {
+      "center": [
+        104,
+        360
+      ],
+      "size": [
+        88,
+        88
+      ],
+      "ring": "components/lockdown_ring@2x.png",
+      "icon": "components/lockdown_icon@2x.png",
+      "iconCenter": [
+        61,
+        360
+      ],
+      "iconSize": [
+        32,
+        41.6
+      ],
+      "valueFontSize": 44,
+      "valueColor": "#e8b9ff"
+    },
+    "cooldown": {
+      "center": [
+        348,
+        360
+      ],
+      "size": [
+        88,
+        88
+      ],
+      "ring": "components/cooldown_ring@2x.png",
+      "icon": "components/cooldown_icon@2x.png",
+      "iconCenter": [
+        391,
+        360
+      ],
+      "iconSize": [
+        32,
+        41.6
+      ],
+      "valueFontSize": 44,
+      "valueColor": "#7be6f5"
+    }
+  },
+  "sample": {
+    "name": "PHOENIX FIRE",
+    "effect": "Deal 3 damage to anything.",
+    "lockdown": 2,
+    "cooldown": 1,
+    "level": 1
+  },
+  "level": {
+    "center": [
+      226,
+      291
+    ],
+    "fontSize": 18,
+    "color": "#9bced8",
+    "fontWeight": 400,
+    "prefix": "LEVEL "
+  }
+};

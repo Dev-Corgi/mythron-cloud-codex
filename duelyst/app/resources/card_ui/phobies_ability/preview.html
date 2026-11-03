@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Ability card asset preview</title>
+<style>
+@font-face{font-family:Lato;src:url('../../fonts/Lato-Regular.ttf')}
+@font-face{font-family:Lato;src:url('../../fonts/Lato-Bold.ttf');font-weight:700}
+html,body{margin:0;background:#193b60}canvas{display:block}
+</style>
+<canvas id="card" width="904" height="1184"></canvas>
+<script src="ability-config.js"></script><script>
+const cfg=window.ABILITY_CARD_CONFIG;
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+const asset=path=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(path));im.src=path});
+const place=(im,center,size)=>ctx.drawImage(im,center[0]-size[0]/2,center[1]-size[1]/2,...size);
+function label(value,center,size,color,bold=false){
+  ctx.font=`${bold?'700 ':''}${size}px Lato`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=color;ctx.shadowColor='#030916';ctx.shadowBlur=1;ctx.shadowOffsetY=1;
+  ctx.fillText(String(value),...center);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+}
+(async()=>{
+ await Promise.all([document.fonts.load('700 44px Lato'),document.fonts.load('18px Lato')]);
+ const paths={background:cfg.background,art:cfg.art.atlas};
+ for(const [name,counter] of Object.entries(cfg.counters)){paths[name+'Ring']=counter.ring;paths[name+'Icon']=counter.icon}
+ const images=Object.fromEntries(await Promise.all(Object.entries(paths).map(async([key,path])=>[key,await asset(path)])));
+ ctx.scale(2,2);ctx.drawImage(images.background,0,0,452,592);
+ ctx.imageSmoothingEnabled=false;const a=cfg.art;
+ ctx.drawImage(images.art,...a.frame,a.center[0]-a.size[0]/2,a.center[1]-a.size[1]/2,...a.size);
+ ctx.imageSmoothingEnabled=true;
+ label(cfg.sample.name,cfg.name.center,cfg.name.fontSize,cfg.name.color,true);
+ label(cfg.level.prefix+cfg.sample.level,cfg.level.center,cfg.level.fontSize,cfg.level.color);
+ for(const [name,c] of Object.entries(cfg.counters)){
+   place(images[name+'Ring'],c.center,c.size);
+   label(cfg.sample[name],c.center,c.valueFontSize,c.valueColor,true);
+   place(images[name+'Icon'],c.iconCenter,c.iconSize);
+ }
+ ctx.font=`${cfg.effect.fontSize}px Lato`;
+ const lines=[];let line='';
+ for(const word of cfg.sample.effect.split(' ')){
+   const trial=line?line+' '+word:word;
+   if(line&&ctx.measureText(trial).width>cfg.effect.maxWidth){lines.push(line);line=word}else line=trial;
+ }if(line)lines.push(line);
+ lines.forEach((text,i)=>label(text,[cfg.effect.center[0],cfg.effect.center[1]+(i-(lines.length-1)/2)*cfg.effect.lineHeight],cfg.effect.fontSize,cfg.effect.color));
+ window.abilityPreviewReady=true;
+})().catch(err=>{document.body.insertAdjacentHTML('beforeend','<pre>'+err.message+'</pre>')});
+</script></html>
