@@ -66,6 +66,39 @@ describe('unit stats', () => {
     expect(unit.getAttackType()).to.equal('lobbed');
   });
 
+  it('accepts the explicit none attack type and prevents attack eligibility', () => {
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const unit = createUnit();
+    unit.setActionPoints(1);
+    expect(unit.getCanAttack()).to.equal(true);
+
+    unit.setAttackType('none');
+    expect(unit.getAttackType()).to.equal('none');
+    expect(unit.getHasExplicitAttackType()).to.equal(true);
+    expect(unit.getCanAttack()).to.equal(false);
+
+    const cardData = unit.createCardData();
+    expect(cardData.attackType).to.equal('none');
+    const copy = gameSession.createCardForIdentifier(unit.getId());
+    copy.applyCardData(cardData);
+    copy.setActionPoints(1);
+    expect(copy.getAttackType()).to.equal('none');
+    expect(copy.getCanAttack()).to.equal(false);
+  });
+
+  it('keeps default and inferred attack types eligible to attack', () => {
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    const defaultUnit = createUnit();
+    defaultUnit.setActionPoints(1);
+    expect(defaultUnit.getAttackType()).to.equal('melee');
+    expect(defaultUnit.getCanAttack()).to.equal(true);
+
+    const inferredAreaUnit = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
+    inferredAreaUnit.setActionPoints(1);
+    expect(inferredAreaUnit.getAttackType()).to.equal('area');
+    expect(inferredAreaUnit.getCanAttack()).to.equal(true);
+  });
+
   it('reconstructs Phasing modifiers by their serialized type', () => {
     const modifier = SDK.ModifierFactory.modifierForType('ModifierPhasing', gameSession);
     expect(modifier).to.be.instanceOf(SDK.ModifierPhasing);

@@ -396,12 +396,12 @@ class Entity extends Card
     return Math.max(0, distance)
 
   setAttackType: (type) ->
-    if type in ["melee", "ranged", "lobbed", "area"]
+    if type in ["melee", "ranged", "lobbed", "area", "none"]
       @attackType = type
 
   # True only when this entity carries its own valid attack type; derived types do not count.
   getHasExplicitAttackType: () ->
-    return @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "lobbed", "area"]
+    return @hasOwnProperty("attackType") and @attackType in ["melee", "ranged", "lobbed", "area", "none"]
 
   getAttackType: () ->
     if @getHasExplicitAttackType()
@@ -526,6 +526,7 @@ class Entity extends Card
     return @getIsUncontrollableBattlePet() or @getAttacksMade() < @getAttacks()
 
   getCanAttack:() ->
+    return false if @getHasExplicitAttackType() and @attackType is "none"
     return @getActionPoints() > 0 and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
     return !@getIsExhausted() and @getHasAttacksLeft() and @getATK() > 0 and @getReach() > 0
 
