@@ -72,7 +72,7 @@ describe('new-rules card eligibility', () => {
     }
   });
 
-  it('allows Phobies and the temporary bot roster in v2 and preserves v1 deck eligibility', () => {
+  it('allows only Phobies deck choices in v2 and preserves v1 deck eligibility', () => {
     const v1 = SDK.GameSession.create();
     v1.setRuleset('practice-sandbox-hex', 1);
     const v2 = SDK.GameSession.create();
@@ -82,17 +82,44 @@ describe('new-rules card eligibility', () => {
     expect(CardEligibility.isDeckChoiceId(50001, v1)).to.equal(false);
     expect(CardEligibility.isDeckChoiceId(50001, v2)).to.equal(true);
     expect(CardEligibility.isDeckChoiceId(50001, { rulesetId: 'legacy', rulesetVersion: 2 })).to.equal(false);
-    expect(CardEligibility.isDeckChoiceId(10979, v2)).to.equal(true);
+    expect(CardEligibility.isDeckChoiceId(10979, v2)).to.equal(false);
+    expect(CardEligibility.isDeckChoiceId(10019, v1)).to.equal(true);
     expect(CardEligibility.isDeckChoiceId(10019, v2)).to.equal(false);
     expect(CardEligibility.isDeckChoiceId(50036, v2)).to.equal(false);
+    for (const factionId of [SDK.Factions.Faction1, SDK.Factions.Faction2, SDK.Factions.Faction3, SDK.Factions.Faction4, SDK.Factions.Faction5, SDK.Factions.Faction6]) {
+      for (const generalId of SDK.FactionFactory.generalIdsForFaction(factionId)) {
+        expect(CardEligibility.isDeckChoiceId(generalId, v2), `General ${generalId}`).to.equal(true);
+      }
+    }
     const v1Deck = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206].map((id) => ({ id }));
     const v2Deck = [1, ...Array.from({ length: 8 }, (_, index) => 50001 + index)].map((id) => ({ id }));
     expect(CardEligibility.validateDeck(v1Deck, v1).valid).to.equal(true);
     expect(CardEligibility.validateDeck(v2Deck, v2).valid).to.equal(true);
-    expect(CardEligibility.validateDeck(v1Deck, v2).valid).to.equal(true);
+    expect(CardEligibility.validateDeck(v1Deck, v2).valid).to.equal(false);
+    const botRoster = [1, 50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028].map((id) => ({ id }));
+    expect(CardEligibility.getPracticeBotRoster()).to.deep.equal(botRoster.slice(1).map((card) => card.id));
+    expect(CardEligibility.validateDeck(botRoster, v2).valid).to.equal(true);
+    const multipleGenerals = botRoster.slice();
+    multipleGenerals[1] = SDK.FactionFactory.generalIdsForFaction(SDK.Factions.Faction1)[1];
+    expect(CardEligibility.validateDeck(multipleGenerals, v2).valid).to.equal(false);
+    expect(CardEligibility.getPracticeGeneralIds()).to.have.length(18);
     const v2Context = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
     expect(CardEligibility.validateSavedDeck({ id: 1, purpose: 'sandbox', cards: v2Deck }, 'sandbox', v2Context).valid).to.equal(true);
-    expect(CardEligibility.validateSavedDeck({ id: 2, purpose: 'sandbox', cards: v1Deck }, 'sandbox', v2Context).valid).to.equal(true);
+    expect(CardEligibility.validateSavedDeck({ id: 2, purpose: 'sandbox', cards: v1Deck }, 'sandbox', v2Context).valid).to.equal(false);
+  });
+
+  it('builds validated Practice/Sandbox starter presets from each playable primary General', () => {
+    const context = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
+    const roster = CardEligibility.getPracticeBotRoster();
+    const factionIds = [SDK.Factions.Faction1, SDK.Factions.Faction2, SDK.Factions.Faction3, SDK.Factions.Faction4, SDK.Factions.Faction5, SDK.Factions.Faction6];
+    for (const factionId of factionIds) {
+      const faction = SDK.FactionFactory.factionForIdentifier(factionId);
+      const primaryGeneralId = faction.generalIdsByOrder[SDK.FactionFactory.GeneralOrder.Primary];
+      const deck = SDK.FactionFactory.practiceStarterDeckForFaction(factionId);
+      expect(deck.map((card) => card.id)).to.deep.equal([primaryGeneralId, ...roster]);
+      expect(CardEligibility.validateDeck(deck, context).valid).to.equal(true);
+      expect(SDK.FactionFactory.starterDeckForFactionLevel(factionId).length).to.be.greaterThan(9);
+    }
   });
 
   it('allows ability effects only when derived from the acting unit and its owner', () => {

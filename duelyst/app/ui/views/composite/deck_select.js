@@ -208,6 +208,7 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
 
   getDecks: function () {
     var decks = [];
+    var requiredDeckPurpose = this.requiredDeckPurpose;
 
     // find preset decks
     var enabledPlayableFactions = GameDataManager.getInstance().visibleFactionsCollection.where({ isNeutral: false, enabled: true });
@@ -216,7 +217,10 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
       var factionProgressionData = ProgressionManager.getInstance().getFactionProgressionStatsModel(factionId);
       var factionLevel = (factionProgressionData && factionProgressionData.get('level')) || 0;
       // add starter deck
-      var starterDeck = SDK.FactionFactory.starterDeckForFactionLevel(factionId, factionLevel);
+      var isPracticeOrSandbox = requiredDeckPurpose === 'practice' || requiredDeckPurpose === 'sandbox';
+      var starterDeck = isPracticeOrSandbox
+        ? SDK.FactionFactory.practiceStarterDeckForFaction(factionId)
+        : SDK.FactionFactory.starterDeckForFactionLevel(factionId, factionLevel);
       if (starterDeck != null) {
         var basicCardModels = GameDataManager.getInstance().getFactionCardModels(factionId, {
           rarityId: SDK.Rarity.Fixed,
@@ -238,6 +242,7 @@ var DeckSelectCompositeView = SlidingPanelSelectCompositeView.extend({
         var starterDeckModel = new DeckModel(_.extend({}, factionData, {
           id: factionModel.get('name') + ' Starter',
           isStarter: true,
+          purpose: isPracticeOrSandbox ? requiredDeckPurpose : 'legacy',
         }));
         starterDeckModel.addCardsData(starterDeck);
         decks.push(starterDeckModel);

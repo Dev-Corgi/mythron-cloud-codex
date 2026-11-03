@@ -45,9 +45,10 @@ describe('Practice/Sandbox DeckModel Phobies eligibility', () => {
     };
   }
 
-  it('accepts Phobies IDs and retains the temporary bot roster through DeckModel', () => {
+  it('accepts Phobies IDs and rejects the former neutral roster through DeckModel', () => {
     expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(50001), 1)).to.equal(true);
-    expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(10979), 1)).to.equal(true);
+    expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(50003), 1)).to.equal(true);
+    expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(10979), 1)).to.equal(false);
     expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(10019), 1)).to.equal(false);
   });
 });

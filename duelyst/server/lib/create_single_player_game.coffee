@@ -96,7 +96,7 @@ createSinglePlayerGame = (userId,name,gameType,deck,cardBackId,battleMapIndexesT
     # Practice never consults difficulty-tiered or randomized legacy decks.
     if isPracticeHex
       aiDeck = [{id: aiGeneralId}].concat(CardEligibility.getPracticeBotRoster().map((id) -> {id: id}))
-      eligibility = CardEligibility.validateDeck(aiDeck)
+      eligibility = CardEligibility.validateDeck(aiDeck, {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
       throw new Errors.InvalidDeckError(eligibility.reason) unless eligibility.valid
     else if aiDeckId?
       aiDeck = UsableDecks.getUsableDeckForIdentifier(aiGeneralId, aiDeckId)

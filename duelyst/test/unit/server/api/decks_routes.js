@@ -14,6 +14,7 @@ describe('/api/me/decks purpose validation', () => {
   let addDeckStub;
   let updateDeckStub;
   let decksForUserStub;
+  let deckForUserStub;
 
   beforeEach(() => {
     app = express();
@@ -26,12 +27,14 @@ describe('/api/me/decks purpose validation', () => {
     addDeckStub = sinon.stub(DecksModule, 'addDeck').returns(Promise.resolve({}));
     updateDeckStub = sinon.stub(DecksModule, 'updateDeck').returns(Promise.resolve({}));
     decksForUserStub = sinon.stub(DecksModule, 'decksForUser').returns(Promise.resolve([]));
+    deckForUserStub = sinon.stub(DecksModule, 'deckForUser').returns(Promise.resolve({ cards: [1], purpose: 'legacy' }));
   });
 
   afterEach(() => {
     if (addDeckStub && addDeckStub.restore) addDeckStub.restore();
     if (updateDeckStub && updateDeckStub.restore) updateDeckStub.restore();
     if (decksForUserStub && decksForUserStub.restore) decksForUserStub.restore();
+    if (deckForUserStub && deckForUserStub.restore) deckForUserStub.restore();
   });
 
   function deckInput(purpose, ids) {
@@ -87,5 +90,11 @@ describe('/api/me/decks purpose validation', () => {
     const response = await sendDeckRequest('get', '/api/me/decks', null, 200);
     expect(response.body[0].purpose).to.equal('legacy');
     expect(response.body[0].cards.map((card) => card.id)).to.deep.equal(ids);
+  });
+
+  it('returns not found when the owner deck lookup purges or cannot find the record', async () => {
+    deckForUserStub.returns(Promise.resolve(undefined));
+    const response = await sendDeckRequest('get', '/api/me/decks/stale-deck', null, 404);
+    expect(response.body.error).to.equal('Deck not found.');
   });
 });

@@ -4,6 +4,7 @@ CONFIG = require('app/common/config')
 UtilsGameSession = require('app/common/utils/utils_game_session')
 Factions = require './factionsLookup'
 Cards = require './cardsLookupComplete'
+CardEligibility = require 'app/sdk/rulesets/cardEligibility'
 FactionProgression = require 'app/sdk/progression/factionProgression'
 _ = require 'underscore'
 i18next = require 'i18next'
@@ -83,6 +84,15 @@ class FactionFactory
             starterDeck.push({id: cardId})
 
     return starterDeck
+
+  @practiceStarterDeckForFaction: (factionId)->
+    faction = @factionForIdentifier(factionId)
+    generalId = faction?.generalIdsByOrder?[FactionFactory.GeneralOrder.Primary]
+    return null unless generalId?
+    deck = [{id: generalId}].concat(CardEligibility.getPracticeBotRoster().map (cardId)-> {id: cardId})
+    eligibility = CardEligibility.validateDeck(deck, {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2})
+    return deck if eligibility.valid
+    return null
 
   @cardIdIsGeneral: (cardId) ->
     return @factionForGeneralId(cardId)?

@@ -6,10 +6,10 @@ UseActiveAbilityAction = require 'app/sdk/actions/useActiveAbilityAction'
 ApplyCardToBoardAction = require 'app/sdk/actions/applyCardToBoardAction'
 
 PRACTICE_SANDBOX_HEX = Rulesets.getRuleset("practice-sandbox-hex", 1).id
-# Practice bot deck: one general plus exactly these eight cards (CONFIG.MAX_NEW_RULES_DECK_SIZE).
-BOT_ROSTER_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206]
-# Deck-eligible neutrals: the bot roster plus Planar Scout, the active ability dev placeholder.
-NEUTRAL_CARD_IDS = BOT_ROSTER_IDS.concat([10019])
+# Practice bot deck: one general plus exactly these eight imported Phobies cards.
+BOT_ROSTER_IDS = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028]
+# Legacy v1 keeps its original neutral roster and Planar Scout allowance.
+LEGACY_NEUTRAL_CARD_IDS = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206, 10019]
 GENERAL_SIGNATURE_IDS =
   1: 20174
   23: 20175
@@ -21,6 +21,16 @@ GENERAL_SIGNATURE_IDS =
   527: 20185
   558: 20306
 GENERATED_DEPENDENCY_IDS = [20142, 43, 40004]
+# Every faction General remains a valid deck leader in v2, including cards
+# without the historical signature mapping used by the Practice opponent list.
+V2_GENERAL_IDS = [
+  Cards.Faction1.General, Cards.Faction1.AltGeneral, Cards.Faction1.ThirdGeneral,
+  Cards.Faction2.General, Cards.Faction2.AltGeneral, Cards.Faction2.ThirdGeneral,
+  Cards.Faction3.General, Cards.Faction3.AltGeneral, Cards.Faction3.ThirdGeneral,
+  Cards.Faction4.General, Cards.Faction4.AltGeneral, Cards.Faction4.ThirdGeneral,
+  Cards.Faction5.General, Cards.Faction5.AltGeneral, Cards.Faction5.ThirdGeneral,
+  Cards.Faction6.General, Cards.Faction6.AltGeneral, Cards.Faction6.ThirdGeneral
+]
 PHOBIES_DECKABLE_IDS = [
   50001, 50002, 50003, 50004, 50005, 50006, 50007, 50008, 50009, 50010,
   50011, 50012, 50013, 50014, 50015, 50016, 50017, 50018, 50019, 50020,
@@ -41,9 +51,10 @@ CardEligibility =
     return BOT_ROSTER_IDS.slice()
 
   getPracticeGeneralIds: () ->
-    return (parseInt(generalId, 10) for generalId of GENERAL_SIGNATURE_IDS)
+    return V2_GENERAL_IDS.slice()
 
-  isGeneralId: (cardId) ->
+  isGeneralId: (cardId, gameSession) ->
+    return true if @isV2Rules(gameSession) and cardId in V2_GENERAL_IDS
     return Object::hasOwnProperty.call(GENERAL_SIGNATURE_IDS, cardId)
 
   isSignatureId: (cardId) ->
@@ -51,14 +62,14 @@ CardEligibility =
 
   isDeckCardId: (cardId, gameSession) ->
     if @isV2Rules(gameSession)
-      # Keep the current Practice bot deck eligible until its later migration.
-      return cardId in PHOBIES_DECKABLE_IDS or cardId in BOT_ROSTER_IDS or @isGeneralId(cardId) or @isSignatureId(cardId)
-    return cardId in NEUTRAL_CARD_IDS or @isGeneralId(cardId) or @isSignatureId(cardId)
+      # Signature cards stay runtime-only for their owning general.
+      return cardId in PHOBIES_DECKABLE_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId)
+    return cardId in LEGACY_NEUTRAL_CARD_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId)
 
   isDeckChoiceId: (cardId, gameSession) ->
     if @isV2Rules(gameSession)
-      return cardId in PHOBIES_DECKABLE_IDS or cardId in BOT_ROSTER_IDS or @isGeneralId(cardId)
-    return cardId in NEUTRAL_CARD_IDS or @isGeneralId(cardId)
+      return cardId in PHOBIES_DECKABLE_IDS or @isGeneralId(cardId, gameSession)
+    return cardId in LEGACY_NEUTRAL_CARD_IDS or @isGeneralId(cardId, gameSession)
 
   isGeneratedDependencyId: (cardId) ->
     return cardId in GENERATED_DEPENDENCY_IDS
@@ -125,7 +136,7 @@ CardEligibility =
 
   isAllowedRuntimeIdForPlayer: (gameSession, cardId, playerId) ->
     return false unless @isAllowedRuntimeId(cardId, gameSession)
-    if @isGeneralId(cardId)
+    if @isGeneralId(cardId, gameSession)
       return !gameSession.getGeneralForPlayerId(playerId)?
     if @isSignatureId(cardId)
       general = gameSession.getGeneralForPlayerId(playerId)
@@ -150,7 +161,7 @@ CardEligibility =
   validateDeck: (deck, gameSession) ->
     return {valid: false, reason: "Practice and Sandbox decks must contain exactly one general and eight cards."} unless Array.isArray(deck) and deck.length is CONFIG.MAX_NEW_RULES_DECK_SIZE
     generalId = deck[0]?.id
-    return {valid: false, reason: "The general is not audited for Practice and Sandbox."} unless @isGeneralId(generalId)
+    return {valid: false, reason: "The general is not audited for Practice and Sandbox."} unless @isGeneralId(generalId, gameSession)
     signatureId = GENERAL_SIGNATURE_IDS[generalId]
     cardCounts = {}
     for cardData, index in deck
@@ -161,6 +172,8 @@ CardEligibility =
         continue
       unless @isDeckChoiceId(cardId, gameSession)
         return {valid: false, reason: "Card #{cardId} is not audited for Practice and Sandbox."}
+      if @isV2Rules(gameSession) and @isGeneralId(cardId, gameSession)
+        return {valid: false, reason: "Practice and Sandbox decks can contain only one General."}
       cardCounts[cardId] = (cardCounts[cardId] ? 0) + 1
       if cardCounts[cardId] > CONFIG.MAX_DECK_DUPLICATES
         return {valid: false, reason: "Card #{cardId} exceeds the maximum copy limit of #{CONFIG.MAX_DECK_DUPLICATES}."}

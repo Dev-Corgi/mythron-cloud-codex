@@ -8,12 +8,11 @@ const { expect } = require('chai');
 const Bluebird = require('bluebird');
 const Decks = require('../../../../server/lib/data_access/decks.coffee');
 const Users = require('../../../../server/lib/data_access/users.coffee');
-const Inventory = require('../../../../server/lib/data_access/inventory.coffee');
 const config = require('../../../../config/config');
 const SDK = require('../../../../app/sdk.coffee');
 const Eligibility = require('../../../../app/sdk/rulesets/cardEligibility.coffee');
 
-const ids = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+const ids = [1, 50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
 const cards = ids.map((id) => ({ id }));
 
 // Replace only the route's construction/database boundaries; keep its real
@@ -130,15 +129,12 @@ describe('Practice and Sandbox entry', () => {
       expect(await Users.isAllowedToUseDeck('entry-user', [{ id: 2 }], SDK.GameType.BossBattle)).to.equal(true);
     });
 
-    it('accepts nine-card Practice with inventory validation enabled', async () => {
+    it('accepts a nine-card fixed-rarity Practice deck when global availability is disabled', async () => {
       get.restore();
       const originalGet = config.get.bind(config);
       get = sinon.stub(config, 'get', (key) => (key === 'allCardsAvailable' ? false : originalGet(key)));
-      const inventory = sinon.stub(Inventory, 'isAllowedToUseCards').returns(Bluebird.resolve(true));
-      try {
-        await Users.isAllowedToUseDeck('entry-user', cards, SDK.GameType.SinglePlayer, null, false, { id: 'saved', purpose: 'practice', cards: ids });
-        expect(inventory.called).to.equal(true);
-      } finally { inventory.restore(); }
+      const result = await Users.isAllowedToUseDeck('entry-user', cards, SDK.GameType.SinglePlayer, null, false, { id: 'saved', purpose: 'practice', cards: ids });
+      expect(result).to.deep.equal([true, true]);
     });
   });
 

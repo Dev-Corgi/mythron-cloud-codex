@@ -11,7 +11,8 @@ generatePushId = require '../../../app/common/generate_push_id'
 crypto = require('crypto')
 
 # SDK imports
-SDK = require '../../../app/sdk'
+Cards = require '../../../app/sdk/cards/cardsLookupComplete'
+CardEligibility = require '../../../app/sdk/rulesets/cardEligibility'
 UtilsGameSession = require '../../../app/common/utils/utils_game_session.coffee'
 
 class DecksModule
@@ -24,9 +25,28 @@ class DecksModule
   # Scope entry lookup to the authenticated owner, never a submitted user id.
   @deckForUser: (userId, deckId)->
     return knex("user_decks").where({user_id: userId, id: deckId}).first()
+    .then (deck)=>
+      return @purgeInvalidModeDecksForUser(userId, [deck]).then (decks)=> decks[0]
 
   @decksForUser: (userId)->
     return knex("user_decks").where('user_id',userId).select()
+    .then (decks)=> @purgeInvalidModeDecksForUser(userId, decks)
+
+  # Practice/Sandbox decks are v2-only. Purge invalid records before returning
+  # any owned deck data so list, detail, and entry reads share the same rule.
+  @purgeInvalidModeDecksForUser: (userId, decks)->
+    decks ?= []
+    modeDecks = decks.filter (deck)-> deck?.purpose in ['practice', 'sandbox']
+    invalidDecks = modeDecks.filter (deck)->
+      return !CardEligibility.validateSavedDeck(deck, deck.purpose, {rulesetId: 'practice-sandbox-hex', rulesetVersion: 2}).valid
+
+    deletableDecks = invalidDecks.filter (deck)-> deck?.id?
+    deletePromises = deletableDecks.map (deck)->
+      return knex("user_decks").where({user_id: userId, id: deck.id}).whereIn('purpose', ['practice', 'sandbox']).where('cards', deck.cards).del()
+
+    return Promise.all(deletePromises).then ()->
+      invalidIds = deletableDecks.map (deck)-> deck.id
+      return decks.filter (deck)-> deck?.id not in invalidIds
 
   ###*
   # Add a new deck for a user
@@ -128,7 +148,7 @@ class DecksModule
     if !cards
       return null
 
-    baseCardIds = _.map(cards,(card) -> return SDK.Cards.getBaseCardId(card))
+    baseCardIds = _.map(cards,(card) -> return Cards.getBaseCardId(card))
     sortedCardIds = baseCardIds.sort()
     Logger.module("DecksModule").debug "hashCodeForDeck() -> generating hash for #{sortedCardIds}"
 

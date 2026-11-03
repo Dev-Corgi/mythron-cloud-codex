@@ -31,8 +31,9 @@ router.get '/:deck_id', (req, res, next) ->
   user_id = req.user.d.id
   deck_id = result.value
 
-  knex("user_decks").where({'user_id':user_id,'id':deck_id}).first()
+  DecksModule.deckForUser(user_id, deck_id)
   .then (deckData)->
+    return res.status(404).json({error: "Deck not found."}) unless deckData?
     # map integer arrays to card objects for deck builder
     deckData.cards = _.map deckData.cards, (cardId)-> return { id: cardId }
     deckData.purpose = deckData.purpose in ['practice', 'sandbox'] and deckData.purpose or 'legacy'

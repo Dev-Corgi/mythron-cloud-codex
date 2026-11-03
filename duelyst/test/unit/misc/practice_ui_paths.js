@@ -4,6 +4,7 @@ const vm = require('vm');
 const espree = require('espree');
 const coffee = require('coffeescript');
 const Promise = require('bluebird');
+const _ = require('underscore');
 const { expect } = require('chai');
 
 function productionFunction(file, name, globals, compile = false) {
@@ -218,7 +219,7 @@ describe('New-rules UI entry and confirmation', () => {
   describe('purpose-specific deck selection regressions', () => {
     const sandboxFile = 'app/ui/views/composite/deck_select_sandbox.js';
     const baseFile = 'app/ui/views/composite/deck_select.js';
-    const ids = [1, 10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+    const ids = [1, 50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
     function deck(id, purpose = 'sandbox', valid = true) {
       const data = { id, purpose, cards: ids.map((cardId) => ({ id: cardId })) };
       return {
@@ -231,6 +232,7 @@ describe('New-rules UI entry and confirmation', () => {
       const globals = {
         CONFIG: config,
         VirtualCollection: function VirtualCollection() {},
+        PRACTICE_SANDBOX_V2: { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 },
         SDK: {
           CardEligibility: { validateSavedDeck: (data) => ({ valid: data.purpose === 'sandbox' && data.cards.length === 9 }) }, Sandbox: { type: 'Sandbox' }, SandboxDeveloper: { type: 'SandboxDeveloper' }, ChallengeFactory: { challengeForType: (type) => ({ type, setPlayer1DeckData: (data) => events.push(data), setPlayer2DeckData: (data) => events.push(data) }) },
         },
@@ -254,6 +256,62 @@ describe('New-rules UI entry and confirmation', () => {
       ['_canUseDeck', 'setStartingSelectedDeckModel', 'onConfirmSelection'].forEach((name) => { view[name] = productionFunction(sandboxFile, name, globals); });
       return { view, config, events };
     }
+
+    it('uses the shared eight-card roster for Practice/Sandbox primary-General presets only', async () => {
+      const factionIds = [1, 2, 3, 4, 5, 6];
+      const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
+      const factionModels = factionIds.map((id) => ({
+        get: (key) => ({
+          id,
+          name: `Faction ${id}`,
+          crestResource: { img: `crest-${id}` },
+          description: `Faction ${id}`,
+        })[key],
+      }));
+      function DeckModel(attributes) {
+        this.attributes = attributes;
+      }
+      DeckModel.prototype.addCardsData = function (cards) { this.cards = cards; };
+      const globals = {
+        _,
+        Promise,
+        DeckModel,
+        SDK: {
+          Rarity: { Fixed: 0 },
+          FactionProgression: { maxLevel: 30, unlockedCardsUpToLevel: () => [] },
+          FactionFactory: {
+            practiceStarterDeckForFaction: (factionId) => [{ id: 100 + factionId }, ...roster.map((id) => ({ id }))],
+            starterDeckForFactionLevel: (factionId) => [{ id: 100 + factionId }, ...Array.from({ length: 39 }, (_, index) => ({ id: index + 1 }))],
+          },
+        },
+        GameDataManager: {
+          getInstance: () => ({
+            visibleFactionsCollection: { where: () => factionModels },
+            getFactionCardModels: () => [],
+          }),
+        },
+        ProgressionManager: { getInstance: () => ({ getFactionProgressionStatsModel: () => ({ get: () => 0 }) }) },
+        InventoryManager: { getInstance: () => ({ getDecksCollection: () => [] }) },
+        process: { env: {} },
+      };
+      const getDecks = productionFunction(baseFile, 'getDecks', globals);
+
+      const results = await Promise.all(['practice', 'sandbox', 'legacy'].map(async (purpose) => {
+        const decks = await getDecks.call({ requiredDeckPurpose: purpose });
+        expect(decks).to.have.length(6);
+        for (let index = 0; index < factionIds.length; index += 1) {
+          const deck = decks[index];
+          expect(deck.attributes.purpose).to.equal(purpose);
+          if (purpose === 'legacy') {
+            expect(deck.cards).to.have.length(40);
+          } else {
+            expect(deck.cards.map((card) => card.id)).to.deep.equal([100 + factionIds[index], ...roster]);
+          }
+        }
+        return decks;
+      }));
+      expect(results).to.have.length(3);
+    });
     for (const invalid of [deck('legacy', 'legacy'), deck('practice', 'practice'), deck('invalid', 'sandbox', false)]) {
       it(`clears cached ${invalid.get('id')} decks on either side before restoring or confirming`, () => {
         for (const side of [1, 2]) {
@@ -294,8 +352,8 @@ describe('New-rules UI entry and confirmation', () => {
       expect(fixture.events[2].type).to.equal('SandboxDeveloper');
     });
 
-    it('exposes all nine audited Practice generals without AI tools', () => {
-      const generals = [1, 23, 51, 223, 254, 323, 401, 527, 558];
+    it('exposes all eighteen audited Practice generals without AI tools', () => {
+      const generals = [1, 23, 51, 101, 123, 152, 201, 223, 254, 301, 323, 355, 401, 418, 449, 501, 527, 558];
       const opponents = productionFunction('app/ui/views/composite/deck_select_single_player.js', 'getOpponents', {
         process: { env: {} },
         SDK: { CardEligibility: { getPracticeGeneralIds: () => generals }, GameSession: { getCardCaches: () => ({ getCardById: (id) => ({ getFactionId: () => 1, getName: () => `General ${id}`, getPortraitHexResource: () => ({ img: `${id}.png` }) }) }) } },
