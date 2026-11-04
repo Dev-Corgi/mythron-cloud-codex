@@ -64,7 +64,7 @@ class PlayerModifierEmblemEndTurnWatchLyonarSmallMinionQuest extends PlayerModif
 
                 newCardData = newUnit.createNewCardData()
                 newCardData.additionalInherentModifiersContextObjects ?= []
-                newCardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(unit.getExhausted(), unit.getMovesMade(), unit.getAttacksMade(), unit.getActionPoints(), unit.getHasSpentActionPointThisTurn()))
+                newCardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(unit.getExhausted(), unit.getMovesMade(), unit.getAttacksMade()))
                 spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), unit.getPosition().x, unit.getPosition().y, newCardData)
                 @getGameSession().executeAction(spawnEntityAction)
 

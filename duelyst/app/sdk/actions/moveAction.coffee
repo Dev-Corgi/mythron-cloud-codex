@@ -41,6 +41,7 @@ class MoveAction extends Action
     super()
 
     entity = @getTarget()
+    sourcePosition = entity.getPosition()
     #Logger.module("SDK").debug "[G:#{@.getGameSession().gameId}]", "MoveAction::execute - moving entity #{entity?.getLogName()} to (#{@getTargetPosition().x},#{@getTargetPosition().y})"
 
     # force path regeneration before moving entity
@@ -51,6 +52,7 @@ class MoveAction extends Action
     entity.setPosition(@getTargetPosition())
     entity.getMovementRange().flushCachedState()
     entity.getAttackRange().flushCachedState()
-    entity.recordMove(@getIsAbilityOrigin())
+    moved = !@getGameSession().getBoard().positionsEqual(sourcePosition, @getTargetPosition())
+    entity.recordMove(@getIsAbilityOrigin()) if moved
 
 module.exports = MoveAction

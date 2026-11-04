@@ -43,13 +43,13 @@ class ModifierSandPortal extends ModifierSummonWatchFromActionBar
       thisAppliedByCard = appliedToBoardByAction.getRootAction().getCard?().getRootCard()
       # spawn an Iron Dervish on this tile when you summon another minion UNLESS the minion being summoned also caused this tile to spawn
       # (i.e. don't trigger on own creation by opening gambit)
-      if !board.getObstructionAtPositionForEntity(position, entity) and rootAppliedByCard != thisAppliedByCard
+      if board.isValidSummonPositionForEntity(position, entity) and rootAppliedByCard != thisAppliedByCard
         playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position, {id: Cards.Faction3.IronDervish})
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)
 
     else
-      if !board.getObstructionAtPositionForEntity(position, entity)
+      if board.isValidSummonPositionForEntity(position, entity)
         playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getOwnerId(), position, {id: Cards.Faction3.IronDervish})
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)

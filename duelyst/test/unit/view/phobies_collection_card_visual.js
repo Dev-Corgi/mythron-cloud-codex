@@ -62,7 +62,6 @@ describe('Phobies collection card visual', () => {
       51009: ['Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', 'icon_f6_flashfreeze.png'],
       51010: ['Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', 'icon_f5_egggrenade.png'],
       51011: ['Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', 'icon_f1_holyimmolation.png'],
-      51012: ['Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', 'attack_melee.png'],
       51013: ['Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', 'icon_f2_spiralcounter.png'],
       51014: ['Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', 'icon_f2_koanofhorns.png'],
       51015: ['Boulder Hurl', 'Create a Wall on an adjacent empty tile or remove an adjacent Wall.', 'icon_neutral_precisionboulder.png'],

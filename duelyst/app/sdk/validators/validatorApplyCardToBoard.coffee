@@ -28,7 +28,7 @@ class ValidatorApplyCardToBoard extends Validator
         # applying a card to a position outside the board
         @invalidateAction(action, targetPosition, i18next.t("validators.position_off_board_message"))
       else if !(action instanceof RandomPlayCardSilentlyAction) and card instanceof Entity and !(action instanceof PlayCardFromHandAction and card.hasActiveModifierClass(ModifierCustomSpawn))
-        obstruction = @getGameSession().getBoard().getObstructionAtPositionForEntity(targetPosition, card)
+        obstruction = @getGameSession().getBoard().getSummonObstructionAtPositionForEntity(targetPosition, card)
         if obstruction? and !obstruction.getIsRemoved() and @getGameSession().getCanCardBeScheduledForRemoval(obstruction, true)
           # applying an entity to an obstructed position
           @invalidateAction(action, targetPosition, i18next.t("validators.obstructed_position_message"))

@@ -103,6 +103,24 @@ describe('Phobies imported unit factory', () => {
       const card = SDK.CardFactory.cardForIdentifier(id, session);
       expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type.startsWith('ModifierPhobies'))).to.equal(false);
     }
+
+    const rockPulverizer = SDK.CardFactory.cardForIdentifier(50004, session);
+    expect(rockPulverizer.activeAbility).to.equal(null);
+    expect([
+      rockPulverizer.getManaCost(), rockPulverizer.getHP(), rockPulverizer.getATK(), rockPulverizer.getSpeed(),
+      rockPulverizer.getMovementType(), rockPulverizer.getReach(), rockPulverizer.getAttackType(),
+    ]).to.deep.equal([2, 650, 425, 2, 'walk', 1, 'melee']);
+    expect(rockPulverizer.getInherentModifiersContextObjects().filter((modifier) => modifier.type === 'ModifierFirstBlood'))
+      .to.have.length(1);
+    expect(SDK.ModifierFirstBlood.getIsKeyworded()).to.equal(true);
+    expect(rockPulverizer.getInherentModifiersContextObjects().filter((modifier) => modifier.type === 'ModifierHealSelfWhenDealingDamage'))
+      .to.have.length(1);
+    for (let id = 50001; id <= 50035; id++) {
+      if (id === 50004) continue;
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type === 'ModifierFirstBlood'), `${id} Rush`)
+        .to.equal(false);
+    }
   });
 
   it('registers runtime-only ability effects and the exact owner metadata', () => {

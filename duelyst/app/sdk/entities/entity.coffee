@@ -43,7 +43,7 @@ GENERAL_ACTIVE_ABILITY_LOCKDOWN = 2
 GENERAL_ACTIVE_ABILITY_COOLDOWN = 2
 
 # Explicit stat and ability fields that travel with cloned and copied card data.
-STAT_CARD_DATA_KEYS = ["speed", "reach", "movementType", "attackType", "level", "actionPoints", "actionPointsSpentThisTurn", "activeAbilityState"]
+STAT_CARD_DATA_KEYS = ["speed", "reach", "movementType", "attackType", "level", "activeAbilityState"]
 
 class Entity extends Card
 
@@ -54,8 +54,6 @@ class Entity extends Card
   atk: 0 # attack damage
   attacks: 1 # max attacks this entity can make
   attacksMade: 0 # number of attacks this entity has made this turn
-  actionPoints: 0 # remaining explicit actions in Practice/Sandbox ruleset v2
-  actionPointsSpentThisTurn: false # distinguishes a fresh summon at 0 AP from a unit that spent both points
   activeAbilityState: null # per-instance Lockdown/Cooldown and fixed source hand slot
   damage: 0 # current damage
   exhausted: true # whether an entity is exhausted regardless of how many moves/attacks it has made
@@ -509,13 +507,12 @@ class Entity extends Card
     return @getBuffedAttribute(@moves, "moves", withAuras)
 
   getHasMovesLeft:() ->
-    return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getMovesMade() < @getMoves()
 
   getCanMove:(isAbilityOrigin=false) ->
-    speed = if isAbilityOrigin then @getSpeedForAbilityOrigin() else @getSpeed()
-    return (@getActionPoints() > 0 or isAbilityOrigin) and speed > 0 if @getUsesActionPoints()
-    return !@getIsExhausted() and @getHasMovesLeft() and @getSpeed() > 0
+    bypassSlots = isAbilityOrigin and @getIsPracticeSandboxV2()
+    speed = if bypassSlots then @getSpeedForAbilityOrigin() else @getSpeed()
+    return (bypassSlots or (!@getIsExhausted() and @getHasMovesLeft())) and speed > 0
 
   setAttacksMade:(attacksMade) ->
     @attacksMade = Math.max(0, attacksMade)
@@ -530,86 +527,36 @@ class Entity extends Card
     return @getBuffedAttribute(@attacks, "attacks", withAuras)
 
   getHasAttacksLeft:() ->
-    return @getActionPoints() > 0 if @getUsesActionPoints()
     return @getIsUncontrollableBattlePet() or @getAttacksMade() < @getAttacks()
 
   getCanAttack:(isAbilityOrigin=false) ->
     return false if @getHasExplicitAttackType() and @attackType is "none"
-    return (@getActionPoints() > 0 or isAbilityOrigin) and @getATK() > 0 and @getReach() > 0 if @getUsesActionPoints()
-    return !@getIsExhausted() and @getHasAttacksLeft() and @getATK() > 0 and @getReach() > 0
+    bypassSlots = isAbilityOrigin and @getIsPracticeSandboxV2()
+    return (bypassSlots or (!@getIsExhausted() and @getHasAttacksLeft())) and @getATK() > 0 and @getReach() > 0
 
   getIsPracticeSandboxV2: () ->
     session = @getGameSession()
     return !!(session? and session.getIsPracticeSandboxV2())
 
-  getUsesActionPoints: () ->
-    return @getIsPracticeSandboxV2()
-
-  getActionPoints: () ->
-    return Math.max(0, @actionPoints or 0) if @getUsesActionPoints()
-    return 0
-
-  getHasSpentActionPointThisTurn: () ->
-    return !!@actionPointsSpentThisTurn if @getUsesActionPoints()
-    return false
-
-  setHasSpentActionPointThisTurn: (val) ->
-    @actionPointsSpentThisTurn = !!val
-
-  setActionPoints: (points) ->
-    @actionPoints = Math.max(0, Math.min(2, Math.floor(points or 0)))
-    @exhausted = @actionPoints is 0 if @getUsesActionPoints()
-    @actionPointsSpentThisTurn = false if @actionPoints is 2 and @getUsesActionPoints()
-
-  spendActionPoint: () ->
-    return false unless @getUsesActionPoints() and @getActionPoints() > 0
-    @actionPoints -= 1
-    @actionPointsSpentThisTurn = true
-    @exhausted = @actionPoints is 0
-    return true
-
   ###
-  * Returns whether this unit has moved, attacked, or used an ability this turn.
-  * Action-point units track the spent flag; others track moves and attacks made.
+  * Returns whether this unit moved, attacked, or used an ability this turn.
   ###
   getHasActedThisTurn: () ->
-    return @getHasSpentActionPointThisTurn() if @getUsesActionPoints()
     return @getMovesMade() != 0 or @getAttacksMade() != 0
 
-  # Records an executed explicit move. The point is spent before the moves counter increments.
+  # Records an executed explicit move.
   recordMove: (isAbilityOrigin=false) ->
-    @spendActionPoint() if @getUsesActionPoints() and !isAbilityOrigin
-    @setMovesMade(@getMovesMade() + 1)
+    @setMovesMade(@getMovesMade() + 1) unless isAbilityOrigin
 
-  # Records an executed explicit (non-implicit) attack. The point is spent before the attacks counter increments.
+  # Records an executed explicit (non-implicit) attack.
   recordAttack: (isAbilityOrigin=false) ->
-    @spendActionPoint() if @getUsesActionPoints() and !isAbilityOrigin
-    @setAttacksMade(@getAttacksMade() + 1)
+    @setAttacksMade(@getAttacksMade() + 1) unless isAbilityOrigin
 
-  # True only for action-point units that have no points left.
-  getIsOutOfActionPoints: () ->
-    return @getUsesActionPoints() and @getActionPoints() <= 0
-
-  # Whether the unit has the action points needed to use an active ability.
   getCanUseActiveAbility: () ->
-    return @getUsesActionPoints() and @getActionPoints() > 0
+    return @getIsPracticeSandboxV2() and !@getIsExhausted() and @getHasAttacksLeft()
 
-  # Spends the action point for an active ability use. Returns false when it cannot be spent.
-  recordActiveAbilityUse: () ->
-    return @spendActionPoint()
-
-  # Restores action-point state copied from another unit (e.g. when transformed). Null values are skipped.
-  restoreActionPointState: (actionPoints, hasSpentActionPointThisTurn) ->
-    return unless @getUsesActionPoints()
-    @setActionPoints(actionPoints) if actionPoints?
-    @setHasSpentActionPointThisTurn(hasSpentActionPointThisTurn) if hasSpentActionPointThisTurn?
-
-  # Values to carry into a Transformed context when a building completes.
-  # Without action points the old behavior (fresh state, no action-point fields) is preserved.
   getBuildingTransformState: () ->
-    if @getUsesActionPoints()
-      return {exhausted: @getExhausted(), movesMade: @getMovesMade(), attacksMade: @getAttacksMade(), actionPoints: @getActionPoints(), actionPointsSpentThisTurn: @getHasSpentActionPointThisTurn()}
-    return {exhausted: false, movesMade: 0, attacksMade: 0, actionPoints: undefined, actionPointsSpentThisTurn: undefined}
+    return {exhausted: false, movesMade: 0, attacksMade: 0}
 
   getCanAct:() ->
     return @isOwnersTurn() and @getDoesOwnerHaveEnoughManaToAct() and (@getCanMove() or @getCanAttack())
@@ -623,18 +570,13 @@ class Entity extends Card
   * @returns {Boolean}
   ###
   getIsExhausted:() ->
-    if @getUsesActionPoints()
-      return @getActionPoints() is 0
-    else if @getIsUncontrollableBattlePet()
+    if @getIsUncontrollableBattlePet()
       return false
     else
       return @getExhausted() or !@getHasAttacksLeft()
 
   setExhausted: (val) ->
     @exhausted = val
-    if @getUsesActionPoints()
-      @actionPoints = if val then 0 else 2
-      @actionPointsSpentThisTurn = false unless val
 
   ###
   * Returns actual exhausted state value, not accounting for any other factors.
@@ -646,14 +588,11 @@ class Entity extends Card
 
   refreshExhaustion:() ->
     @setExhausted(false)
-    @setActionPoints(2) if @getUsesActionPoints()
-    @setHasSpentActionPointThisTurn(false) if @getUsesActionPoints()
     @setMovesMade(0)
     @setAttacksMade(0)
 
   applyExhaustion: () ->
     @setExhausted(true)
-    @setActionPoints(0) if @getUsesActionPoints()
 
   getDoesOwnerHaveEnoughManaToAct: () ->
     if @getGameSession()?

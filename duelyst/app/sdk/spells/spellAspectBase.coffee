@@ -12,7 +12,7 @@ class SpellAspectBase extends SpellRemoveAndReplaceEntity
     if existingEntity?
       if cardDataOrIndexToSpawn? and !_.isObject(cardDataOrIndexToSpawn) then cardDataOrIndexToSpawn = @getGameSession().getCardByIndex(cardDataOrIndexToSpawn).createNewCardData()
       cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
-      cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(existingEntity.getExhausted(), existingEntity.getMovesMade(), existingEntity.getAttacksMade(), existingEntity.getActionPoints(), existingEntity.getHasSpentActionPointThisTurn()))
+      cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(existingEntity.getExhausted(), existingEntity.getMovesMade(), existingEntity.getAttacksMade()))
 
     return cardDataOrIndexToSpawn
 

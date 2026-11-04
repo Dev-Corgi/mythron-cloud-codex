@@ -5,11 +5,12 @@ const layout = require('../../../app/resources/card_ui/phobies_ability/ability-l
 const HandAbilitySlot = require('../../../app/view/layers/game/handAbilitySlot');
 
 describe('hand ability slot model', () => {
-  const makeUnit = (overrides = {}) => Object.assign({
+  const makeUnit = (overrides = {}) => ({
     getIndex: () => 42,
     getCanUseActiveAbility: () => true,
     activeAbility: { effectCardId: 701, lockdown: 1, cooldown: 1 },
-  }, overrides);
+    ...overrides,
+  });
   const makeInfo = ({
     lockdown = 0, cooldown = 0, silenced = false, unit = makeUnit(),
   } = {}) => ({
@@ -109,7 +110,7 @@ describe('hand ability slot model', () => {
   });
 
   describe('unusable conditions', () => {
-    it('is dimmed when the unit has no action point', () => {
+    it('is dimmed when the unit has no available attack slot', () => {
       const unit = makeUnit({ getCanUseActiveAbility: () => false });
       expect(HandAbilitySlot.describeHandAbilitySlot(makeInfo({ unit }), myTurn).usable).to.equal(false);
     });
@@ -224,7 +225,7 @@ describe('hand ability slot model', () => {
     });
 
     it('ignores cards that are not signature cards or generals without state', () => {
-      const notSignature = Object.assign({}, signature, { isSignatureCard: () => false });
+      const notSignature = { ...signature, isSignatureCard: () => false };
       expect(HandAbilitySlot.getSignatureAbilityFaceData(notSignature, makeSession(true, { lockdown: 2, cooldown: 0 }))).to.equal(null);
       expect(HandAbilitySlot.getSignatureAbilityFaceData(signature, makeSession(true, null))).to.equal(null);
       expect(HandAbilitySlot.getSignatureAbilityFaceData({}, makeSession(true, { lockdown: 1, cooldown: 0 }))).to.equal(null);

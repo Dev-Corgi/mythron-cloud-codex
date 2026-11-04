@@ -75,7 +75,7 @@ describe('UtilsGameSession', () => {
       general.setSignatureCardData({ id: effectId });
       general.getActiveAbilityState().lockdown = 0;
       general.getActiveAbilityState().cooldown = 0;
-      general.setActionPoints(4);
+      general.refreshExhaustion();
       const action = player.actionUseActiveAbility(general.getIndex(), targetPosition);
       const validators = session.getValidators();
       session.setValidators([]);

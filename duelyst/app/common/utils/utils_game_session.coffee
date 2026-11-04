@@ -114,15 +114,14 @@ UtilsGameSession.getSmartSpawnPositionsFromPattern = (gameSession, sourcePositio
   if gameSession.getRulesetId() is 'practice-sandbox-hex'
     candidatePositions = UtilsGameSession.getValidBoardPositionsFromPattern(board, sourcePosition, pattern, true)
     for candidate in candidatePositions
-      continue if gameSession.getIsPracticeSandboxV2() and cardToSpawn?.getType() is CardType.Unit and !board.hasTileAtPosition(candidate)
-      if !board.getObstructionAtPositionForEntity(candidate, cardToSpawn)
+      if board.isValidSummonPositionForEntity(candidate, cardToSpawn)
         spawnPositions.push(candidate)
     return spawnPositions
 
   for offset in pattern
     # make sure the potential spawn location is on the board and spawn only when not obstructing or position is unobstructed
     spawnPosition = {x: sourcePosition.x + offset.x, y: sourcePosition.y + offset.y}
-    if board.isOnBoard(spawnPosition) and !board.getObstructionAtPositionForEntity(spawnPosition, cardToSpawn)
+    if board.isValidSummonPositionForEntity(spawnPosition, cardToSpawn)
       spawnPositions.push(spawnPosition)
 
   return spawnPositions

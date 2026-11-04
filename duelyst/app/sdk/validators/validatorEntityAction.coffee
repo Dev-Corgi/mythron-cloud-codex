@@ -33,8 +33,6 @@ class ValidatorEntityAction extends Validator
         targetPosition = action.getTargetPosition()
         if !(source instanceof Entity)
           @invalidateAction(action, targetPosition, i18next.t("validators.invalid_attack_message"))
-        else if source.getIsOutOfActionPoints()
-          @invalidateAction(action, action.getSourcePosition(), i18next.t("validators.unit_cannot_attack_message"))
         else if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and (!(@_isPhobiesMovementAttack(action, source) and action.getIsAbilityOrigin?() and action.getIsAbilityOrigin()) and !@_isAxialActionSourceValid(action, source) or !@getGameSession().getBoard().isOnBoard(targetPosition))
           @invalidateAction(action, targetPosition, i18next.t("validators.invalid_attack_position_message"))
         else if @getGameSession().getIsPracticeSandboxV2() and action.getTarget() isnt source.getAttackRange().getTargetAtPosition(@getGameSession().getBoard(), source, targetPosition)
@@ -52,6 +50,6 @@ class ValidatorEntityAction extends Validator
     return sourcePosition? and Number.isInteger(sourcePosition.q) and Number.isInteger(sourcePosition.r) and sourcePosition.q is currentPosition.q and sourcePosition.r is currentPosition.r
 
   _isPhobiesMovementAttack: (action, source) ->
-    return source?.activeAbility?.effectCardId in [51012, 51013, 51014]
+    return source?.activeAbility?.effectCardId in [51013, 51014]
 
 module.exports = ValidatorEntityAction

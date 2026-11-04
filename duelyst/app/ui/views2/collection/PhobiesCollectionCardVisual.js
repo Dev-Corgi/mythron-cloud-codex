@@ -37,7 +37,6 @@ var ABILITY_ICONS = {
   51005: { atlas: 'iconBlindScorchIdle', x: 49, y: 196 },
   51006: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
   51007: { atlas: 'iconDivineBondIdle', x: 98, y: 49 },
-  51012: { image: RSX.collection_card_attack_melee.img },
   51008: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
   51009: { atlas: 'iconFlashFreezeIdle', x: 49, y: 196 },
   51010: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },

@@ -23,7 +23,7 @@ class SpellMirage extends SpellApplyEntityToBoard
 
   getSpawnAction: (x, y, targetSpawnPosition) ->
     cloningEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), @targetType)
-    if cloningEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(targetSpawnPosition, cloningEntity)
+    if cloningEntity? and @getGameSession().getBoard().isValidSummonPositionForEntity(targetSpawnPosition, cloningEntity)
       spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), targetSpawnPosition)
       spawnEntityAction.setOwnerId(@getOwnerId())
       spawnEntityAction.setSource(cloningEntity)

@@ -11,7 +11,7 @@ class SpellSpawnEntityOnShadowCreep extends SpellSpawnEntity
     for tile in board.getTiles(true)
       if tile? and tile.getBaseCardId() is Cards.Tile.Shadow and tile.getOwnerId() is @getOwnerId()
         pos = tile.getPosition()
-        if !board.getObstructionAtPositionForEntity(pos, entityToSpawn)
+        if board.isValidSummonPositionForEntity(pos, entityToSpawn)
           finalPositions.push(pos)
 
     return finalPositions

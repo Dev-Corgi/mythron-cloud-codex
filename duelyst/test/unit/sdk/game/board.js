@@ -9,6 +9,7 @@ const SDK = require('../../../../app/sdk.coffee');
 const UtilsSDK = require('../../../utils/utils_sdk');
 const PlayCardAction = require('../../../../app/sdk/actions/playCardAction.coffee');
 const Spell = require('../../../../app/sdk/spells/spell.coffee');
+const SpellSpawnEntity = require('../../../../app/sdk/spells/spellSpawnEntity.coffee');
 const SpellWrathOfGod = require('../../../../app/sdk/spells/spellWrathOfGod.coffee');
 const UtilsGameSession = require('../../../../app/common/utils/utils_game_session.coffee');
 const ModifierOpeningGambitDamageNearby = require('../../../../app/sdk/modifiers/modifierOpeningGambitDamageNearby.coffee');
@@ -789,6 +790,105 @@ describe('board', () => {
     expect(board.isValidGeneralAdjacentSpawnPosition(unit, { q: 0, r: 0 })).to.equal(true);
   });
 
+  it('allows only fly and phase units to share a v2 Wall for hand and effect summon positions', () => {
+    const session = SDK.GameSession.getInstance();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const board = session.getBoard();
+    const playerId = session.getPlayer1Id();
+    const general = session.getGeneralForPlayerId(playerId);
+    general.setPosition({ q: -2, r: 4 });
+
+    const adjacentWallPosition = { q: -1, r: 4 };
+    const wall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(wall, adjacentWallPosition.q, adjacentWallPosition.r);
+    const walk = session.createCardForIdentifier(SDK.Cards.Faction1.SilverguardSquire);
+    walk.setOwnerId(playerId);
+    const flying = session.createCardForIdentifier(SDK.Cards.Neutral.SpottedDragonlark);
+    flying.setOwnerId(playerId);
+    const phasing = session.createCardForIdentifier(SDK.Cards.Neutral.PhaseHound);
+    phasing.setOwnerId(playerId);
+    phasing.setMovementType('phase');
+
+    expect(board.isValidGeneralAdjacentSpawnPosition(walk, adjacentWallPosition)).to.equal(false);
+    expect(walk.getValidTargetPositions()).not.to.deep.include(adjacentWallPosition);
+    expect(board.isValidGeneralAdjacentSpawnPosition(flying, adjacentWallPosition)).to.equal(true);
+    expect(flying.getValidTargetPositions()).to.deep.include(adjacentWallPosition);
+    expect(board.isValidGeneralAdjacentSpawnPosition(phasing, adjacentWallPosition)).to.equal(true);
+    expect(phasing.getValidTargetPositions()).to.deep.include(adjacentWallPosition);
+
+    const distantWallPosition = { q: 3, r: 0 };
+    const distantWall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(distantWall, distantWallPosition.q, distantWallPosition.r);
+    expect(board.isValidGeneralAdjacentSpawnPosition(flying, distantWallPosition)).to.equal(false);
+    expect(UtilsGameSession.getSmartSpawnPositionsFromPattern(session, { q: 0, r: 0 }, [distantWallPosition], flying))
+      .to.deep.equal([distantWallPosition]);
+
+    const airdropTemplate = session.getCardCaches().getType(SDK.CardType.Unit).getCards()
+      .find((card) => card.hasModifierClass(SDK.ModifierAirdrop));
+    const airdropFly = session.createCardForIdentifier(airdropTemplate.getId());
+    airdropFly.setOwnerId(playerId);
+    airdropFly.setMovementType('fly');
+    expect(board.getUnobstructedPositionsForEntity(airdropFly)).to.deep.include(distantWallPosition);
+    const nearbyObjective = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
+    nearbyObjective.setPosition({ q: 4, r: 0 });
+    expect(board.getUnobstructedPositionsForEntityAroundEntity(airdropFly, nearbyObjective, 1))
+      .to.deep.include(distantWallPosition);
+
+    const player = session.getPlayerById(playerId);
+    player.setStartingMana(10);
+    const summonFromHand = (movementType, position) => {
+      const deck = player.getDeck();
+      const summonedUnit = session.createCardForIdentifier(SDK.Cards.Phobies.Cassowary);
+      summonedUnit.setOwnerId(playerId);
+      summonedUnit.setMovementType(movementType);
+      session._private.initializingFixedDeck = true;
+      session.applyCardToHand(deck, summonedUnit.createCardData(), summonedUnit);
+      session._private.initializingFixedDeck = false;
+      const handIndex = deck.getCardsInHand().findIndex((card) => card && card.getId() === SDK.Cards.Phobies.Cassowary);
+      const playAction = player.actionPlayCardFromHand(handIndex, position);
+      session.validateAction(playAction, false);
+      expect(playAction.getIsValid(), playAction.getValidationMessage()).to.equal(true);
+      session.executeAction(playAction);
+      return board.getUnitAtPosition(position);
+    };
+
+    const spawnedFly = summonFromHand('fly', adjacentWallPosition);
+    expect(spawnedFly).not.to.equal(undefined);
+    expect(board.getTileAtPosition(adjacentWallPosition)).to.equal(wall);
+    expect(wall.getHP()).to.equal(wall.getMaxHP());
+
+    const phaseWallPosition = { q: -1, r: 3 };
+    const phaseWall = session.createCardForIdentifier(SDK.Cards.Tile.Wall);
+    session.applyCardToBoard(phaseWall, phaseWallPosition.q, phaseWallPosition.r);
+    const spawnedPhase = summonFromHand('phase', phaseWallPosition);
+    expect(spawnedPhase).not.to.equal(undefined);
+    expect(board.getTileAtPosition(phaseWallPosition)).to.equal(phaseWall);
+    expect(phaseWall.getHP()).to.equal(phaseWall.getMaxHP());
+
+    const effectUnit = session.createCardForIdentifier(SDK.Cards.Phobies.Cassowary);
+    effectUnit.setOwnerId(playerId);
+    effectUnit.setMovementType('fly');
+    player.setStartingMana(10);
+    const effectSpell = new SpellSpawnEntity(session);
+    effectSpell.setOwnerId(playerId);
+    effectSpell.spawnSilently = true;
+    const effectCardData = effectUnit.createCardData();
+    effectSpell.getEntityToSpawn = () => effectUnit;
+    const effectAction = effectSpell.getSpawnAction(
+      distantWallPosition.q,
+      distantWallPosition.r,
+      effectCardData,
+    );
+    expect(effectAction).not.to.equal(undefined);
+    effectAction.setCard(effectUnit);
+    new ValidatorApplyCardToBoard(session).onValidateAction({ action: effectAction });
+    expect(effectAction.getIsValid(), effectAction.getValidationMessage()).to.equal(true);
+    UtilsSDK.executeActionWithoutValidation(effectAction);
+    expect(board.getUnitAtPosition(distantWallPosition)).not.to.equal(undefined);
+    expect(board.getTileAtPosition(distantWallPosition)).to.equal(distantWall);
+    expect(distantWall.getHP()).to.equal(distantWall.getMaxHP());
+  });
+
   it('rejects version 2 summon actions on holes and preserves version 1 hole placement', () => {
     const session = SDK.GameSession.getInstance();
     const playerId = session.getPlayer1Id();
@@ -1009,8 +1109,8 @@ describe('board', () => {
     invalidUnit.setOwnerId(playerId);
     const action = new SDK.PlayCardAction(session, playerId, { q: 1, r: 2 }, { id: SDK.Cards.Faction4.Wraithling });
     const invalidApplication = session.applyCardToBoard(invalidUnit, 1, 2, invalidUnit.createCardData(), action);
-    expect(invalidApplication).to.equal(false);
-    expect(session.getBoard().getUnitAtPosition({ q: 1, r: 2 })).to.equal(undefined);
+    expect(invalidApplication).to.equal(true);
+    expect(session.getBoard().getUnitAtPosition({ q: 1, r: 2 })).to.equal(invalidUnit);
 
     const occupiedUnit = session.createCardForIdentifier(SDK.Cards.Neutral.BloodtearAlchemist);
     occupiedUnit.setOwnerId(playerId);
