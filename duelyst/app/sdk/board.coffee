@@ -4,6 +4,7 @@ UtilsGameSession = require 'app/common/utils/utils_game_session'
 UtilsPosition = require 'app/common/utils/utils_position'
 Card =             require './cards/card'
 CardType =             require './cards/cardType'
+Cards = require './cards/cardsLookup'
 Entity =     require './entities/entity'
 ApplyCardToBoardAction =     require './actions/applyCardToBoardAction'
 _ = require 'underscore'
@@ -76,7 +77,11 @@ class Board extends SDKObject
     positions = []
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
       for position in @getPositions()
-        if !@getObstructionAtPositionForEntity(position, entity) then positions.push(position)
+        isValidPosition = if @getGameSession().getIsPracticeSandboxV2() and entity?.getType?() is CardType.Unit
+          @isValidSummonPositionForEntity(position, entity)
+        else
+          !@getObstructionAtPositionForEntity(position, entity)
+        if isValidPosition then positions.push(position)
       return positions
     for x in [0...@columnCount]
       for y in [0...@rowCount]
@@ -91,7 +96,11 @@ class Board extends SDKObject
     if @getGameSession().getRulesetId() is 'practice-sandbox-hex'
       for candidate in @getHexPositionsInRange(position, radius)
         continue if @positionsEqual(candidate, position)
-        if !@getObstructionAtPositionForEntity(candidate, entity)
+        isValidPosition = if @getGameSession().getIsPracticeSandboxV2() and entity?.getType?() is CardType.Unit
+          @isValidSummonPositionForEntity(candidate, entity)
+        else
+          !@getObstructionAtPositionForEntity(candidate, entity)
+        if isValidPosition
           positions.push(candidate)
       return positions
     positionX = position.x
@@ -370,6 +379,23 @@ class Board extends SDKObject
     if entityAtPosition and entityAtPosition.getObstructsEntity(entity)
       return entityAtPosition
 
+  # The sole v2 rule for allowing a Unit summon to share a tile with a Wall.
+  isWallExemptForSummon: (entity, obstruction) ->
+    return @getGameSession().getIsPracticeSandboxV2() and
+      entity?.getType?() is CardType.Unit and entity.getMovementType?() in ['fly', 'phase'] and
+      obstruction?.getType?() is CardType.Tile and obstruction.getId?() is Cards.Tile.Wall
+
+  getSummonObstructionAtPositionForEntity: (pos, entity, allowUntargetable=true, allowQueued=true) ->
+    obstruction = @getObstructionAtPositionForEntity(pos, entity, allowUntargetable, allowQueued)
+    return null if @isWallExemptForSummon(entity, obstruction)
+    return obstruction
+
+  isValidSummonPositionForEntity: (pos, entity, allowUntargetable=true, allowQueued=true) ->
+    return false unless @isOnBoard(pos)
+    if @getGameSession().getIsPracticeSandboxV2() and entity?.getType?() is CardType.Unit
+      return false unless @hasTileAtPosition(pos)
+    return !@getSummonObstructionAtPositionForEntity(pos, entity, allowUntargetable, allowQueued)?
+
   getQueuedCardAtPosition: (pos, type, allowUntargetable=false) ->
     # there might be a card in the action queue to be played at this position
     # search the game session's action queue for all actions that may apply a card to board
@@ -424,7 +450,7 @@ class Board extends SDKObject
       # Holes remain addressable for movement and targeting, but summons always
       # require a rendered tile, regardless of the card's movement permissions.
       continue if @getGameSession().getIsPracticeSandboxV2() and !@hasTileAtPosition(position)
-      if !@getObstructionAtPositionForEntity(position, card, true, allowQueued)
+      if @isValidSummonPositionForEntity(position, card, true, allowQueued)
         validPositions.push(position)
     return validPositions
 

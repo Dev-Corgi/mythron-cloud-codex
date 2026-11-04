@@ -89,3 +89,33 @@
 - source_spec: `spec-repair-phobies-import-regressions.md`
   summary: Extend General spawn count, owner, obstruction, adjacency and base-stat coverage when General abilities are redesigned.
   evidence: Blind Hunter identified that new matrix tests mainly assert canonical token existence; the user explicitly stopped additional General work in this repair.
+- source_spec: '_bmad-output/implementation-artifacts/spec-1-restore-the-duelyst-move-then-attack-action-model.md'
+  summary: Verify unchanged Lockdown/Cooldown behavior with an audited Practice/Sandbox ability fixture and a runnable full test environment.
+  evidence: Existing active-ability assertions are present, but the suite's positive action branch fails the card audit; full npm test aborts in legacy require-dir under Node 22 and direct unit/integration execution is blocked by Redis EACCES, so this behavior could not be verified end to end.
+- source_spec: '_bmad-output/implementation-artifacts/spec-2-rework-rock-pulverizer-with-rush.md'
+  summary: Re-run the unchanged Lockdown/Cooldown assertions with an audited Practice/Sandbox fixture under a working full test environment.
+  evidence: The existing positive action branch fails its Practice/Sandbox card audit, and full npm test aborts in legacy require-dir under Node 22 before loading tests; the targeted Story 2 suite does not exercise those unrelated abilities.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add regression coverage that embedded ability movement and strikes do not consume explicit move or attack slots.
+  evidence: Story 1 changed the action accounting, but current new move/attack tests verify explicit actions and do not exercise an ability whose effect embeds a move or strike.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add a test that an area attack consumes one explicit attack slot while resolving multiple implicit victims.
+  evidence: Current area geometry tests cover target selection and damage, while move/attack slot tests do not assert area-action accounting.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add exhausted-unit rejection coverage for automatically generated moves and attacks.
+  evidence: The new slot tests cover rejected explicit moves and active abilities, but not automatic action proposals after the corresponding slot is used.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add an authoritative hand-action rejection test for flying and phasing Units placed on a non-adjacent Wall.
+  evidence: Story 4 tests reject such positions in placement queries but validate only the legal adjacent hand-action case.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add an explicit regression test that a second Unit cannot use the Wall exemption when a Unit already occupies the same position.
+  evidence: The exemption predicate only exempts a Tile Wall obstruction; a Unit-first obstruction remains blocking, but the coexistence tests do not exercise a second summon at that location.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add ranged-blocking coverage for enemies positioned on a shared-edge intersection of the firing line.
+  evidence: Existing Story 3 ranged tests cover direct-axis blockers and geometry cases but no enemy shared-edge blocker case was located in the review.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Add ranged-blocker coverage showing an inactive or removed enemy immediately stops blocking a shot.
+  evidence: Existing ranged tests cover active blockers and Walls; no removed/inactive enemy transition case was located in the review.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-summon-fly-and-phase-units-onto-walls-next-to-general.md`
+  summary: Keep ability-origin move and attack counter behavior unchanged outside Practice/Sandbox v2.
+  evidence: `recordMove` and `recordAttack` now skip counters for ability-origin actions in every ruleset, while the architecture scopes the restored action model to v2; legacy behavior should be checked and covered separately.

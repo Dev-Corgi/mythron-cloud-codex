@@ -115,6 +115,7 @@ describe('Phobies presentation integration', () => {
   it('loads every alias resource through the actual step resource path', async () => {
     const session = SDK.GameSession.create();
     for (let id = 51001; id <= 51016; id += 1) {
+      if (id === 51012) continue;
       const card = session.createCardForIdentifier(id);
       const action = {
         getSource: () => null, getTarget: () => null, getCard: () => card, getFXResource: () => [],
@@ -159,7 +160,7 @@ describe('Phobies presentation integration', () => {
       const unit = session.createCardForIdentifier(id);
       unit.setOwnerId(owner);
       session.applyCardToBoard(unit, position.q, position.r, unit.createNewCardData(), null);
-      unit.setActionPoints(2);
+      unit.refreshExhaustion();
       if (unit.getActiveAbilityState()) unit.getActiveAbilityState().lockdown = 0;
       return unit;
     };
@@ -186,7 +187,7 @@ describe('Phobies presentation integration', () => {
   it('places caster FX at its captured pre-movement origin and target FX at the effect center', () => {
     const session = SDK.GameSession.create();
     const action = new SDK.UseActiveAbilityAction(session, 'player1', null, { q: 4, r: 2 });
-    const card = session.createCardForIdentifier(51012);
+    const card = session.createCardForIdentifier(51013);
     card.getCenterPositionOfAppliedEffects = () => ({ q: 4, r: 2 });
     action.getCard = () => card;
     action.getIsValidApplication = () => true;
@@ -203,7 +204,7 @@ describe('Phobies presentation integration', () => {
     const unit = session.createCardForIdentifier(50011);
     unit.setOwnerId(session.getPlayer1Id());
     session.applyCardToBoard(unit, 2, 2, unit.createNewCardData(), null);
-    unit.setActionPoints(2);
+    unit.refreshExhaustion();
     unit.getActiveAbilityState().handSlotIndex = 4;
     unit.getActiveAbilityState().lockdown = 0;
     const card = session.createCardForIdentifier(51015);

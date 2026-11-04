@@ -110,7 +110,7 @@ describe('hand ability slot model', () => {
   });
 
   describe('unusable conditions', () => {
-    it('is dimmed when the unit has no action point', () => {
+    it('is dimmed when the unit has no available attack slot', () => {
       const unit = makeUnit({ getCanUseActiveAbility: () => false });
       expect(HandAbilitySlot.describeHandAbilitySlot(makeInfo({ unit }), myTurn).usable).to.equal(false);
     });

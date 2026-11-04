@@ -48,7 +48,7 @@ class SpellTransformSameManaCost extends Spell
         card = cards[@getGameSession().getRandomIntegerForExecution(cards.length)]
         @cardDataOrIndexToSpawn = card.createNewCardData()
         @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
-        @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(targetUnit.getExhausted(), targetUnit.getMovesMade(), targetUnit.getAttacksMade(), targetUnit.getActionPoints(), targetUnit.getHasSpentActionPointThisTurn()))
+        @cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(targetUnit.getExhausted(), targetUnit.getMovesMade(), targetUnit.getAttacksMade()))
 
         spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), targetOwnerId, targetPosition, @cardDataOrIndexToSpawn)
         @getGameSession().executeAction(spawnEntityAction)

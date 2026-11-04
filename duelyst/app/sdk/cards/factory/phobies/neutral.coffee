@@ -7,6 +7,7 @@ ModifierPhobiesCounterAttack = require 'app/sdk/modifiers/modifierPhobiesCounter
 ModifierPhobiesRegatorate = require 'app/sdk/modifiers/modifierPhobiesRegatorate'
 ModifierPhobiesRage = require 'app/sdk/modifiers/modifierPhobiesRage'
 ModifierPhobiesHeartAttack = require 'app/sdk/modifiers/modifierPhobiesHeartAttack'
+ModifierFirstBlood = require 'app/sdk/modifiers/modifierFirstBlood'
 
 # Phobies source values are intentionally kept separate from the original
 # Duelyst card definitions. The original card is consulted only for presentation.
@@ -61,8 +62,7 @@ ACTIVE_ABILITY_BY_CARD_ID =
   50009: {effectCardId: 51009, lockdown: 1, cooldown: 1, useRange: 1}
   50013: {effectCardId: 51010, lockdown: 1, cooldown: 1, useRange: 1}
   50030: {effectCardId: 51011, lockdown: 1, cooldown: 2, useRange: 2}
-  50004: {effectCardId: 51012, lockdown: 0, cooldown: 1, useRange: 2}
-  50032: {effectCardId: 51013, lockdown: 1, cooldown: 1, useRange: 3}
+  50032: {effectCardId: 51013, lockdown: 0, cooldown: 1, useRange: 3}
   50020: {effectCardId: 51014, lockdown: 0, cooldown: 1, useRange: 1}
   50011: {effectCardId: 51015, lockdown: 0, cooldown: 2, useRange: 1}
   50035: {effectCardId: 51016, lockdown: 1, cooldown: 1, useRange: 2}
@@ -92,6 +92,8 @@ class CardFactory_Phobies
     modifiers = []
     if id in LIFEGAIN_CARD_IDS
       modifiers.push(ModifierHealSelfWhenDealingDamage.createContextObject({ healRatio: 0.5 }))
+    if id is 50004
+      modifiers.push(ModifierFirstBlood.createContextObject())
     if id is 50018
       modifiers.push(ModifierPhobiesBodyCount.createContextObject())
     else if id is 50027

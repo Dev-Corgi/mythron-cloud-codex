@@ -198,36 +198,6 @@ runAbilityAction = (sourceAction, action, sourcePosition) ->
   action.getGameSession().executeAction(action)
   return action.getIsValid()
 
-class PhobiesCawClaw extends Spell
-  type: CardType.AbilityEffect
-  @type: CardType.AbilityEffect
-  targetType: CardType.Unit
-  canTargetGeneral: true
-  spellFilterType: SpellFilterType.EnemyDirect
-
-  onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
-    return unless @getGameSession().getIsRunningAsAuthoritative()
-    source = getAbilitySource(sourceAction)
-    target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
-    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
-    distance = HexTopology.getDistance(source.getPosition(), target.getPosition())
-    return unless distance is 1 or distance is 2
-    if distance is 2
-      destination = null
-      for candidate in HexTopology.getNeighbors(target.getPosition())
-        continue unless HexTopology.getDistance(source.getPosition(), candidate) is 1
-        continue if board.getObstructionAtPositionForEntity(candidate, source)
-        continue unless source.getMovementRange().getIsPositionValid(board, source, candidate, true)
-        destination = candidate
-        break
-      return unless destination?
-      runAbilityAction(sourceAction, source.actionMove(destination), source.getPosition())
-      return unless source.getIsActive()
-      attackFrom = destination
-    else
-      attackFrom = source.getPosition()
-    runAbilityAction(sourceAction, source.actionAttack(target), attackFrom)
-
 class PhobiesBullRush extends Spell
   type: CardType.AbilityEffect
   @type: CardType.AbilityEffect
@@ -432,11 +402,6 @@ class CardFactory_PhobiesAbilities
         result.damageAmount = 600
         result.setFXResource(['FX.Phobies.HolyImmolation'])
         result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
-      )
-    else if identifier is Cards.PhobiesAbility.CawClaw
-      card = makeAbilityCard(gameSession, identifier, 'Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', PhobiesCawClaw, Cards.Spell.Kindle, (result) ->
-        result.setFXResource(['FX.Phobies.Knucklestorm'])
-        result.setBaseSoundResource(apply: RSX.sfx_neutral_bluetipscorpion_attack_impact.audio)
       )
     else if identifier is Cards.PhobiesAbility.BullRush
       card = makeAbilityCard(gameSession, identifier, 'Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', PhobiesBullRush, Cards.Spell.SpiralTechnique, (result) ->

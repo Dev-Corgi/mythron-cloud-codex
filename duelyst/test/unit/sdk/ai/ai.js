@@ -69,7 +69,7 @@ describe('starter ai Bloodbound in practice version 2', () => {
     session.applyCardToBoard(ally, 3, 0, null, null);
     general.getActiveAbilityState().lockdown = 0;
     general.getActiveAbilityState().cooldown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     ai = new StarterAI(session, player.getPlayerId(), 1.0);
   });
 
@@ -77,9 +77,9 @@ describe('starter ai Bloodbound in practice version 2', () => {
 
   it('offers the signature spell only while the General can use Bloodbound', () => {
     expect(ai._getCardsInHandAndSignatureSpell()).to.include(player.getCurrentSignatureCard());
-    general.setActionPoints(0);
+    general.applyExhaustion();
     expect(ai._getCardsInHandAndSignatureSpell()).to.not.include(player.getCurrentSignatureCard());
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     general.getActiveAbilityState().cooldown = 1;
     expect(ai._getCardsInHandAndSignatureSpell()).to.not.include(player.getCurrentSignatureCard());
   });
@@ -131,11 +131,11 @@ describe('starter ai Bloodbound in practice version 2', () => {
       session.setRuleset('practice-sandbox-hex', 2);
       player = session.getPlayer1();
       general = session.getGeneralForPlayer1();
-      general.setActionPoints(0);
+      general.applyExhaustion();
       healer = session.createCardForIdentifier(50005);
       healer.setOwnerId(player.getPlayerId());
       session.applyCardToBoard(healer, 2, 1, null, null);
-      healer.setActionPoints(2);
+      healer.refreshExhaustion();
       healer.getActiveAbilityState().lockdown = 0;
       healer.getActiveAbilityState().cooldown = 0;
 
@@ -148,8 +148,8 @@ describe('starter ai Bloodbound in practice version 2', () => {
 
     afterEach(() => SDK.GameSession.reset());
 
-    it('chooses a favorable unit ability and resolves it for one action point', () => {
-      ally.setActionPoints(0);
+    it('chooses a favorable unit ability and resolves it using the attack slot', () => {
+      ally.applyExhaustion();
       session.setStatus(SDK.GameStatus.active);
       const action = ai.nextAction();
       expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
@@ -158,7 +158,7 @@ describe('starter ai Bloodbound in practice version 2', () => {
       expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
       session.executeAction(action);
       expect(ally.getDamage()).to.equal(0);
-      expect(healer.getActionPoints()).to.equal(1);
+      expect(healer.getAttacksMade()).to.equal(1);
     });
 
     it('skips abilities that are locked, silenced, stunned, exhausted, or have no valuable legal target', () => {
@@ -180,9 +180,9 @@ describe('starter ai Bloodbound in practice version 2', () => {
       session.applyModifierContextObject(SDK.ModifierStunned.createContextObject(), healer);
       expect(find()).to.equal(0);
       session.removeModifierFromCardByClass(SDK.ModifierStunned, healer);
-      healer.setActionPoints(0);
+      healer.applyExhaustion();
       expect(find()).to.equal(0);
-      healer.setActionPoints(2);
+      healer.refreshExhaustion();
       healer.activeAbility.effectCardId = SDK.Cards.PhobiesAbility.Monty;
       expect(find()).to.equal(0);
     });

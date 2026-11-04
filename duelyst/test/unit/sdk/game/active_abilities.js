@@ -31,7 +31,7 @@ describe('active ability state', () => {
     unit.setOwnerId(ownerId);
     gameSession.applyCardToBoard(unit, position.q, position.r, unit.createNewCardData(), null);
     expect(unit.getIsActive(), `Phobies card ${cardId} should deploy at ${position.q},${position.r}`).to.equal(true);
-    unit.setActionPoints(2);
+    unit.refreshExhaustion();
     const state = unit.getActiveAbilityState();
     if (state) {
       state.lockdown = 0;
@@ -300,18 +300,21 @@ describe('active ability state', () => {
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     addAlly();
     general.getActiveAbilityState().lockdown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     general.getActiveAbilityState().cooldown = 0;
     const previousSignature = player.getCurrentSignatureCard();
     const target = previousSignature.getValidTargetPositions()[0];
     const mana = player.getRemainingMana();
-    const actionPoints = general.getActionPoints();
+    const attacksMade = general.getAttacksMade();
     const action = player.actionUseActiveAbility(general.getIndex(), target);
     expect(action).to.be.instanceOf(SDK.UseActiveAbilityAction);
     gameSession.executeAction(action);
     expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
     expect(action.getCard().getId()).to.equal(previousSignature.getId());
-    expect(general.getActionPoints()).to.equal(actionPoints - 1);
+    expect(general.getAttacksMade()).to.equal(attacksMade + 1);
+    expect(general.getCanMove()).to.equal(false);
+    expect(general.getCanAttack()).to.equal(false);
+    expect(general.getCanUseActiveAbility()).to.equal(false);
     expect(player.getRemainingMana()).to.equal(mana);
     expect(general.getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 2 });
     expect(player.signatureCardActive).to.equal(false);
@@ -321,7 +324,7 @@ describe('active ability state', () => {
     expect(nextSignature.getId()).to.equal(previousSignature.getId());
   });
 
-  it('rejects the General ability while Lockdown or Cooldown is above 0, silenced, out of points, or on a bad target', () => {
+  it('rejects the General ability while Lockdown or Cooldown is above 0, silenced, without an available attack slot, or on a bad target', () => {
     const ModifierSilence = require('../../../../app/sdk/modifiers/modifierSilence.coffee');
     const player = gameSession.getPlayer1();
     const general = gameSession.getGeneralForPlayer1();
@@ -345,10 +348,10 @@ describe('active ability state', () => {
     gameSession.applyModifierContextObject(ModifierSilence.createContextObject(), general);
     expect(tryUse(target).getIsValid()).to.equal(false);
     gameSession.removeModifierFromCardByClass(ModifierSilence, general);
-    general.setActionPoints(0);
+    general.applyExhaustion();
     expect(tryUse(target).getIsValid()).to.equal(false);
     expect(state).to.include({ lockdown: 0, cooldown: 0 });
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     const ok = tryUse(target);
     expect(ok.getIsValid(), ok.getValidationMessage()).to.equal(true);
   });
@@ -360,14 +363,14 @@ describe('active ability state', () => {
     scout.activeAbility = { effectCardId: SDK.Cards.Spell.PhoenixFire, lockdown: 1, cooldown: 1 };
     scout.setOwnerId(gameSession.getPlayer1Id());
     gameSession.applyCardToBoard(scout, 0, 1, scout.createNewCardData(), null);
-    scout.setActionPoints(2);
+    scout.refreshExhaustion();
     scout.getActiveAbilityState().lockdown = 0;
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     const use = gameSession.getPlayer1().actionUseActiveAbility(scout.getIndex(), { q: 4, r: 4 });
     gameSession.applyModifierContextObject(ModifierStunned.createContextObject(), scout);
     gameSession.executeAction(use);
     expect(use.getIsValid()).to.equal(false);
-    expect(scout.getActionPoints()).to.equal(2);
+    expect(scout.getAttacksMade()).to.equal(0);
 
     const abilityUse = gameSession.getPlayer1().actionUseActiveAbility(scout.getIndex(), { q: 4, r: 4 });
     const CardEligibility = require('../../../../app/sdk/rulesets/cardEligibility.coffee');
@@ -408,7 +411,7 @@ describe('active ability state', () => {
     abilityUse.getCard().type = CardType.AbilityEffect;
     gameSession.executeAction(abilityUse);
     expect(abilityUse.getIsValid(), abilityUse.getValidationMessage()).to.equal(true);
-    expect(scout.getActionPoints()).to.equal(1);
+    expect(scout.getAttacksMade()).to.equal(1);
     const staleParentMove = scout.actionMove({ q: 1, r: 1 });
     staleParentMove.setIsAbilityOrigin(true);
     staleParentMove.setParentAction(abilityUse);
@@ -425,7 +428,7 @@ describe('active ability state', () => {
     expect(scout.getMovementRange().getIsPositionValid(gameSession.getBoard(), scout, moveTarget, true)).to.equal(true);
     gameSession.executeAction(embeddedMove);
     expect(embeddedMove.getIsValid(), embeddedMove.getValidationMessage()).to.equal(true);
-    expect(scout.getActionPoints()).to.equal(1);
+    expect(scout.getAttacksMade()).to.equal(1);
     expect(scout.getMovesMade()).to.equal(1);
     const enemyGeneral = gameSession.getGeneralForPlayer2();
     const attackPosition = gameSession.getBoard().getHexNeighbors(scout.getPosition()).find((position) => gameSession.getBoard().hasTileAtPosition(position) && !gameSession.getBoard().getUnitAtPosition(position));
@@ -435,7 +438,6 @@ describe('active ability state', () => {
     expect(embeddedAttack.getIsAbilityOrigin()).to.equal(true);
     gameSession.executeAction(embeddedAttack);
     expect(embeddedAttack.getIsValid(), embeddedAttack.getValidationMessage()).to.equal(true);
-    expect(scout.getActionPoints()).to.equal(1);
     expect(scout.getAttacksMade()).to.equal(1);
 
     const DamageAction = require('../../../../app/sdk/actions/damageAction.coffee');
@@ -473,14 +475,14 @@ describe('active ability state', () => {
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     addAlly();
     general.getActiveAbilityState().lockdown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     const signature = player.getCurrentSignatureCard();
     const target = signature.getValidTargetPositions()[0];
     const old = new SDK.PlaySignatureCardAction(gameSession, player.getPlayerId(), target, signature.getIndex());
     gameSession.executeAction(old);
     expect(old.getIsValid()).to.equal(false);
     expect(general.getActiveAbilityState()).to.include({ lockdown: 0, cooldown: 0 });
-    expect(general.getActionPoints()).to.equal(2);
+    expect(general.getAttacksMade()).to.equal(0);
   });
 
   it('returns a UseActiveAbilityAction from Player.actionPlaySignatureCard in version 2 only', () => {
@@ -504,7 +506,7 @@ describe('active ability state', () => {
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     addAlly();
     general.getActiveAbilityState().lockdown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     const signatureId = player.getSignatureCardData().id;
     expect(SDK.Cards.getIsPrismaticCardId(signatureId)).to.equal(true);
     const target = player.getCurrentSignatureCard().getValidTargetPositions()[0];
@@ -523,7 +525,7 @@ describe('active ability state', () => {
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     addAlly();
     general.getActiveAbilityState().lockdown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     const originalId = player.getSignatureCardData().id;
     expect(SDK.Cards.Spell.PhoenixFire).to.not.equal(originalId);
     gameSession.applyModifierContextObject(PlayerModifierChangeSignatureCard.createContextObject({ id: SDK.Cards.Spell.PhoenixFire }), general);
@@ -544,7 +546,7 @@ describe('active ability state', () => {
     general.setPosition({ q: 4, r: 0 });
     gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
     general.getActiveAbilityState().lockdown = 0;
-    general.setActionPoints(2);
+    general.refreshExhaustion();
     const ally = gameSession.createCardForIdentifier(50003);
     ally.setOwnerId(player.getPlayerId());
     gameSession.applyCardToBoard(ally, 3, 0, null, null);
@@ -574,7 +576,7 @@ describe('active ability state', () => {
       general.setPosition({ q: 4, r: 0 });
       gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
       general.getActiveAbilityState().lockdown = 0;
-      general.setActionPoints(2);
+      general.refreshExhaustion();
     });
 
     const addUnit = (ownerId, q, r) => {
@@ -732,7 +734,7 @@ describe('active ability state', () => {
     expect(effect.getBaseAnimResource()).to.deep.equal(source.getBaseAnimResource());
   });
 
-  it('plays the ability from its original hand slot for one AP and no mana', () => {
+  it('plays the ability from its original hand slot using the attack slot and no mana', () => {
     const player = gameSession.getPlayer1();
     const opposingGeneral = gameSession.getGeneralForPlayer2();
     const general = gameSession.getGeneralForPlayer1();
@@ -771,14 +773,14 @@ describe('active ability state', () => {
     expect(useAbility.getIsValid(), useAbility.getValidationMessage()).to.equal(true);
     expect(useAbility.getIsValidApplication()).to.equal(true);
     expect(opposingGeneral.getDamage()).to.equal(3);
-    expect(scout.getActionPoints()).to.equal(1);
+    expect(scout.getAttacksMade()).to.equal(1);
     expect(player.getRemainingMana()).to.equal(manaBefore);
     expect(ability.state).to.include({ lockdown: 0, cooldown: 1 });
 
     const cooldownRetry = player.actionUseActiveAbility(scout.getIndex(), opposingGeneral.getPosition());
     gameSession.executeAction(cooldownRetry);
     expect(cooldownRetry.getIsValid()).to.equal(false);
-    expect(scout.getActionPoints()).to.equal(1);
+    expect(scout.getAttacksMade()).to.equal(1);
     expect(ability.state.cooldown).to.equal(1);
 
     ability.state.cooldown = 0;
@@ -789,7 +791,7 @@ describe('active ability state', () => {
     gameSession.executeAction(silencedUse);
     expect(silencedUse.getIsValid()).to.equal(false);
     expect(ability.state).to.include({ lockdown: 0, cooldown: 0 });
-    expect(scout.getActionPoints()).to.equal(1);
+    expect(scout.getAttacksMade()).to.equal(1);
     gameSession.removeModifierFromCardByClass(ModifierSilence, scout);
     expect(player.getActiveAbilityForHandSlot(abilitySlot).silenced).to.equal(false);
 
@@ -802,7 +804,7 @@ describe('active ability state', () => {
     expect(player.getActiveAbilityForHandSlot(abilitySlot)).to.equal(null);
   });
 
-  it('rejects invalid targets and a fresh summon with no action points', () => {
+  it('rejects invalid targets and a fresh summon without an available attack slot', () => {
     const player = gameSession.getPlayer1();
     const scout = createAbilityFixture();
     scout.setOwnerId(player.getPlayerId());
@@ -813,14 +815,14 @@ describe('active ability state', () => {
     const noPoints = player.actionUseActiveAbility(scout.getIndex(), enemyGeneral.getPosition());
     gameSession.executeAction(noPoints);
     expect(noPoints.getIsValid()).to.equal(false);
-    expect(scout.getActionPoints()).to.equal(0);
+    expect(scout.getAttacksMade()).to.equal(0);
     expect(state.cooldown).to.equal(0);
 
     scout.refreshExhaustion();
     const invalidTarget = player.actionUseActiveAbility(scout.getIndex(), { q: 99, r: 99 });
     gameSession.executeAction(invalidTarget);
     expect(invalidTarget.getIsValid()).to.equal(false);
-    expect(scout.getActionPoints()).to.equal(2);
+    expect(scout.getAttacksMade()).to.equal(0);
     expect(state.cooldown).to.equal(0);
   });
 
@@ -915,7 +917,7 @@ describe('active ability state', () => {
     expect(caster.getIsActive()).to.equal(true);
   });
 
-  it('Terrorform creates and removes a neutral configured Wall for one AP', () => {
+  it('Terrorform creates and removes a neutral configured Wall using the attack slot', () => {
     const board = gameSession.getBoard();
     for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
     const caster = deployPhobies(50011, gameSession.getPlayer1Id(), { q: 2, r: 2 });
@@ -926,19 +928,19 @@ describe('active ability state', () => {
     expect(wall.getId()).to.equal(SDK.Cards.Tile.Wall);
     expect(wall.getOwnerId()).to.equal(null);
     expect(wall.getMaxHP()).to.equal(gameSession.getRulesetConfig().wallHealth);
-    expect(caster.getActionPoints()).to.equal(1);
+    expect(caster.getAttacksMade()).to.equal(1);
     expect(create.getManaCost()).to.equal(0);
     const createActions = create.getFlattenedActionTree();
     expect(createActions.some((action) => action instanceof SDK.ApplyCardToBoardAction && action.getFXResource().includes('FX.Phobies.BoulderCreate'))).to.equal(true);
 
-    caster.setActionPoints(2);
+    caster.refreshExhaustion();
     caster.getActiveAbilityState().cooldown = 0;
     const remove = useUnitAbility(caster, target);
     expect(remove.getIsValid(), remove.getValidationMessage()).to.equal(true);
     expect(wall.getIsActive()).to.equal(false);
     expect(remove.getFlattenedActionTree().some((action) => action instanceof SDK.RemoveAction && action.getFXResource().includes('FX.Phobies.BoulderRemove'))).to.equal(true);
     expect(board.getTiles().some((tile) => tile.getId() === SDK.Cards.Tile.Wall && board.positionsEqual(tile.getPosition(), target))).to.equal(false);
-    expect(caster.getActionPoints()).to.equal(1);
+    expect(caster.getAttacksMade()).to.equal(1);
 
     const unitUnderWall = deployPhobies(50003, gameSession.getPlayer1Id(), target);
     const wallUnderUnit = gameSession.createCardForIdentifier(SDK.Cards.Tile.Wall);
@@ -946,7 +948,7 @@ describe('active ability state', () => {
     wallUnderUnit.setIsPlayed(true);
     wallUnderUnit.setIsRemoved(false);
     board.addCard(wallUnderUnit);
-    caster.setActionPoints(2);
+    caster.refreshExhaustion();
     caster.getActiveAbilityState().cooldown = 0;
     const removeUnderUnit = useUnitAbility(caster, target);
     expect(removeUnderUnit.getIsValid(), removeUnderUnit.getValidationMessage()).to.equal(true);
@@ -954,7 +956,7 @@ describe('active ability state', () => {
     expect(wallUnderUnit.getIsActive()).to.equal(false);
   });
 
-  it('Terrorform rejects occupied, non-adjacent, and hole targets without spending AP', () => {
+  it('Terrorform rejects occupied, non-adjacent, and hole targets without spending the attack slot', () => {
     const board = gameSession.getBoard();
     for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
     const caster = deployPhobies(50011, gameSession.getPlayer1Id(), { q: 2, r: 2 });
@@ -962,7 +964,6 @@ describe('active ability state', () => {
     for (const target of [{ q: 3, r: 2 }, { q: 5, r: 2 }, { q: 2, r: 0 }]) {
       const use = useUnitAbility(caster, target);
       expect(use.getIsValid()).to.equal(false);
-      expect(caster.getActionPoints()).to.equal(2);
       const tile = board.getTileAtPosition(target, true);
       expect(!tile || tile.getId() !== SDK.Cards.Tile.Wall).to.equal(true);
     }
@@ -988,7 +989,7 @@ describe('active ability state', () => {
     expect(behind.getDamage()).to.equal(500);
     expect(ally.getDamage()).to.equal(0);
     expect(blocked.getDamage()).to.equal(0);
-    expect(caster.getActionPoints()).to.equal(1);
+    expect(caster.getAttacksMade()).to.equal(1);
     const damageActions = use.getFlattenedActionTree().filter((action) => action instanceof SDK.DamageAction);
     expect(damageActions).to.have.length(2);
     expect(damageActions.every((action) => action.getSource() === caster)).to.equal(true);
@@ -1024,7 +1025,6 @@ describe('active ability state', () => {
     gameSession.validateAction(blockedUse, false);
     expect(blockedUse.getIsValid()).to.equal(false);
     expect(blockedTarget.getDamage()).to.equal(0);
-    expect(blockedCaster.getActionPoints()).to.equal(2);
   });
 
   it('Behold continues its snapshotted beam after an earlier victim is destroyed', () => {
@@ -1041,23 +1041,30 @@ describe('active ability state', () => {
     expect(behind.getDamage()).to.equal(500);
   });
 
-  it('resolves Caw Claw with one embedded move, one real attack, and one total AP', () => {
-    const caster = deployPhobies(50004, gameSession.getPlayer1Id(), { q: 2, r: 2 });
-    const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 2 });
-    caster.setDamage(500);
-    caster.setActionPoints(1);
-    const use = useUnitAbility(caster, enemy.getPosition());
+  it('allows a move then an ability and rejects a direct attack or second move', () => {
+    const caster = deployPhobies(50005, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), { q: 3, r: 1 });
+    const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 3, r: 0 });
+    caster.atk = 250;
+    caster.setReach(1);
+    ally.setDamage(300);
+
+    const move = caster.actionMove({ q: 2, r: 1 });
+    gameSession.executeAction(move);
+    expect(move.getIsValid(), move.getValidationMessage()).to.equal(true);
+    expect(caster.getMovesMade()).to.equal(1);
+
+    const use = useUnitAbility(caster, ally.getPosition());
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
-    expect(caster.getPosition()).to.deep.equal({ q: 3, r: 2 });
-    expect(caster.getDamage()).to.equal(288); // AttackAction triggers Cassowary's 50% Lifegain.
-    expect(enemy.getDamage()).to.equal(425);
-    expect(caster.getActionPoints()).to.equal(0);
-    const tree = use.getFlattenedActionTree();
-    expect(tree.some((action) => action instanceof SDK.MoveAction && action.getIsAbilityOrigin())).to.equal(true);
-    const attack = tree.find((action) => action instanceof SDK.AttackAction && action.getTarget() === enemy);
-    expect(attack).to.exist;
-    expect(attack.getIsAbilityOrigin()).to.equal(true);
-    expect(attack.getSource()).to.equal(caster);
+    expect(caster.getAttacksMade()).to.equal(1);
+
+    const attack = caster.actionAttack(enemy);
+    gameSession.executeAction(attack);
+    expect(attack.getIsValid()).to.equal(false);
+
+    const secondMove = caster.actionMove({ q: 1, r: 1 });
+    gameSession.executeAction(secondMove);
+    expect(secondMove.getIsValid()).to.equal(false);
   });
 
   it('resolves Bull Rush along a preferred enemy path with attacks and dash moves', () => {
@@ -1066,13 +1073,13 @@ describe('active ability state', () => {
     const caster = deployPhobies(50032, gameSession.getPlayer1Id(), { q: 3, r: 2 });
     const first = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 4, r: 2 });
     const second = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 5, r: 2 });
-    caster.setActionPoints(1);
+    caster.refreshExhaustion();
     const use = useUnitAbility(caster, { q: 6, r: 2 });
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
     expect(caster.getPosition()).to.deep.equal({ q: 6, r: 2 });
     expect(first.getDamage()).to.equal(550);
     expect(second.getDamage()).to.equal(550);
-    expect(caster.getActionPoints()).to.equal(0);
+    expect(caster.getAttacksMade()).to.equal(1);
     const tree = use.getFlattenedActionTree();
     const attacks = [...new Set(tree.filter((action) => action instanceof SDK.AttackAction && [first, second].includes(action.getTarget())))];
     const moves = [...new Set(tree.filter((action) => action instanceof SDK.MoveAction && action.getIsAbilityDashStep()))];
@@ -1085,12 +1092,12 @@ describe('active ability state', () => {
     const caster = deployPhobies(50020, gameSession.getPlayer1Id(), { q: 2, r: 2 });
     const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 3, r: 2 });
     deployPhobies(50003, gameSession.getPlayer1Id(), { q: 4, r: 2 });
-    caster.setActionPoints(1);
+    caster.refreshExhaustion();
     const use = useUnitAbility(caster, enemy.getPosition());
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
     expect(enemy.getDamage()).to.equal(350);
     expect(enemy.getPosition()).to.deep.equal({ q: 3, r: 2 });
-    expect(caster.getActionPoints()).to.equal(0);
+    expect(caster.getAttacksMade()).to.equal(1);
     const attack = use.getFlattenedActionTree().find((action) => action instanceof SDK.AttackAction && action.getTarget() === enemy);
     expect(attack.getIsAbilityOrigin()).to.equal(true);
     expect(attack.getSource()).to.equal(caster);
@@ -1099,12 +1106,12 @@ describe('active ability state', () => {
   it('pushes an adjacent enemy one tile directly away when the destination is open', () => {
     const caster = deployPhobies(50020, gameSession.getPlayer1Id(), { q: 2, r: 2 });
     const enemy = deployPhobies(50003, gameSession.getPlayer2Id(), { q: 3, r: 2 });
-    caster.setActionPoints(1);
+    caster.refreshExhaustion();
     const use = useUnitAbility(caster, enemy.getPosition());
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
     expect(enemy.getDamage()).to.equal(350);
     expect(enemy.getPosition()).to.deep.equal({ q: 4, r: 2 });
-    expect(caster.getActionPoints()).to.equal(0);
+    expect(caster.getAttacksMade()).to.equal(1);
     const push = use.getFlattenedActionTree().find((action) => action instanceof SDK.PhobiesPushAction);
     expect(push.getIsAbilityOrigin()).to.equal(true);
     expect(push.getSource()).to.equal(caster);
@@ -1119,7 +1126,6 @@ describe('active ability state', () => {
     const use = useUnitAbility(caster, enemy.getPosition());
     expect(use.getIsValid()).to.equal(false);
     expect(caster.getPosition()).to.deep.equal({ q: 3, r: 2 });
-    expect(caster.getActionPoints()).to.equal(2);
     expect(enemy.getDamage()).to.equal(0);
   });
 
@@ -1139,7 +1145,6 @@ describe('active ability state', () => {
     const use = useUnitAbility(caster, endpoint);
     expect(use.getIsValid()).to.equal(false);
     expect(caster.getPosition()).to.deep.equal({ q: 3, r: 2 });
-    expect(caster.getActionPoints()).to.equal(2);
     expect(enemy.getDamage()).to.equal(0);
   });
 
@@ -1181,7 +1186,7 @@ describe('active ability state', () => {
 
     expect(use.getIsValid(), use.getValidationMessage()).to.equal(true);
     expect(state.cooldown).to.equal(2);
-    expect(general.getActionPoints()).to.equal(1);
+    expect(general.getAttacksMade()).to.equal(1);
     expect(player.getRemainingMana()).to.equal(manaBefore);
     expect(player.getIsSignatureCardActive()).to.equal(false);
 

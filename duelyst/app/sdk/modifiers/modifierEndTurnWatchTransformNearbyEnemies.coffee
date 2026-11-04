@@ -38,7 +38,7 @@ class ModifierEndTurnWatchTransformNearbyEnemies extends ModifierEndTurnWatch
         if entity?
           cardData = @cardToBecome
           cardData.additionalInherentModifiersContextObjects ?= []
-          cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn()))
+          cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
           spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), opponentId, entity.getPosition(), cardData)
           @getGameSession().executeAction(spawnEntityAction)
 

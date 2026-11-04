@@ -32,7 +32,8 @@ class ModifierOpeningGambitProgenitor extends ModifierOpeningGambit
           spawnPosition.q += playerOffset
         else
           spawnPosition = {x:minion.getPosition().x+playerOffset, y:minion.getPosition().y}
-        if !@getGameSession().getBoard().getObstructionAtPositionForEntity(spawnPosition, minion)
+        egg = @getGameSession().getCardCaches().getCardById(Cards.Faction5.Egg)
+        if @getGameSession().getBoard().isValidSummonPositionForEntity(spawnPosition, egg)
 
           egg = {id: Cards.Faction5.Egg}
           egg.additionalInherentModifiersContextObjects ?= []

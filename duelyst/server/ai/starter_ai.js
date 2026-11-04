@@ -752,7 +752,7 @@ StarterAI.prototype = {
     return true;
   },
 
-  // Version 2: Bloodbound is the General's active ability and also needs an action point.
+  // Version 2: Bloodbound uses the General's active ability slot.
   _getCanUseGeneralAbility(player) {
     const gameSession = this.getGameSession();
     if (!gameSession.getIsPracticeSandboxV2()) return true;

@@ -42,7 +42,6 @@ intents[PA.Gotcha] = [{
 }];
 intents[PA.Poof] = [{ type: CardIntentType.Burn, amount: 1400, targets: CardTargetType.Nearby | CardTargetType.Minion | CardTargetType.Enemy }];
 intents[PA.RaisingHell] = [{ type: CardIntentType.Burn, amount: 600, targets: CardTargetType.Nearby | CardTargetType.Minion | CardTargetType.Enemy }];
-intents[PA.CawClaw] = [{ type: CardIntentType.Burn, amount: 425, targets: CardTargetType.Minion | CardTargetType.Enemy }];
 intents[PA.PlaySmashface] = [{ type: CardIntentType.Burn, amount: 350, targets: CardTargetType.Minion | CardTargetType.Enemy }];
 intents[PA.Behold] = [{ type: CardIntentType.Burn, amount: 500, targets: CardTargetType.Minion | CardTargetType.Enemy }];
 
@@ -75,17 +74,6 @@ const scorePathAndPosition = (card, source, targetPosition) => {
     const oldPositionScore = ScoreForCardAtTargetPosition(source, source.getPosition());
     const newPositionScore = ScoreForCardAtTargetPosition(source, targetPosition);
     return score + Math.max(0, newPositionScore - oldPositionScore);
-  }
-
-  if (card.getId() === PA.CawClaw && distance === 2) {
-    const destinations = HexTopology.getNeighbors(targetPosition).filter((position) =>
-      HexTopology.getDistance(source.getPosition(), position) === 1
-        && !board.getObstructionAtPositionForEntity(position, source)
-        && source.getMovementRange().getIsPositionValid(board, source, position, true));
-    if (destinations.length === 0) return -100000;
-    const currentScore = ScoreForCardAtTargetPosition(source, source.getPosition());
-    return Math.max(...destinations.map((position) =>
-      ScoreForCardAtTargetPosition(source, position) - currentScore));
   }
 
   if (card.getId() === PA.PlaySmashface) {

@@ -23,7 +23,7 @@ class SpellShadows extends SpellSpawnEntity
         behindPosition.q += playerOffset
       else
         behindPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
-      if unit.getOwnerId() != @getOwnerId() and board.isOnBoard(behindPosition) and !board.getObstructionAtPositionForEntity(behindPosition, entity)
+      if unit.getOwnerId() != @getOwnerId() and board.isValidSummonPositionForEntity(behindPosition, entity)
         applyEffectPositions.push(behindPosition)
 
     return applyEffectPositions

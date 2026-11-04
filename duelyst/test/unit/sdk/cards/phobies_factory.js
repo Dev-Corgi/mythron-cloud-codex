@@ -49,6 +49,7 @@ describe('Phobies imported unit factory', () => {
   it('provides a real source spell and animated art for every hand ability', () => {
     const session = SDK.GameSession.create();
     for (let id = 51001; id <= 51016; id++) {
+      if (id === 51012) continue; // Rock Pulverizer now has Rush instead of Caw Claw.
       const effect = SDK.CardFactory.cardForIdentifier(id, session);
       expect(effect.originalCardId, `effect ${id} source`).to.be.a('number');
       const sourceSpell = SDK.CardFactory.cardForIdentifier(effect.originalCardId, session);
@@ -125,6 +126,24 @@ describe('Phobies imported unit factory', () => {
       const card = SDK.CardFactory.cardForIdentifier(id, session);
       expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type.startsWith('ModifierPhobies'))).to.equal(false);
     }
+
+    const rockPulverizer = SDK.CardFactory.cardForIdentifier(50004, session);
+    expect(rockPulverizer.activeAbility).to.equal(null);
+    expect([
+      rockPulverizer.getManaCost(), rockPulverizer.getHP(), rockPulverizer.getATK(), rockPulverizer.getSpeed(),
+      rockPulverizer.getMovementType(), rockPulverizer.getReach(), rockPulverizer.getAttackType(),
+    ]).to.deep.equal([2, 650, 425, 2, 'walk', 1, 'melee']);
+    expect(rockPulverizer.getInherentModifiersContextObjects().filter((modifier) => modifier.type === 'ModifierFirstBlood'))
+      .to.have.length(1);
+    expect(SDK.ModifierFirstBlood.getIsKeyworded()).to.equal(true);
+    expect(rockPulverizer.getInherentModifiersContextObjects().filter((modifier) => modifier.type === 'ModifierHealSelfWhenDealingDamage'))
+      .to.have.length(1);
+    for (let id = 50001; id <= 50035; id++) {
+      if (id === 50004) continue;
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(card.getInherentModifiersContextObjects().some((modifier) => modifier.type === 'ModifierFirstBlood'), `${id} Rush`)
+        .to.equal(false);
+    }
   });
 
   it('registers runtime-only ability effects and the exact owner metadata', () => {
@@ -159,8 +178,7 @@ describe('Phobies imported unit factory', () => {
       [50009, SDK.Cards.PhobiesAbility.Gotcha, 1, 1, 1, 'Flash Freeze'],
       [50013, SDK.Cards.PhobiesAbility.Poof, 1, 1, 1, 'Pupabomb'],
       [50030, SDK.Cards.PhobiesAbility.RaisingHell, 1, 2, 2, 'Holy Immolation'],
-      [50004, SDK.Cards.PhobiesAbility.CawClaw, 0, 1, 2, 'Knucklestorm'],
-      [50032, SDK.Cards.PhobiesAbility.BullRush, 1, 1, 3, 'Spiral Counter'],
+      [50032, SDK.Cards.PhobiesAbility.BullRush, 0, 1, 3, 'Spiral Counter'],
       [50020, SDK.Cards.PhobiesAbility.PlaySmashface, 0, 1, 1, 'Koan of Horns'],
       [50011, SDK.Cards.PhobiesAbility.Terrorform, 0, 2, 1, 'Boulder Hurl'],
       [50035, SDK.Cards.PhobiesAbility.Behold, 1, 1, 2, 'Thunderbomb'],

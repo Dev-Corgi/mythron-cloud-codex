@@ -51,7 +51,7 @@ function isValidEffectCardId(effectCardId) {
 
 /**
  * Usability follows the rules for using an ability: both counters are 0, the unit is not silenced,
- * the unit has an action point and it is my turn (and selection is not locked, like a spell).
+ * the unit can use its active ability and it is my turn (and selection is not locked, like a spell).
  */
 function isAbilityUsable({
   state, silenced, canUse, isMyTurn, selectionLocked,
@@ -73,7 +73,7 @@ function isAbilityUsable({
 function describeHandAbilitySlot(slotInfo, context) {
   if (slotInfo == null || slotInfo.unit == null || slotInfo.state == null || slotInfo.definition == null) return null;
   const { unit, definition, state } = slotInfo;
-  const effectCardId = definition.effectCardId;
+  const { effectCardId } = definition;
   if (!isValidEffectCardId(effectCardId)) return null;
 
   const ctx = context || {};
@@ -164,7 +164,7 @@ function getSignatureAbilityFaceData(sdkCard, session) {
  */
 function getSlotAbilityFaceData(slotModel, definition) {
   if (slotModel == null || slotModel.unit == null) return null;
-  const unit = slotModel.unit;
+  const { unit } = slotModel;
   const state = typeof unit.getActiveAbilityState === 'function' ? unit.getActiveAbilityState() : null;
   return buildAbilityFaceData(Object.assign({}, definition || unit.activeAbility, { effectCardId: slotModel.effectCardId }), state);
 }

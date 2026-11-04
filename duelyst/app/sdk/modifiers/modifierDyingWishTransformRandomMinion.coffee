@@ -55,7 +55,7 @@ class ModifierDyingWishTransformRandomMinion extends ModifierDyingWish
         if existingEntity?
           cardData = @minionToTransformTo
           cardData.additionalInherentModifiersContextObjects ?= []
-          cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(existingEntity.getExhausted(), existingEntity.getMovesMade(), existingEntity.getAttacksMade(), existingEntity.getActionPoints(), existingEntity.getHasSpentActionPointThisTurn()))
+          cardData.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(existingEntity.getExhausted(), existingEntity.getMovesMade(), existingEntity.getAttacksMade()))
           spawnEntityAction = new PlayCardAsTransformAction(@getCard().getGameSession(), @getCard().getOwnerId(), targetPosition, cardData)
           @getGameSession().executeAction(spawnEntityAction)
 

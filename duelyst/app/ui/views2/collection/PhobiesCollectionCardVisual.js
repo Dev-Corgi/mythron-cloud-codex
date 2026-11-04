@@ -51,9 +51,6 @@ var ABILITY_ICONS = {
   51007: {
     atlas: 'iconGreaterGoodIdle', x: 49, y: 0, width: 512, height: 256,
   },
-  51012: {
-    atlas: 'iconKindleIdle', x: 49, y: 98, width: 256, height: 256,
-  },
   51008: {
     atlas: 'iconEggGrenadeIdle', x: 49, y: 196, width: 256, height: 256,
   },

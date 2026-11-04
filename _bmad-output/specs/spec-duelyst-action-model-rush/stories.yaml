@@ -26,3 +26,27 @@
     Retire effect 51012 only after checking every reference: effect factory,
     validatorEntityAction movement-attack id list, AI card-intent data,
     PhobiesCollectionCardVisual, abilities.coffee, cardsLookup, tests.
+- id: "3"
+  title: Enemy units block ranged attacks
+  description: >-
+    In Practice/Sandbox v2, treat every enemy unit (including Generals) between
+    attacker and target as a Wall for RANGED obstruction only (CAP-3), inside
+    the shared hexAttackGeometry resolver so targeting, previews, AI and replay
+    agree. Same Wall tests (tile-center pass and center-to-center link of two
+    hex-adjacent obstructors; a Wall and an enemy unit that are adjacent link).
+    An enemy on the target tile never blocks itself, allies never block, the
+    Wall beneath the target stays excluded; lobbed and area attacks unchanged. Behold (a piercing active, not a ranged
+    attack) is unaffected: its selection and beam keep their Wall-only rules.
+- id: "4"
+  title: Summon fly and phase units onto Walls next to the General
+  description: >-
+    In Practice/Sandbox v2, a fly or phase unit may be summoned onto a Wall on a
+    tile adjacent to its owner's General, from a hand card, or on any Wall an
+    effect-created summon may itself place a unit on (CAP-4); the Wall stays a separate entity at that position. Walk
+    units, holes and non-adjacent Walls stay illegal. Follow ARCHITECTURE-SPINE.md AD-23: a Wall obstructs every Unit through
+    Entity.getObstructsEntity, reached via Board.getObstructionAtPositionForEntity;
+    add ONE predicate for the fly/phase Wall exemption, used by
+    ValidatorApplyCardToBoard and all summon position producers (hand summons
+    and ~20 summon/clone spells and modifiers), while teleport and move keep
+    their old logic. An effect's own placement constraints still apply; only
+    the Wall exclusion is lifted for fly and phase units.

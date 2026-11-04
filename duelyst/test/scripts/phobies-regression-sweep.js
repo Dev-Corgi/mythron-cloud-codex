@@ -57,7 +57,7 @@ const report = {
     'Does not recreate pre-fix failures for all historical defect-register entries.',
   ],
   conformanceCardIds: Array.from({ length: 35 }, (_, index) => 50001 + index),
-  exercisedAbilityEffectIds: Array.from({ length: 16 }, (_, index) => 51001 + index),
+  exercisedAbilityEffectIds: Array.from({ length: 16 }, (_, index) => 51001 + index).filter((id) => id !== 51012),
   suites,
   redisDependentSuitesExcluded: ['test/unit/server/api/practice_entry.js'],
   tests: mochaReport ? mochaReport.stats : null,

@@ -55,7 +55,8 @@ class UseActiveAbilityAction extends PlayCardAction
     session = @getGameSession()
     sourceUnit = session.getCardByIndex(@sourceUnitIndex)
     state = sourceUnit?.getActiveAbilityState?()
-    return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and !sourceUnit.hasActiveModifierClass(ModifierStunned) and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.getCanUseActiveAbility() and sourceUnit.recordActiveAbilityUse()
+    return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and !sourceUnit.hasActiveModifierClass(ModifierStunned) and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.getCanUseActiveAbility()
+    sourceUnit.recordAttack()
     @casterPosition = Object.assign({}, sourceUnit.getPosition())
     sourceUnit.startActiveAbilityCooldown()
     @_private.source = sourceUnit

@@ -22,7 +22,7 @@ class SpellApplyEntityToBoard extends Spell
       if entity?
         filteredPositions = []
         for position in validPositions
-          if !@getGameSession().getBoard().getObstructionAtPositionForEntity(position, entity)
+          if @getGameSession().getBoard().isValidSummonPositionForEntity(position, entity)
             filteredPositions.push(position)
         return filteredPositions
       else

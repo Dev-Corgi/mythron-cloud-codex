@@ -15,7 +15,8 @@ const StarterAI = require('../../../server/ai/starter_ai');
 const createRulesetFixture = (rulesetId, rulesetVersion, general1Id = SDK.Cards.Faction1.General, general2Id = SDK.Cards.Faction4.AltGeneral) => {
   const gameSession = SDK.GameSession.create();
   gameSession.setRuleset(rulesetId, rulesetVersion);
-  const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+  const roster = rulesetVersion === 2 ? [50001, 50002, 50003, 50004, 50005, 50006, 50007, 50008]
+    : [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
   const practiceDeck1 = [{ id: general1Id }, ...roster.map((id) => ({ id }))];
   const practiceDeck2 = [{ id: general2Id }, ...roster.map((id) => ({ id }))];
   SDK.GameSetup.setupNewSession(
@@ -65,7 +66,7 @@ const executeEndTurnWithoutValidation = (gameSession) => {
 describe('UtilsGameSession', () => {
   it('scales General Bloodbound Spell effects through ability resolution in v2', () => {
     const placeMinion = (session, ownerId, position) => {
-      const minion = session.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+      const minion = session.createCardForIdentifier(50007);
       minion.setOwnerId(ownerId);
       session.applyCardToBoard(minion, position.q, position.r);
       return minion;
@@ -75,7 +76,7 @@ describe('UtilsGameSession', () => {
       general.setSignatureCardData({ id: effectId });
       general.getActiveAbilityState().lockdown = 0;
       general.getActiveAbilityState().cooldown = 0;
-      general.setActionPoints(4);
+      general.refreshExhaustion();
       const action = player.actionUseActiveAbility(general.getIndex(), targetPosition);
       const validators = session.getValidators();
       session.setValidators([]);
@@ -582,7 +583,7 @@ describe('UtilsGameSession', () => {
       const point = session.getBoard().getTileAtPosition(pointPosition, true);
       const general = session.getGeneralForPlayer1();
       general.setPosition(SDK.HexTopology.renderedToAxial(2, 0));
-      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 10979 });
+      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 50003 });
       unit.setOwner(session.getPlayer1());
       session.applyCardToBoard(unit, pointPosition.q, pointPosition.r);
       session.syncState();
@@ -627,7 +628,7 @@ describe('UtilsGameSession', () => {
       const point = session.getBoard().getTileAtPosition(pointPosition, true);
       const general = session.getGeneralForPlayer1();
       general.setPosition(SDK.HexTopology.renderedToAxial(2, 0));
-      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 10979 });
+      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 50003 });
       unit.setOwner(session.getPlayer1());
       session.applyCardToBoard(unit, pointPosition.q, pointPosition.r);
       unit.setIsRemoved(true);
@@ -651,7 +652,7 @@ describe('UtilsGameSession', () => {
       const pointPosition = SDK.HexTopology.renderedToAxial(3, 0);
       const point = session.getBoard().getTileAtPosition(pointPosition, true);
       session.getGeneralForPlayer1().setPosition(SDK.HexTopology.renderedToAxial(2, 0));
-      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 10979 });
+      const unit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 50003 });
       unit.setOwner(session.getPlayer1());
       session.applyCardToBoard(unit, pointPosition.q, pointPosition.r);
       session.setStatus(SDK.GameStatus.active);
@@ -795,7 +796,7 @@ describe('UtilsGameSession', () => {
       expect(point.getOwnerId()).to.equal(session.getPlayer1Id());
 
       player1General.setPosition(SDK.HexTopology.renderedToAxial(2, 0));
-      const opposingUnit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 10979 });
+      const opposingUnit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 50003 });
       opposingUnit.setOwner(session.getPlayer2());
       session.applyCardToBoard(opposingUnit, pointPosition.q, pointPosition.r);
       session.syncState();
@@ -815,7 +816,7 @@ describe('UtilsGameSession', () => {
       const point = session.getBoard().getTileAtPosition(pointPosition, true);
       const player1General = session.getGeneralForPlayer1();
       player1General.setPosition(pointPosition);
-      const opponentUnit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 10979 });
+      const opponentUnit = session.getExistingCardFromIndexOrCreateCardFromData({ id: 50003 });
       opponentUnit.setOwner(session.getPlayer2());
       const unitStart = SDK.HexTopology.renderedToAxial(0, 1);
       session.applyCardToBoard(opponentUnit, unitStart.q, unitStart.r);

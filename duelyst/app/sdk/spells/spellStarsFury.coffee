@@ -23,7 +23,7 @@ class SpellStarsFury extends SpellSpawnEntity
         inFrontOfPosition.q += playerOffset
       else
         inFrontOfPosition = {x:unit.getPosition().x+playerOffset, y:unit.getPosition().y}
-      if unit.getOwnerId() != @getOwnerId() and board.isOnBoard(inFrontOfPosition) and !board.getObstructionAtPositionForEntity(inFrontOfPosition, entity)
+      if unit.getOwnerId() != @getOwnerId() and board.isValidSummonPositionForEntity(inFrontOfPosition, entity)
         applyEffectPositions.push(inFrontOfPosition)
 
     return applyEffectPositions

@@ -69,7 +69,7 @@ describe('unit stats', () => {
   it('accepts the explicit none attack type and prevents attack eligibility', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
     const unit = createUnit();
-    unit.setActionPoints(1);
+    unit.refreshExhaustion();
     expect(unit.getCanAttack()).to.equal(true);
 
     unit.setAttackType('none');
@@ -81,7 +81,7 @@ describe('unit stats', () => {
     expect(cardData.attackType).to.equal('none');
     const copy = gameSession.createCardForIdentifier(unit.getId());
     copy.applyCardData(cardData);
-    copy.setActionPoints(1);
+    copy.refreshExhaustion();
     expect(copy.getAttackType()).to.equal('none');
     expect(copy.getCanAttack()).to.equal(false);
   });
@@ -89,12 +89,12 @@ describe('unit stats', () => {
   it('keeps default and inferred attack types eligible to attack', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
     const defaultUnit = createUnit();
-    defaultUnit.setActionPoints(1);
+    defaultUnit.refreshExhaustion();
     expect(defaultUnit.getAttackType()).to.equal('melee');
     expect(defaultUnit.getCanAttack()).to.equal(true);
 
     const inferredAreaUnit = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
-    inferredAreaUnit.setActionPoints(1);
+    inferredAreaUnit.refreshExhaustion();
     expect(inferredAreaUnit.getAttackType()).to.equal('area');
     expect(inferredAreaUnit.getCanAttack()).to.equal(true);
   });
@@ -113,10 +113,8 @@ describe('unit stats', () => {
   });
 
   it('derives fly and area types from existing traits and ranged from reach', () => {
-    const flyingUnit = UtilsSDK.applyCardToBoard(
-      { id: SDK.Cards.Neutral.SpottedDragonlark }, 0, 1, gameSession.getPlayer1Id());
-    const blastUnit = UtilsSDK.applyCardToBoard(
-      { id: SDK.Cards.Faction3.Pyromancer }, 2, 2, gameSession.getPlayer1Id());
+    const flyingUnit = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Neutral.SpottedDragonlark }, 0, 1, gameSession.getPlayer1Id());
+    const blastUnit = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction3.Pyromancer }, 2, 2, gameSession.getPlayer1Id());
 
     expect(flyingUnit.getMovementType()).to.equal('fly');
     expect(blastUnit.getAttackType()).to.equal('area');
@@ -127,8 +125,7 @@ describe('unit stats', () => {
   });
 
   it('counts only a configured attack type as explicit and copies it with the card data', () => {
-    const blast = UtilsSDK.applyCardToBoard(
-      { id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
+    const blast = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
     expect(blast.getAttackType()).to.equal('area');
     expect(blast.getHasExplicitAttackType()).to.equal(false);
     expect(createUnit().getHasExplicitAttackType()).to.equal(false);
@@ -140,12 +137,11 @@ describe('unit stats', () => {
     copy.applyCardData(unit.createCloneCardData());
     expect(copy.getHasExplicitAttackType()).to.equal(true);
     expect(copy.getAttackType()).to.equal('ranged');
-    expect(unit.getCardDataKeysForCopy()).to.include.members(['speed', 'reach', 'movementType', 'attackType', 'level', 'actionPoints', 'actionPointsSpentThisTurn', 'activeAbilityState']);
+    expect(unit.getCardDataKeysForCopy()).to.include.members(['speed', 'reach', 'movementType', 'attackType', 'level', 'activeAbilityState']);
   });
 
   it('lets an explicitly configured attack type override inferred traits', () => {
-    const unit = UtilsSDK.applyCardToBoard(
-      { id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
+    const unit = UtilsSDK.applyCardToBoard({ id: SDK.Cards.Faction3.Pyromancer }, 0, 1, gameSession.getPlayer1Id());
 
     expect(unit.getAttackType()).to.equal('area');
     unit.setAttackType('melee');
@@ -182,194 +178,130 @@ describe('unit stats', () => {
     expect(reconstructed.getLevel()).to.equal(2);
   });
 
-  it('tracks and serializes the version 2 action-point budget through exhaustion changes', () => {
-    gameSession.setRuleset('practice-sandbox-hex', 2);
-    const unit = gameSession.getGeneralForPlayer1();
-
-    expect(unit.getActionPoints()).to.equal(0);
-    expect(unit.getIsExhausted()).to.equal(true);
-    unit.refreshExhaustion();
-    expect(unit.getActionPoints()).to.equal(2);
-    expect(unit.getCanMove()).to.equal(true);
-    expect(unit.spendActionPoint()).to.equal(true);
-    expect(unit.getActionPoints()).to.equal(1);
-    expect(unit.getIsExhausted()).to.equal(false);
-
-    gameSession.executeAction(gameSession.actionEndTurn());
-    expect(unit.getActionPoints()).to.equal(1);
-    gameSession.executeAction(gameSession.actionEndTurn());
-    expect(unit.getActionPoints()).to.equal(2);
-
-    unit.spendActionPoint();
-    expect(unit.getActionPoints()).to.equal(1);
-    const remainingPointData = unit.createCardData();
-    expect(remainingPointData.actionPoints).to.equal(1);
-    const reconstructed = gameSession.createCardForIdentifier(unit.getId());
-    reconstructed.applyCardData(remainingPointData);
-    expect(reconstructed.getActionPoints()).to.equal(1);
-
-    unit.spendActionPoint();
-    const spentOutData = unit.createCardData();
-    expect(spentOutData.actionPoints).to.equal(0);
-    expect(spentOutData.actionPointsSpentThisTurn).to.equal(true);
-    const spentOutReconstruction = gameSession.createCardForIdentifier(unit.getId());
-    spentOutReconstruction.applyCardData(spentOutData);
-    expect(spentOutReconstruction.getActionPoints()).to.equal(0);
-    expect(spentOutReconstruction.getHasSpentActionPointThisTurn()).to.equal(true);
-
-    unit.applyExhaustion();
-    expect(unit.getActionPoints()).to.equal(0);
-    unit.setExhausted(false);
-    expect(unit.getActionPoints()).to.equal(2);
-  });
-
-  it('charges one point for each ordinary explicit move and attack', () => {
+  it('serializes move and attack slots with entity card data', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
     const unit = gameSession.getGeneralForPlayer1();
     unit.refreshExhaustion();
     unit.recordMove();
-    expect(unit.getActionPoints()).to.equal(1);
     unit.recordAttack();
-    expect(unit.getActionPoints()).to.equal(0);
+    const entityIndex = unit.getIndex();
+    const snapshot = JSON.parse(gameSession.serializeToJSON(gameSession));
+    gameSession.deserializeSessionFromFirebase(snapshot);
+    const restored = gameSession.getCardByIndex(entityIndex);
+    expect([restored.getMovesMade(), restored.getAttacksMade()]).to.deep.equal([1, 1]);
   });
 
-  it('maps explicit exhaustion actions to and from the version 2 point budget', () => {
+  it('carries slot state through an ordinary transformation', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
-    const unit = gameSession.getGeneralForPlayer1();
-    unit.refreshExhaustion();
-    unit.spendActionPoint();
-
-    const SetExhaustionAction = require('../../../../app/sdk/actions/setExhaustionAction.coffee');
-    const exhaust = new SetExhaustionAction(gameSession);
-    exhaust.setTarget(unit);
-    exhaust.setExhausted(true);
-    UtilsSDK.executeActionWithoutValidation(exhaust);
-    expect(unit.getActionPoints()).to.equal(0);
-    expect(unit.getIsExhausted()).to.equal(true);
-
-    const RefreshExhaustionAction = require('../../../../app/sdk/actions/refreshExhaustionAction.coffee');
-    const refresh = new RefreshExhaustionAction(gameSession);
-    refresh.setTarget(unit);
-    UtilsSDK.executeActionWithoutValidation(refresh);
-    expect(unit.getActionPoints()).to.equal(2);
-    expect(unit.getIsExhausted()).to.equal(false);
-  });
-
-  it('keeps a summoned unit at zero through the opponent turn and refreshes it on its owner turn', () => {
-    gameSession.setRuleset('practice-sandbox-hex', 2);
-    const summoned = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
-    summoned.setOwnerId(gameSession.getPlayer1Id());
-    gameSession.applyCardToBoard(summoned, 1, 0, null, null);
-    expect(summoned.getActionPoints()).to.equal(0);
-    const active = gameSession.getGeneralForPlayer1();
-    active.refreshExhaustion();
-    active.spendActionPoint();
-
-    gameSession.executeAction(gameSession.actionEndTurn());
-    expect(summoned.getActionPoints()).to.equal(0);
-    expect(active.getActionPoints()).to.equal(1);
-    gameSession.executeAction(gameSession.actionEndTurn());
-    expect(summoned.getActionPoints()).to.equal(2);
-    expect(active.getActionPoints()).to.equal(2);
-  });
-
-  it('preserves remaining action points when a unit is transformed', () => {
-    gameSession.setRuleset('practice-sandbox-hex', 2);
-    const original = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    gameSession.getGeneralForPlayer1().setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    const original = gameSession.createCardForIdentifier(SDK.Cards.Phobies.RazorMouth);
     original.setOwnerId(gameSession.getPlayer1Id());
-    const board = gameSession.getBoard();
-    const general = gameSession.getGeneralForPlayer1();
-    general.setPosition({ q: 4, r: 0 });
-    const originalPosition = board.getHexNeighbors(general.getPosition()).find((position) =>
-      board.hasTileAtPosition(position) && !board.getUnitAtPosition(position));
-    gameSession.applyCardToBoard(original, originalPosition.q, originalPosition.r, null, null);
+    gameSession.applyCardToBoard(original, 3, 0, original.createNewCardData(), null);
     expect(original.getIsActive()).to.equal(true);
     original.refreshExhaustion();
-    original.spendActionPoint();
-    const transformPosition = original.getPosition();
-    const originalExhausted = original.getExhausted();
-    const originalMovesMade = original.getMovesMade();
-    const originalAttacksMade = original.getAttacksMade();
-    const originalActionPoints = original.getActionPoints();
+    original.recordMove();
+    original.recordAttack();
+    original.applyExhaustion();
+    const originalPosition = original.getPosition();
+    const ModifierTransformed = require('../../../../app/sdk/modifiers/modifierTransformed.coffee');
+    const transformedData = gameSession.createCardForIdentifier(50003).createNewCardData();
+    transformedData.additionalInherentModifiersContextObjects = [ModifierTransformed.createContextObject(original.getExhausted(), original.getMovesMade(), original.getAttacksMade())];
     const RemoveAction = require('../../../../app/sdk/actions/removeAction.coffee');
     const remove = new RemoveAction(gameSession);
     remove.setTarget(original);
     UtilsSDK.executeActionWithoutValidation(remove);
-    expect(original.getIsRemoved()).to.equal(true);
-    expect(gameSession.getBoard().getUnitAtPosition(originalPosition)).to.be.falsy;
-
-    const transformedData = gameSession.createCardForIdentifier(SDK.Cards.Neutral.DragoneboneGolem).createCardData();
-    transformedData.additionalInherentModifiersContextObjects = [
-      SDK.ModifierTransformed.createContextObject(
-        originalExhausted, originalMovesMade, originalAttacksMade, originalActionPoints,
-        original.getHasSpentActionPointThisTurn()),
-    ];
     const PlayCardAsTransformAction = require('../../../../app/sdk/actions/playCardAsTransformAction.coffee');
-    const transform = new PlayCardAsTransformAction(
-      gameSession, original.getOwnerId(), transformPosition, transformedData);
+    const transform = new PlayCardAsTransformAction(gameSession, original.getOwnerId(), originalPosition, transformedData);
     UtilsSDK.executeActionWithoutValidation(transform);
-
     const replacement = transform.getCard();
     expect(transform.getIsValidApplication()).to.equal(true);
-    expect(replacement.getId()).to.equal(SDK.Cards.Neutral.DragoneboneGolem);
-    expect(replacement.hasModifierClass(SDK.ModifierTransformed)).to.equal(true);
-    expect(replacement.getActionPoints()).to.equal(1);
-    expect(replacement.getIsExhausted()).to.equal(false);
-    expect(replacement.getHasSpentActionPointThisTurn()).to.equal(true);
+    expect([replacement.getMovesMade(), replacement.getAttacksMade(), replacement.getExhausted()])
+      .to.deep.equal([1, 1, true]);
   });
 
-  it('preserves remaining action points when a building transformation completes', () => {
+  it('preserves copied exhaustion and slots when transforming into Rush Rock Pulverizer', () => {
     gameSession.setRuleset('practice-sandbox-hex', 2);
-    const original = gameSession.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    gameSession.getGeneralForPlayer1().setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    const original = gameSession.createCardForIdentifier(SDK.Cards.Phobies.RazorMouth);
     original.setOwnerId(gameSession.getPlayer1Id());
-    const board = gameSession.getBoard();
-    const general = gameSession.getGeneralForPlayer1();
-    general.setPosition({ q: 4, r: 0 });
-    const position = board.getHexNeighbors(general.getPosition()).find((candidate) =>
-      board.hasTileAtPosition(candidate) && !board.getUnitAtPosition(candidate));
-    gameSession.applyCardToBoard(original, position.q, position.r, null, null);
-    original.refreshExhaustion();
-    original.spendActionPoint();
+    gameSession.applyCardToBoard(original, 3, 0, original.createNewCardData(), null);
+    original.recordMove();
+    original.recordAttack();
+    original.applyExhaustion();
+    const originalPosition = original.getPosition();
+    const ModifierTransformed = require('../../../../app/sdk/modifiers/modifierTransformed.coffee');
+    const transformedData = gameSession.createCardForIdentifier(SDK.Cards.Phobies.Cassowary).createNewCardData();
+    transformedData.additionalInherentModifiersContextObjects = [
+      ModifierTransformed.createContextObject(original.getExhausted(), original.getMovesMade(), original.getAttacksMade()),
+    ];
+    const RemoveAction = require('../../../../app/sdk/actions/removeAction.coffee');
+    const remove = new RemoveAction(gameSession);
+    remove.setTarget(original);
+    UtilsSDK.executeActionWithoutValidation(remove);
+    const PlayCardAsTransformAction = require('../../../../app/sdk/actions/playCardAsTransformAction.coffee');
+    const transform = new PlayCardAsTransformAction(gameSession, original.getOwnerId(), originalPosition, transformedData);
+    UtilsSDK.executeActionWithoutValidation(transform);
+    const replacement = transform.getCard();
+    expect([replacement.getMovesMade(), replacement.getAttacksMade(), replacement.getExhausted()])
+      .to.deep.equal([1, 1, true]);
+  });
 
-    const transformedData = gameSession.createCardForIdentifier(SDK.Cards.Neutral.DragoneboneGolem).createCardData();
+  it('restores copied exhaustion after Rush activation when transforming into Rock Pulverizer', () => {
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    gameSession.getGeneralForPlayer1().setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    const original = gameSession.createCardForIdentifier(SDK.Cards.Phobies.RazorMouth);
+    original.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(original, 3, 0, original.createNewCardData(), null);
+    original.applyExhaustion();
+    const originalPosition = original.getPosition();
+    const ModifierTransformed = require('../../../../app/sdk/modifiers/modifierTransformed.coffee');
+    const transformedData = gameSession.createCardForIdentifier(SDK.Cards.Phobies.Cassowary).createNewCardData();
+    transformedData.additionalInherentModifiersContextObjects = [
+      ModifierTransformed.createContextObject(true, 0, 0),
+    ];
+    const RemoveAction = require('../../../../app/sdk/actions/removeAction.coffee');
+    const remove = new RemoveAction(gameSession);
+    remove.setTarget(original);
+    UtilsSDK.executeActionWithoutValidation(remove);
+    const PlayCardAsTransformAction = require('../../../../app/sdk/actions/playCardAsTransformAction.coffee');
+    const transform = new PlayCardAsTransformAction(gameSession, original.getOwnerId(), originalPosition, transformedData);
+    UtilsSDK.executeActionWithoutValidation(transform);
+    const replacement = transform.getCard();
+    expect(transform.getIsValidApplication()).to.equal(true);
+    expect(replacement.hasModifierClass(SDK.ModifierFirstBlood)).to.equal(true);
+    expect([replacement.getExhausted(), replacement.getMovesMade(), replacement.getAttacksMade()])
+      .to.deep.equal([true, 0, 0]);
+  });
+
+  it('starts building transformations with fresh slot state', () => {
+    gameSession.setRuleset('practice-sandbox-hex', 2);
+    gameSession.getGeneralForPlayer1().setPosition({ q: 4, r: 0 });
+    gameSession.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
+    const unit = gameSession.createCardForIdentifier(SDK.Cards.Phobies.RazorMouth);
+    unit.setOwnerId(gameSession.getPlayer1Id());
+    gameSession.applyCardToBoard(unit, 3, 0, unit.createNewCardData(), null);
+    expect(unit.getIsActive()).to.equal(true);
+    unit.refreshExhaustion();
+    unit.recordMove();
+    unit.recordAttack();
+    const originalPosition = unit.getPosition();
+    const transformedData = gameSession.createCardForIdentifier(50003).createNewCardData();
     const ModifierBuilding = require('../../../../app/sdk/modifiers/modifierBuilding.coffee');
-    gameSession.applyModifierContextObject(ModifierBuilding.createContextObject('Building test', transformedData, 1), original);
-    const building = original.getActiveModifierByClass(ModifierBuilding);
-    building.transformSelf();
-
-    const transformedState = transformedData.additionalModifiersContextObjects.find((modifier) =>
-      modifier.type === SDK.ModifierTransformed.type);
-    expect(transformedState.actionPoints).to.equal(1);
-    expect(transformedState.actionPointsSpentThisTurn).to.equal(true);
-  });
-
-  it('does not let Pseudo Rush restore spent version 2 points', () => {
-    gameSession.setRuleset('practice-sandbox-hex', 2);
-    const unit = gameSession.getGeneralForPlayer1();
-    unit.refreshExhaustion();
-    unit.spendActionPoint();
-    unit.spendActionPoint();
-
-    const ModifierPseudoRush = require('../../../../app/sdk/modifiers/modifierPseudoRush.coffee');
-    gameSession.applyModifierContextObject(ModifierPseudoRush.createContextObject(), unit);
-
-    expect(unit.getActionPoints()).to.equal(0);
-    expect(unit.getHasSpentActionPointThisTurn()).to.equal(true);
-  });
-
-  it('does not let First Blood refresh after a version 2 action was spent', () => {
-    gameSession.setRuleset('practice-sandbox-hex', 2);
-    gameSession.wasActionExecutedDuringTurn = () => true;
-    gameSession.getCanCardBeScheduledForRemoval = () => true;
-    const unit = gameSession.getGeneralForPlayer1();
-    unit.refreshExhaustion();
-    unit.spendActionPoint();
-    unit.spendActionPoint();
-
-    const ModifierFirstBlood = require('../../../../app/sdk/modifiers/modifierFirstBlood.coffee');
-    gameSession.applyModifierContextObject(ModifierFirstBlood.createContextObject(), unit);
-
-    expect(unit.getActionPoints()).to.equal(0);
-    expect(unit.getHasSpentActionPointThisTurn()).to.equal(true);
+    gameSession.applyModifierContextObject(ModifierBuilding.createContextObject('Building test', transformedData, 1), unit);
+    const building = unit.getActiveModifierByClass(ModifierBuilding);
+    const validators = gameSession.getValidators();
+    gameSession.setValidators([]);
+    try {
+      building.progressBuild();
+    } finally {
+      gameSession.setValidators(validators);
+    }
+    const replacement = gameSession.getBoard().getUnitAtPosition(originalPosition);
+    expect(replacement.getId()).to.equal(50003);
+    expect([replacement.getMovesMade(), replacement.getAttacksMade(), replacement.getExhausted()])
+      .to.deep.equal([0, 0, false]);
   });
 });

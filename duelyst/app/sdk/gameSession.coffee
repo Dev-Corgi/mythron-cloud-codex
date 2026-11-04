@@ -3132,10 +3132,11 @@ class _GameSession extends SDKObject
         targetPosition = {q: x, r: y}
       else
         targetPosition = {x: x, y: y}
-      isValidSpawnPosition = !sourceAction? or @getRulesetId() isnt 'practice-sandbox-hex' or card.getType() isnt CardType.Unit or @getBoard().isValidGeneralAdjacentSpawnPosition(card, targetPosition)
+      isHandUnitSummon = sourceAction instanceof PlayCardFromHandAction and @getRulesetId() is 'practice-sandbox-hex' and card.getType() is CardType.Unit
+      isValidSpawnPosition = !isHandUnitSummon or @getBoard().isValidGeneralAdjacentSpawnPosition(card, targetPosition)
       isValidApplication = isValidSpawnPosition and @getBoard().isOnBoard(targetPosition) and
           (!CardType.getIsEntityCardType(card.getType()) or
-            !@getBoard().getObstructionAtPositionForEntity(targetPosition, card) or
+            !@getBoard().getSummonObstructionAtPositionForEntity(targetPosition, card) or
             @getExecutingAction() instanceof PlayCardFromHandAction and card.hasModifierClass(ModifierCustomSpawn))
 
       if sourceAction? and isValidApplication

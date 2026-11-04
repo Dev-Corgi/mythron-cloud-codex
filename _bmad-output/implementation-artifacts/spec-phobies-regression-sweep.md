@@ -71,6 +71,8 @@ context:
 
 ## Implementation Notes
 
+After integrating `action-model-rush`, Rock Pulverizer uses Rush instead of Caw Claw (effect 51012), leaving 15 active abilities. The original 16-ability scope above records the pre-integration import contract; the executable sweep now excludes 51012.
+
 Implementation remains in progress. `validatorPlayCard.coffee` now rejects caster-self targets for the four single-target friendly Phobies abilities; SDK tests also assert the caster is absent from target enumeration and that a full-health heal applies 0. Added roster-wide Practice/Sandbox deck eligibility checks, overlapping collection-source uniqueness coverage, and the `test:phobies:sweep` runner. The unresolved Raising Hell geometry and Rage timing remain excluded by the canonical contract. No data migration, external side effect, or deployment is required.
 
 ## Spec Change Log

@@ -27,7 +27,7 @@ class ModifierMyGeneralDamagedWatchMiniMinion extends ModifierMyGeneralDamagedWa
     else
       behindPosition = {x:enemyGeneral.getPosition().x+playerOffset, y:enemyGeneral.getPosition().y}
 
-    if board.isOnBoard(behindPosition) and !board.getObstructionAtPositionForEntity(behindPosition, @getCard())
+    if board.isValidSummonPositionForEntity(behindPosition, @getCard())
       playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), behindPosition, @getCard().getIndex())
       @getGameSession().executeAction(playCardAction)
       @getGameSession().executeAction(new DrawCardAction(@getGameSession(), @getCard().getOwnerId()))

@@ -27,7 +27,7 @@ class ModifierOpponentSummonWatchSummonMinionInFront extends ModifierOpponentSum
 
       entity = @getGameSession().getExistingCardFromIndexOrCreateCardFromData(@cardDataOrIndexToSpawn)
       board = @getGameSession().getBoard()
-      if board.isOnBoard(inFrontOfPosition) and !board.getObstructionAtPositionForEntity(inFrontOfPosition, entity)
+      if board.isValidSummonPositionForEntity(inFrontOfPosition, entity)
         playCardAction = new PlayCardSilentlyAction(@getGameSession(), @getCard().getOwnerId(), inFrontOfPosition, @cardDataOrIndexToSpawn)
         playCardAction.setSource(@getCard())
         @getGameSession().executeAction(playCardAction)

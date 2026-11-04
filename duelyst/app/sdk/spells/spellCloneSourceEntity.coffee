@@ -26,7 +26,7 @@ class SpellCloneSourceEntity extends SpellApplyEntityToBoard
   getSpawnAction: (x, y) ->
     targetPosition = {x: x, y: y}
     cloningEntity = @getEntityToSpawn()
-    if cloningEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(targetPosition, cloningEntity)
+    if cloningEntity? and @getGameSession().getBoard().isValidSummonPositionForEntity(targetPosition, cloningEntity)
       spawnEntityAction = new CloneEntityAction(@getGameSession(), @getOwnerId(), @getEffectPositionFromCoordinates(x, y))
       spawnEntityAction.setOwnerId(@getOwnerId())
       spawnEntityAction.setSource(cloningEntity)

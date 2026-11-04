@@ -33,32 +33,43 @@ HEX_ATTACK_GEOMETRY.isSegmentBlockedByWall = (board, origin, target) ->
 # resolved per victim by isAreaVictim).
 HEX_ATTACK_GEOMETRY.canDeliver = (board, entity, origin, target) ->
   if entity.getAttackType?() is 'ranged'
-    return !HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall(board, origin, target)
+    return !HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByEnemyOrWall(board, entity, origin, target)
   return true
 
-HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall = (board, origin, target) ->
-  walls = HEX_ATTACK_GEOMETRY._getBlockingWalls(board)
-  for wall in walls
-    position = wall.getPosition()
+HEX_ATTACK_GEOMETRY._isRangedSegmentBlockedByEntities = (board, origin, target, blockers) ->
+  for blocker in blockers
+    position = blocker.getPosition()
     continue if board.positionsEqual(position, origin) or board.positionsEqual(position, target)
     return true if HexTopology.segmentPassesThroughCenter(origin, target, position)
   start = HexTopology._cartesianCenter(origin)
   finish = HexTopology._cartesianCenter(target)
   seen = {}
-  for wall in walls
-    position = wall.getPosition()
+  for blocker in blockers
+    position = blocker.getPosition()
     continue if board.positionsEqual(position, origin) or board.positionsEqual(position, target)
     for delta in HexTopology.neighborDeltas
       neighbor = {q: position.q + delta.q, r: position.r + delta.r}
       neighborKey = "#{neighbor.q},#{neighbor.r}"
       continue if seen["#{position.q},#{position.r}|#{neighborKey}"]
-      otherWall = walls.find (candidate) -> board.positionsEqual(candidate.getPosition(), neighbor)
-      continue unless otherWall?
+      otherBlocker = blockers.find (candidate) -> board.positionsEqual(candidate.getPosition(), neighbor)
+      continue unless otherBlocker?
       seen["#{neighborKey}|#{position.q},#{position.r}"] = true
       linkStart = HexTopology._cartesianCenter(position)
       linkEnd = HexTopology._cartesianCenter(neighbor)
       return true if HexTopology.segmentsIntersect(start, finish, linkStart, linkEnd)
   return false
+
+HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByWall = (board, origin, target) ->
+  return HEX_ATTACK_GEOMETRY._isRangedSegmentBlockedByEntities(board, origin, target, HEX_ATTACK_GEOMETRY._getBlockingWalls(board))
+
+HEX_ATTACK_GEOMETRY.isRangedSegmentBlockedByEnemyOrWall = (board, attacker, origin, target) ->
+  blockers = HEX_ATTACK_GEOMETRY._getBlockingWalls(board)
+  units = board.getUnits?() or []
+  for unit in units
+    continue unless unit.getIsActive?() and unit.getIsActive()
+    continue if attacker.getIsSameTeamAs(unit)
+    blockers.push(unit)
+  return HEX_ATTACK_GEOMETRY._isRangedSegmentBlockedByEntities(board, origin, target, blockers)
 
 # Behold selects an enemy Unit on one of the three axial axes. Its selected
 # target is range-limited by the caller; the beam continues beyond it to the

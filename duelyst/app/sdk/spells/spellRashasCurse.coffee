@@ -22,7 +22,7 @@ class SpellRashasCurse extends Spell
 
     validFollowupPositions = []
     for position in UtilsGameSession.getValidBoardPositionsFromPattern(board, applyEffectPosition, CONFIG.PATTERN_3x3)
-      if !board.getObstructionAtPositionForEntity(position, dervish)
+      if board.isValidSummonPositionForEntity(position, dervish)
         validFollowupPositions.push(position)
 
     if validFollowupPositions.length == 0 # if there is nowhere to summon a dervish, still DO remove artifacts from General

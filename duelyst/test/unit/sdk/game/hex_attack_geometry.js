@@ -70,6 +70,7 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
   it('BEHOLD: selects only enemy Units on a clear axial ray and stops at a Wall', () => {
     for (const tile of board.getTiles()) if (tile.getId() === SDK.Cards.Tile.Wall) tile.setIsRemoved(true);
     attacker.setPosition({ q: 2, r: 2 });
+    addUnit(session.getPlayer2Id(), { q: 3, r: 2 });
     const selected = addUnit(session.getPlayer2Id(), { q: 4, r: 2 });
     const behind = addUnit(session.getPlayer2Id(), { q: 5, r: 2 });
     addUnit(session.getPlayer1Id(), { q: 5, r: 1 });
@@ -364,14 +365,80 @@ describe('hex attack geometry (v2 ranged, lobbed, area)', () => {
     expect(backWall.getHP()).to.equal(backHp);
   });
 
-  it('RANGED: Units between attacker and target never block a ranged shot', () => {
-    attacker.setReach(3);
+  it('RANGED: an enemy unit blocks targets behind it but does not block itself or allied cover', () => {
+    attacker.setReach(2);
     attacker.setAttackType('ranged');
-    addUnit(session.getPlayer1Id(), { q: 5, r: 0 });
-    addUnit(session.getPlayer2Id(), { q: 6, r: 0 });
-    const far = addUnit(session.getPlayer2Id(), { q: 7, r: 0 });
+    const nearEnemy = addUnit(session.getPlayer2Id(), { q: 4, r: 1 });
+    const farEnemy = addUnit(session.getPlayer2Id(), { q: 4, r: 2 });
     flush();
-    expect(valid(far)).to.equal(true);
+    expect(valid(nearEnemy)).to.equal(true);
+    expect(valid(farEnemy)).to.equal(false);
+    expect(attacker.getAttackRange().getValidTargets(board, attacker)).to.include(nearEnemy);
+    expect(attacker.getAttackRange().getValidTargets(board, attacker)).not.to.include(farEnemy);
+    expect(attacker.getAttackRange().getValidPositions(board, attacker)).not.to.deep.include(farEnemy.getPosition());
+    const blockedAttack = attacker.actionAttack(farEnemy);
+    session.validateAction(blockedAttack, false);
+    expect(blockedAttack.getIsValid()).to.equal(false);
+    nearEnemy.setIsRemoved(true);
+    addUnit(session.getPlayer1Id(), { q: 4, r: 1 });
+    flush();
+    expect(valid(farEnemy)).to.equal(true);
+  });
+
+  it('RANGED: a General blocks like any other enemy unit', () => {
+    attacker.setReach(2);
+    attacker.setAttackType('ranged');
+    const general = session.getGeneralForPlayer2();
+    general.setPosition({ q: 4, r: 1 });
+    general.setIsRemoved(false);
+    const farEnemy = addUnit(session.getPlayer2Id(), { q: 4, r: 2 });
+    flush();
+    expect(valid(general)).to.equal(true);
+    expect(valid(farEnemy)).to.equal(false);
+  });
+
+  it('RANGED: adjacent enemy Units and a Wall plus enemy Unit block their shared center link', () => {
+    const origin = { q: 4, r: 0 };
+    const target = { q: 4, r: 4 };
+    const makeUnit = (position) => ({
+      getIsActive: () => true,
+      getPosition: () => position,
+      getOwnerId: () => session.getPlayer2Id(),
+    });
+    const makeWall = (position) => ({
+      getIsActive: () => true,
+      getType: () => SDK.CardType.Tile,
+      getId: () => SDK.Cards.Tile.Wall,
+      getIsObstructing: () => true,
+      getPosition: () => position,
+    });
+    const source = {
+      getAttackType: () => 'ranged',
+      getIsSameTeamAs: (entity) => entity.getOwnerId() === session.getPlayer1Id(),
+    };
+    const unitA = { q: 5, r: 1 };
+    const unitB = { q: 4, r: 2 };
+    const fakeBoard = (walls, units) => ({
+      getEntities: () => walls.map(makeWall),
+      getUnits: () => units.map(makeUnit),
+      positionsEqual: (a, b) => a.q === b.q && a.r === b.r,
+    });
+
+    expect(HexAttackGeometry.canDeliver(fakeBoard([], [unitA, unitB]), source, origin, target)).to.equal(false);
+    expect(HexAttackGeometry.canDeliver(fakeBoard([unitA], [unitB]), source, origin, target)).to.equal(false);
+  });
+
+  it('RANGED: an enemy Unit that only clips a tile edge does not block', () => {
+    const origin = { q: 4, r: 0 };
+    const target = { q: 4, r: 4 };
+    const unit = { getIsActive: () => true, getOwnerId: () => session.getPlayer2Id(), getPosition: () => ({ q: 5, r: 1 }) };
+    const source = { getAttackType: () => 'ranged', getIsSameTeamAs: (entity) => entity.getOwnerId() === session.getPlayer1Id() };
+    const fakeBoard = {
+      getEntities: () => [],
+      getUnits: () => [unit],
+      positionsEqual: (a, b) => a.q === b.q && a.r === b.r,
+    };
+    expect(HexAttackGeometry.canDeliver(fakeBoard, source, origin, target)).to.equal(true);
   });
 
   it('RANGED: a Wall no longer on the board stops blocking', () => {

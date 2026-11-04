@@ -23,10 +23,10 @@ class SpellIllusoryIce extends Spell
         @getGameSession().executeAction(removeEntityAction)
 
         existingEntity = @getGameSession().getBoard().getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
-        if existingEntity? and !@getGameSession().getBoard().getObstructionAtPositionForEntity(position, existingEntity)
+        if existingEntity? and @getGameSession().getBoard().isValidSummonPositionForEntity(position, existingEntity)
           cardDataOrIndexToSpawn = existingEntity.createCloneCardData()
           cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects ?= []
-          cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade(), entity.getActionPoints(), entity.getHasSpentActionPointThisTurn()))
+          cardDataOrIndexToSpawn.additionalInherentModifiersContextObjects.push(ModifierTransformed.createContextObject(entity.getExhausted(), entity.getMovesMade(), entity.getAttacksMade()))
           spawnEntityAction = new PlayCardAsTransformAction(@getGameSession(), ownerId, position, cardDataOrIndexToSpawn)
           @getGameSession().executeAction(spawnEntityAction)
 
