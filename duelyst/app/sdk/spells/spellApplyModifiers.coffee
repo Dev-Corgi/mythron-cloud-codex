@@ -38,12 +38,15 @@ class SpellApplyModifiers extends Spell
         appliedModifiersContextObjects.push(modifierContextObject)
         numModifiersToPick--
 
-    if Cards.getNonPrismaticCardId(@getId()) is Cards.Spell.DebuffBBS and sourceAction?.getIsGeneralAbility?() and sourceAction.getIsGeneralAbility() and @getGameSession().getIsPracticeSandboxV2()
+    if require("./generalAbilityEffectScale")(@, sourceAction) isnt 1
       effectScale = @getGameSession().getRulesetConfig().bloodboundSpellEffectScale
       appliedModifiersContextObjects = UtilsJavascript.deepCopy(appliedModifiersContextObjects)
-      for modifierContextObject in appliedModifiersContextObjects
-        if modifierContextObject.attributeBuffs?.atk?
-          modifierContextObject.attributeBuffs.atk *= effectScale
+      scaleModifiers = (contexts) ->
+        for context in contexts
+          for attribute in ["atk", "maxHP"]
+            context.attributeBuffs[attribute] *= effectScale if context.attributeBuffs?[attribute]?
+          scaleModifiers(context.modifiersContextObjects) if context.modifiersContextObjects?
+      scaleModifiers(appliedModifiersContextObjects)
 
     return appliedModifiersContextObjects
 

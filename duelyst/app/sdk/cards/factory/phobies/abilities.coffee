@@ -151,14 +151,14 @@ class PhobiesGotcha extends SpellApplyModifiers
   @type: CardType.AbilityEffect
   targetType: CardType.Unit
   spellFilterType: SpellFilterType.EnemyDirect
-  canTargetGeneral: false
+  canTargetGeneral: true
   durationForAffectedOwner: true
 
   onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
     return unless @getGameSession().getIsRunningAsAuthoritative()
     source = getAbilitySource(sourceAction)
     target = board.getCardAtPosition(@getEffectPositionFromCoordinates(x, y), CardType.Unit)
-    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId() and !target.getIsGeneral()
+    return unless source? and target? and target.getOwnerId() isnt source.getOwnerId()
     context = ModifierCannotMove.createContextObject({durationEndTurn: 2})
     context.durationEndTurnPlayerId = target.getOwnerId()
     @getGameSession().applyModifierContextObject(context, target)
@@ -171,6 +171,9 @@ class PhobiesGotcha extends SpellApplyModifiers
 
 class PhobiesRaisingHell extends PhobiesSelfDestruct
   radius: 2
+
+  onApplyOneEffectToBoard: () ->
+    # Holy Immolation damages enemies without sacrificing its caster.
 
   onApplyEffectToBoardTile: (board, x, y, sourceAction) ->
     return unless @getGameSession().getIsRunningAsAuthoritative()
@@ -296,7 +299,7 @@ class PhobiesTerrorform extends Spell
       remove.setOwnerId(source.getOwnerId())
       remove.setTarget(wall)
       remove.setTargetPosition(position)
-      remove.setFXResource(['FX.Cards.Spell.ArtifactDefiler'])
+      remove.setFXResource(['FX.Phobies.BoulderRemove'])
       runAbilityAction(sourceAction, remove)
     else
       return if board.getEntityAtPosition(position, true)
@@ -304,7 +307,7 @@ class PhobiesTerrorform extends Spell
       wallData = wallCard.createCardData()
       wallData.ownerId = null
       apply = new ApplyCardToBoardAction(@getGameSession(), source.getOwnerId(), position, wallData, true)
-      apply.setFXResource(['FX.Cards.Spell.DropLift'])
+      apply.setFXResource(['FX.Phobies.BoulderCreate'])
       runAbilityAction(sourceAction, apply)
 
 class PhobiesBehold extends Spell
@@ -361,26 +364,26 @@ class CardFactory_PhobiesAbilities
       card = makeAbilityCard(gameSession, identifier, 'Flash Reincarnation', 'Restore 650 Health to a friendly minion and give it +300 Attack this turn.', PhobiesAbilityHeal, Cards.Spell.FlashReincarnation, (result) ->
         result.healModifier = 650
         result.setTargetModifiersContextObjects([Modifier.createContextObjectWithAttributeBuffs(300, 0, {durationEndTurn: 1})])
-        result.setFXResource(['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'])
+        result.setFXResource(['FX.Phobies.FlashReincarnation'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_flashreincarnation.audio)
       )
     else if identifier is Cards.PhobiesAbility.Monty
       card = makeAbilityCard(gameSession, identifier, 'Phoenix Fire', 'Deal 450 damage to an enemy unit or General.', PhobiesAbilityDamage, Cards.Spell.PhoenixFire, (result) ->
         result.damageAmount = 450
-        result.setFXResource(['FX.Cards.Spell.PhoenixFire'])
+        result.setFXResource(['FX.Phobies.PhoenixFire'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_phoenixfire.audio)
       )
     else if identifier is Cards.PhobiesAbility.PureAdrenaline
       card = makeAbilityCard(gameSession, identifier, 'Flash Reincarnation', 'Restore 1500 Health to a friendly minion.', PhobiesAbilityHeal, Cards.Spell.FlashReincarnation, (result) ->
         result.healModifier = 1500
-        result.setFXResource(['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'])
+        result.setFXResource(['FX.Phobies.FlashReincarnation'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_flashreincarnation.audio)
       )
     else if identifier is Cards.PhobiesAbility.ClangClang
       card = makeAbilityCard(gameSession, identifier, 'War Surge', 'Give a friendly minion +300 Attack this turn.', PhobiesAbilityModifier, Cards.Spell.WarSurge, (result) ->
         result.spellFilterType = SpellFilterType.AllyDirect
         result.setTargetModifiersContextObjects([Modifier.createContextObjectWithAttributeBuffs(300, 0, {durationEndTurn: 1})])
-        result.setFXResource(['FX.Cards.Spell.WarSurge'])
+        result.setFXResource(['FX.Phobies.WarSurge'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_warsurge.audio)
       )
     else if identifier is Cards.PhobiesAbility.PeekABoo
@@ -390,60 +393,60 @@ class CardFactory_PhobiesAbilities
         result.spellFilterType = SpellFilterType.EnemyDirect
         result.durationForAffectedOwner = true
         result.setTargetModifiersContextObjects([Modifier.createContextObjectWithAttributeBuffs(-300, 0, {durationEndTurn: 2})])
-        result.setFXResource(['FX.Cards.Spell.DropLift', 'FX.Cards.Spell.Polarity'])
+        result.setFXResource(['FX.Phobies.Blindscorch'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_blindscorch.audio)
       )
     else if identifier is Cards.PhobiesAbility.HelpingHand
       card = makeAbilityCard(gameSession, identifier, 'Flash Reincarnation', 'Give a friendly minion +300 Attack this turn.', PhobiesAbilityModifier, Cards.Spell.FlashReincarnation, (result) ->
         result.spellFilterType = SpellFilterType.AllyDirect
         result.setTargetModifiersContextObjects([Modifier.createContextObjectWithAttributeBuffs(300, 0, {durationEndTurn: 1})])
-        result.setFXResource(['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'])
+        result.setFXResource(['FX.Phobies.FlashReincarnation'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_flashreincarnation.audio)
       )
     else if identifier is Cards.PhobiesAbility.GroupHug
       card = makeAbilityCard(gameSession, identifier, 'Aperion\'s Claim', 'Restore 1100 Health to all adjacent friendly minions.', PhobiesGroupHug, Cards.Spell.AperionsClaim, (result) ->
         result.healModifier = 1100
-        result.setFXResource(['FX.Cards.Spell.AperionsClaim'])
+        result.setFXResource(['FX.Phobies.AperionsClaim'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_voidpulse.audio)
       )
     else if identifier is Cards.PhobiesAbility.SpecialDelivery
       card = makeAbilityCard(gameSession, identifier, 'Pupabomb', 'Destroy this minion. Deal 550 damage to all adjacent enemy units.', PhobiesSelfDestruct, Cards.Spell.EggGrenade, (result) ->
         result.damageAmount = 550
-        result.setFXResource(['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'])
+        result.setFXResource(['FX.Phobies.Pupabomb'])
         result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
       )
     else if identifier is Cards.PhobiesAbility.Gotcha
       card = makeAbilityCard(gameSession, identifier, 'Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', PhobiesGotcha, Cards.Spell.FlashFreeze, (result) ->
         result.setTargetModifiersContextObjects([ModifierCannotMove.createContextObject({durationEndTurn: 2})])
-        result.setFXResource(['FX.Cards.Neutral.Fireblazer', 'FX.Cards.Spell.BlindingSnowstorm'])
+        result.setFXResource(['FX.Phobies.FlashFreeze'])
         result.setBaseSoundResource(apply: RSX.sfx_f6_icebeetle_death.audio)
       )
     else if identifier is Cards.PhobiesAbility.Poof
       card = makeAbilityCard(gameSession, identifier, 'Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', PhobiesSelfDestruct, Cards.Spell.EggGrenade, (result) ->
         result.damageAmount = 1400
-        result.setFXResource(['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'])
+        result.setFXResource(['FX.Phobies.Pupabomb'])
         result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
       )
     else if identifier is Cards.PhobiesAbility.RaisingHell
       card = makeAbilityCard(gameSession, identifier, 'Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', PhobiesRaisingHell, Cards.Spell.HolyImmolation, (result) ->
         result.damageAmount = 600
-        result.setFXResource(['FX.Cards.Spell.FollowupDamage'])
+        result.setFXResource(['FX.Phobies.HolyImmolation'])
         result.setBaseSoundResource(apply: RSX.sfx_f2_jadeogre_attack_impact.audio)
       )
     else if identifier is Cards.PhobiesAbility.CawClaw
-      card = makeAbilityCard(gameSession, identifier, 'Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', PhobiesCawClaw, Cards.Spell.FlashFreeze, (result) ->
-        result.setFXResource(['Factions.Neutral.UnitSpawn', 'FX.Modifiers.ModifierGenericDamage'])
+      card = makeAbilityCard(gameSession, identifier, 'Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', PhobiesCawClaw, Cards.Spell.Kindle, (result) ->
+        result.setFXResource(['FX.Phobies.Knucklestorm'])
         result.setBaseSoundResource(apply: RSX.sfx_neutral_bluetipscorpion_attack_impact.audio)
       )
     else if identifier is Cards.PhobiesAbility.BullRush
       card = makeAbilityCard(gameSession, identifier, 'Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', PhobiesBullRush, Cards.Spell.SpiralTechnique, (result) ->
-        result.setFXResource(['Factions.Neutral.UnitSpawn', 'FX.Modifiers.ModifierGenericDamage'])
+        result.setFXResource(['FX.Phobies.SpiralCounter'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_spiraltechnique.audio)
       )
     else if identifier is Cards.PhobiesAbility.PlaySmashface
       card = makeAbilityCard(gameSession, identifier, 'Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', PhobiesPlaySmashface, Cards.Spell.KoanOfHorns, (result) ->
         result.damageAmount = 350
-        result.setFXResource(['FX.Cards.Spell.CryonicPotential', 'FX.Modifiers.ModifierGenericDamageIce'])
+        result.setFXResource(['FX.Phobies.KoanOfHorns'])
         result.setBaseSoundResource(apply: RSX.sfx_f2tank_attack_swing.audio)
       )
     else if identifier is Cards.PhobiesAbility.Terrorform
@@ -453,7 +456,7 @@ class CardFactory_PhobiesAbilities
     else if identifier is Cards.PhobiesAbility.Behold
       card = makeAbilityCard(gameSession, identifier, 'Thunderbomb', 'Deal 500 damage to an enemy unit and each enemy unit behind it in a straight line. Walls block this beam.', PhobiesBehold, Cards.Spell.Thunderbomb, (result) ->
         result.damageAmount = 500
-        result.setFXResource(['FX.Cards.Spell.Thunderbomb'])
+        result.setFXResource(['FX.Phobies.Thunderbomb'])
         result.setBaseSoundResource(apply: RSX.sfx_spell_phoenixfire.audio)
       )
     return card

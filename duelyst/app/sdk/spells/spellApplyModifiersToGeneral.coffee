@@ -1,5 +1,6 @@
 UtilsGameSession = require 'app/common/utils/utils_game_session'
 Spell = require './spell'
+SpellApplyModifiers = require './spellApplyModifiers'
 CardType = require 'app/sdk/cards/cardType'
 SpellFilterType =  require './spellFilterType'
 _ = require 'underscore'
@@ -29,16 +30,16 @@ class SpellApplyModifiersToGeneral extends Spell
       ownerId = @getOwnerId()
       ownGeneral = @getGameSession().getGeneralForPlayerId(ownerId)
       opponentGeneral = @getGameSession().getGeneralForOpponentOfPlayerId(ownerId)
-      target = board.getUnitAtPosition(x:x, y:y)
+      target = board.getUnitAtPosition(@getEffectPositionFromCoordinates(x, y))
 
       # check for apply on own General
       if target?.getOwnerId() == ownerId and @applyToOwnGeneral
-        for modifierContextObject in @targetModifiersContextObjects
+        for modifierContextObject in SpellApplyModifiers::getAppliedTargetModifiersContextObjects.call(@, sourceAction)
           @getGameSession().applyModifierContextObject(modifierContextObject, target)
 
       # check for apply on opponent General
       if target?.getOwnerId() != ownerId and @applyToOpponentGeneral
-        for modifierContextObject in @targetModifiersContextObjects
+        for modifierContextObject in SpellApplyModifiers::getAppliedTargetModifiersContextObjects.call(@, sourceAction)
           @getGameSession().applyModifierContextObject(modifierContextObject, target)
 
 module.exports = SpellApplyModifiersToGeneral

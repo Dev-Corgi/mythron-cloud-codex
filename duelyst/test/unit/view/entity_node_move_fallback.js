@@ -6,10 +6,16 @@ const { expect } = require('chai');
 describe('EntityNode move fallback', () => {
   let EntityNode;
   let session;
+  let originalCc;
+  let cachedEntityNode;
+  const entityNodePath = require.resolve('../../../app/view/nodes/cards/EntityNode');
 
   before(() => {
     const originalLoad = Module._load;
-    global.cc = Object.assign(global.cc || {}, { p: () => ({ x: 0, y: 0 }) });
+    originalCc = global.cc;
+    cachedEntityNode = require.cache[entityNodePath];
+    delete require.cache[entityNodePath];
+    global.cc = { ...global.cc || {}, p: () => ({ x: 0, y: 0 }) };
     const fakeSdkNode = {
       extend(properties) {
         function FakeSdkNode() {}
@@ -35,6 +41,12 @@ describe('EntityNode move fallback', () => {
     } finally {
       Module._load = originalLoad;
     }
+  });
+
+  after(() => {
+    if (cachedEntityNode) require.cache[entityNodePath] = cachedEntityNode;
+    else delete require.cache[entityNodePath];
+    global.cc = originalCc;
   });
 
   it('snaps to the action destination when the node cannot play a move animation', () => {

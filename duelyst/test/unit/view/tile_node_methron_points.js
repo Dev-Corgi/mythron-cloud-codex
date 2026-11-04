@@ -116,4 +116,30 @@ describe('Methron Point tile view', () => {
     tile.isOwnedByPlayer2 = () => true;
     expect(TileNode.prototype.getCanShowOwnerSprites.call(node)).to.equal(false);
   });
+
+  it('refreshes the pushed victim origin and destination without refreshing the caster tile', () => {
+    const oldInstance = SDK.GameSession.getInstance();
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const originalGetInstance = SDK.GameSession.getInstance;
+    SDK.GameSession.getInstance = () => session;
+    try {
+      const action = {
+        targetStartPosition: { q: 3, r: 2 },
+        getSourcePosition: () => ({ q: 2, r: 2 }),
+        getTargetPosition: () => ({ q: 4, r: 2 }),
+      };
+      const refreshed = [];
+      for (const q of [2, 3, 4]) {
+        const node = { getBoardPosition: () => ({ q, r: 2 }), showCurrentState: () => refreshed.push(q) };
+        TileNode.prototype.onBeforeShowMove.call(node, { action });
+        TileNode.prototype.onAfterShowMove.call(node, { action });
+      }
+      expect(refreshed).to.deep.equal([3, 4]);
+    } finally {
+      SDK.GameSession.getInstance = originalGetInstance;
+      session.terminate();
+    }
+    expect(SDK.GameSession.getInstance()).to.equal(oldInstance);
+  });
 });

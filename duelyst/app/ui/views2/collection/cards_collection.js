@@ -542,7 +542,8 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
             // filter for crafting mode
             factionCards = _.filter(factionCards, function (cardModel) {
               // don't show skins
-              return !cardModel.get('isSkinned')
+              return !require('app/sdk/cards/isExcludedFromLegacyCardPools')(cardModel.get('card'))
+                && !cardModel.get('isSkinned')
                 // don't show prismatics unless allowed or has copies
                 && ((showPrismaticsInCollection && showPrismaticsWhileCrafting) || !cardModel.get('isPrismatic') || cardModel.get('inventoryCount') > 0)
                 && (cardSet == 0 || cardSet == STANDARD_CARD_SET_FILTER || cardModel.get('cardSetId') === cardSet);

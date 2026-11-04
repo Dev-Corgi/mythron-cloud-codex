@@ -9379,4 +9379,27 @@ const FX = {
     ],
   },
 };
+// Event-specific aliases reuse the actual exported leaves; DATA selects one map
+// for each event, so independent caster/target maps must be composed here.
+function atCaster(leaves) {
+  // The resource build parser cannot parse arrow functions or object spread.
+  // eslint-disable-next-line prefer-arrow-callback, prefer-object-spread
+  return leaves.map(function (leaf) { return Object.assign({}, leaf, { atSource: true }); });
+}
+FX.Phobies = {
+  Pupabomb: { SpellCastFX: atCaster(FX.Cards.Faction1.IroncliffeGuardian.UnitAttackedFX), SpellAppliedFX: FX.Modifiers.ModifierGenericDamageFire.ModifierTriggeredFX[0].impactFX },
+  FlashReincarnation: { SpellCastFX: atCaster(FX.Cards.Spell.Amplification.SpellCastFX), SpellAppliedFX: FX.Cards.Spell.DampeningWave.SpellAppliedFX },
+  FlashFreeze: { SpellCastFX: atCaster(FX.Cards.Neutral.Fireblazer.UnitAttackedFX), SpellAppliedFX: FX.Cards.Spell.BlindingSnowstorm.SpellAppliedFX },
+  BoulderCreate: { UnitSpawnFX: FX.Cards.Spell.DropLift.SpellAppliedFX },
+  BoulderRemove: { TargetFX: FX.Cards.Spell.ArtifactDefiler.SpellAppliedFX },
+  Knucklestorm: { SpellCastFX: atCaster(FX.Factions.Neutral.UnitSpawnFX) },
+  SpiralCounter: { SpellCastFX: atCaster(FX.Factions.Neutral.UnitSpawnFX) },
+  PhoenixFire: { SpellCastFX: atCaster(FX.Factions.Neutral.UnitSpawnFX), SpellAppliedFX: FX.Cards.Spell.PhoenixFire.SpellAppliedFX },
+  WarSurge: { SpellCastFX: atCaster(FX.Cards.Spell.WarSurge.SpellCastFX) },
+  KoanOfHorns: { SpellCastFX: atCaster(FX.Cards.Spell.CryonicPotential.SpellCastFX), SpellAppliedFX: FX.Modifiers.ModifierGenericDamageIce.ModifierTriggeredFX[0].impactFX },
+  Blindscorch: { SpellCastFX: atCaster(FX.Cards.Spell.DropLift.SpellCastFX), SpellAppliedFX: FX.Cards.Spell.Polarity.SpellAppliedFX },
+  HolyImmolation: { SpellCastFX: atCaster(FX.Cards.Spell.FollowupDamage.SpellAppliedFX) },
+  AperionsClaim: { SpellCastFX: atCaster(FX.Cards.Spell.AperionsClaim.SpellCastFX), SpellAppliedFX: FX.Cards.Spell.AperionsClaim.SpellAppliedFX },
+  Thunderbomb: { SpellCastFX: atCaster(FX.Cards.Faction3.Blast.UnitPrimaryAttackedFX) },
+};
 module.exports = FX;

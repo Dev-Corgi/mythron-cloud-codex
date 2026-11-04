@@ -21,7 +21,7 @@ class SpellHeal extends Spell
     healAction.manaCost = 0
     healAction.setOwnerId(@ownerId)
     healAction.setTarget(entity)
-    healAction.setHealAmount(@healModifier)
+    healAction.setHealAmount(@healModifier * require("./generalAbilityEffectScale")(@, sourceAction))
 
     @getGameSession().executeAction(healAction)
 

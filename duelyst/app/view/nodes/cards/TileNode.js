@@ -253,7 +253,7 @@ const TileNode = EntityNode.extend({
       if (SDK.GameSession.getInstance().getRulesetId() === 'practice-sandbox-hex') return board.positionsEqual(a, b);
       return UtilsPosition.getPositionsAreEqual(a, b);
     };
-    if (action && equal(action.getSourcePosition(), this.getBoardPosition())) {
+    if (action && equal(action.targetStartPosition || action.getSourcePosition(), this.getBoardPosition())) {
       this.showCurrentState();
     }
   },

@@ -52,6 +52,8 @@ class ValidatorPlayCard extends Validator
       targetPosition = action.getTargetPosition()
       if !sourceUnit? or !state? or action.getOwnerId() isnt sourceUnit.getOwnerId() or !sourceUnit.getIsActive() or sourceUnit.getIsSilenced() or sourceUnit.hasActiveModifierClass(ModifierStunned) or state.lockdown > 0 or state.cooldown > 0 or !sourceUnit.getCanUseActiveAbility()
         @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
+      else if sourceUnit.getIsGeneral() and (Cards.getNonPrismaticCardId(card?.getId()) in [Cards.Spell.SwordsBBS, Cards.Spell.SeekingEye] or !require("app/sdk/rulesets/cardEligibility").isSignatureForPlayer(gameSession, card?.getId(), sourceUnit.getOwnerId()))
+        @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
       else if !card? or !(CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) or !card.getIsPositionValidTarget(targetPosition)
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))
       else if CardType.getIsAbilityEffectCardType(card.getType()) and @_isInvalidAbilityEffectTarget(card, sourceUnit, targetPosition)

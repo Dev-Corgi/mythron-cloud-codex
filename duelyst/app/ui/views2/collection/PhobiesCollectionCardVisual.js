@@ -27,32 +27,65 @@ var RARITY_ICONS = {
   mythron: RSX.collection_card_rarity_mythron.img,
 };
 
-// Sprite atlas frame for each Duelyst skill icon. The imported skills without
-// dedicated art reuse their closest existing game icon or attack indicator.
+// First idle frame coordinates from each skill's actual sprite atlas.
 var ABILITY_ICONS = {
-  51001: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51002: { atlas: 'icon_f2_phoenixfire', x: 0, y: 196 },
-  51003: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51004: { atlas: 'iconWarSurgeIdle', x: 49, y: 0 },
-  51005: { atlas: 'iconBlindScorchIdle', x: 49, y: 196 },
-  51006: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51007: { atlas: 'iconDivineBondIdle', x: 98, y: 49 },
-  51012: { image: RSX.collection_card_attack_melee.img },
-  51008: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
-  51009: { atlas: 'iconFlashFreezeIdle', x: 49, y: 196 },
-  51010: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
-  51011: { atlas: 'iconHolyImmolationIdle', x: 49, y: 147 },
-  51013: { atlas: 'iconSpiralCounterIdle', x: 49, y: 147 },
-  51014: { atlas: 'iconKoanOfHornsIdle', x: 49, y: 98 },
-  51015: { atlas: 'iconBoulderHurlIdle', x: 49, y: 49 },
-  51016: { atlas: 'iconThunderbombIdle', x: 98, y: 0 },
+  51001: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51002: {
+    atlas: 'icon_f2_phoenixfire', x: 0, y: 196, width: 128, height: 256,
+  },
+  51003: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51004: {
+    atlas: 'iconWarSurgeIdle', x: 49, y: 0, width: 256, height: 256,
+  },
+  51005: {
+    atlas: 'iconBlindScorchIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51006: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51007: {
+    atlas: 'iconGreaterGoodIdle', x: 49, y: 0, width: 512, height: 256,
+  },
+  51012: {
+    atlas: 'iconKindleIdle', x: 49, y: 98, width: 256, height: 256,
+  },
+  51008: {
+    atlas: 'iconEggGrenadeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51009: {
+    atlas: 'iconFlashFreezeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51010: {
+    atlas: 'iconEggGrenadeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51011: {
+    atlas: 'iconHolyImmolationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51013: {
+    atlas: 'iconSpiralCounterIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51014: {
+    atlas: 'iconKoanOfHornsIdle', x: 49, y: 98, width: 256, height: 256,
+  },
+  51015: {
+    atlas: 'iconBoulderHurlIdle', x: 49, y: 49, width: 256, height: 256,
+  },
+  51016: {
+    atlas: 'iconThunderbombIdle', x: 98, y: 0, width: 256, height: 256,
+  },
 };
 
 function getAbilityIcon(effect, effectCardId) {
   var icon = ABILITY_ICONS[effectCardId];
   if (icon && icon.image) return { atlas: icon.image, portrait: true };
   if (icon && RSX[icon.atlas]) {
-    return { atlas: RSX[icon.atlas].img, x: icon.x, y: icon.y };
+    return {
+      atlas: RSX[icon.atlas].img, x: icon.x, y: icon.y, width: icon.width, height: icon.height,
+    };
   }
   var portrait = effect && effect.getPortraitResource && effect.getPortraitResource();
   return portrait ? { atlas: portrait, portrait: true } : null;
@@ -60,7 +93,7 @@ function getAbilityIcon(effect, effectCardId) {
 
 function getAbilityArtPresentation(icon) {
   if (!icon) return null;
-  var atlasSize = icon.atlas === RSX.icon_f2_phoenixfire.img ? '256px 512px' : '512px 512px';
+  var atlasSize = `${icon.width * 2}px ${icon.height * 2}px`;
   return {
     art: icon.atlas,
     artPosition: icon.portrait ? 'center' : `${-icon.x * 2}px ${-icon.y * 2}px`,

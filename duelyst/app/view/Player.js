@@ -1513,7 +1513,10 @@ const Player = cc.Class.extend({
       this.removeCardTiles();
       this.showingCard = true;
       this._cardDirty = false;
-      const validPositions = card.getValidTargetPositions();
+      const session = SDK.GameSession.getInstance();
+      const slot = this.getSdkPlayer().getActiveAbilityForHandSlot(this.getSelectedCardIndexInHand());
+      const validPositions = slot ? SDK.UseActiveAbilityAction.getLegalTargetPositions(session, slot.unit)
+        : card.getValidTargetPositions();
 
       if (opacity == null) { opacity = CONFIG.TILE_SELECT_OPACITY; }
       if (altOpacity == null) { altOpacity = CONFIG.TILE_DIM_OPACITY; }

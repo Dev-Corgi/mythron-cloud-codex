@@ -26,7 +26,7 @@ class SpellKineticSurge extends SpellApplyPlayerModifiers
         if !(action instanceof PlayCardAsTransformAction or action instanceof CloneEntityAsTransformAction)
           targetUnit = action.getTarget()
           if targetUnit?
-            for modifierContextObject in @targetModifiersContextObjects[0].modifiersContextObjects
+            for modifierContextObject in @getAppliedTargetModifiersContextObjects(sourceAction)[0].modifiersContextObjects
               @getGameSession().applyModifierContextObject(modifierContextObject, targetUnit)
 
 

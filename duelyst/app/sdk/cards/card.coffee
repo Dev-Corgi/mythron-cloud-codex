@@ -2067,6 +2067,16 @@ class Card extends SDKObject
     @_private.followupSourcePattern = val
 
   getFollowupSourcePattern: () ->
+    if @getGameSession().getIsPracticeSandboxV2() and Cards.getNonPrismaticCardId(@getRootCard().getId()) in [Cards.Spell.Blink, Cards.Spell.SacrificeBBS]
+      radius = if Cards.getNonPrismaticCardId(@getRootCard().getId()) is Cards.Spell.Blink then 2 else 1
+      HexTopology = require 'app/sdk/rulesets/hexTopology'
+      origin = {q: 0, r: 0}
+      offsets = []
+      for q in [-radius..radius]
+        for r in [-radius..radius]
+          offset = {q: q, r: r}
+          offsets.push(offset) if HexTopology.getDistance(origin, offset) > 0 and HexTopology.getDistance(origin, offset) <= radius
+      return offsets
     return @_private.followupSourcePattern
 
   setFollowupConditions: (val) ->

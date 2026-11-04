@@ -80,7 +80,7 @@ describe('Practice AI board geometry', () => {
   it('simulates Wall damage in an isolated version 2 session and rewards only newly opened movement endpoints', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 2);
-    const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+    const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
     const deck = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
     const opponentDeck = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
     SDK.GameSetup.setupNewSession(
@@ -126,7 +126,7 @@ describe('Practice AI board geometry', () => {
   it('allows the General to select an isolated low-health Wall', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 2);
-    const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+    const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
     const deck = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
     const opponentDeck = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
     SDK.GameSetup.setupNewSession(
@@ -151,7 +151,7 @@ describe('Practice AI board geometry', () => {
   it('selects a route-opening lethal Wall over a higher-damage Wall alternative', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 2);
-    const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+    const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
     const deck = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
     const opponentDeck = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
     SDK.GameSetup.setupNewSession(
@@ -192,7 +192,7 @@ describe('Practice AI board geometry', () => {
   it('keeps lethal General attacks ahead of a route-opening Wall', () => {
     const session = SDK.GameSession.create();
     session.setRuleset('practice-sandbox-hex', 2);
-    const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+    const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
     const deck = [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))];
     const opponentDeck = [{ id: SDK.Cards.Faction4.AltGeneral }, ...roster.map((id) => ({ id }))];
     SDK.GameSetup.setupNewSession(
