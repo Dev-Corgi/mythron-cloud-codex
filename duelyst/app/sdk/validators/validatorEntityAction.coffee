@@ -33,7 +33,7 @@ class ValidatorEntityAction extends Validator
         targetPosition = action.getTargetPosition()
         if !(source instanceof Entity)
           @invalidateAction(action, targetPosition, i18next.t("validators.invalid_attack_message"))
-        else if source.getIsOutOfActionPoints()
+        else if source.getIsOutOfActionPoints() and !action.getIsAbilityOrigin()
           @invalidateAction(action, action.getSourcePosition(), i18next.t("validators.unit_cannot_attack_message"))
         else if @getGameSession().getRulesetId() is 'practice-sandbox-hex' and (!(@_isPhobiesMovementAttack(action, source) and action.getIsAbilityOrigin?() and action.getIsAbilityOrigin()) and !@_isAxialActionSourceValid(action, source) or !@getGameSession().getBoard().isOnBoard(targetPosition))
           @invalidateAction(action, targetPosition, i18next.t("validators.invalid_attack_position_message"))

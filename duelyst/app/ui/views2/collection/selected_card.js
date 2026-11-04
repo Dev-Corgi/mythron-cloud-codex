@@ -70,6 +70,19 @@ var SelectedCardLayout = Backbone.Marionette.LayoutView.extend({
     this._startOffset = opts.startOffset;
   },
 
+  onRender: function () {
+    if (this._stopAbilityArtAnimation) this._stopAbilityArtAnimation();
+    var detail = PhobiesCollectionCardVisual.getAbilityDetail(this.model.get('card'));
+    this._stopAbilityArtAnimation = detail
+      ? PhobiesCollectionCardVisual.animateAbilityArt(this.$('.phobies-active-ability-art'), detail.icon)
+      : null;
+  },
+
+  onDestroy: function () {
+    if (this._stopAbilityArtAnimation) this._stopAbilityArtAnimation();
+    this._stopAbilityArtAnimation = null;
+  },
+
   onShow: function () {
     // show card
     this.cardView = new CollectionCardCompositeView({ model: this.model });

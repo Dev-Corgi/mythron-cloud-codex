@@ -19,7 +19,7 @@ class SpellDamage extends Spell
     damageAction = new DamageAction(@getGameSession())
     damageAction.setOwnerId(@ownerId)
     damageAction.setTarget(target)
-    damageAction.setDamageAmount(@damageAmount)
+    damageAction.setDamageAmount(@damageAmount * require("./generalAbilityEffectScale")(@, sourceAction))
     @getGameSession().executeAction(damageAction)
 
 module.exports = SpellDamage

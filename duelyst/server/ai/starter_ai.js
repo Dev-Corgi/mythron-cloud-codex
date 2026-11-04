@@ -541,12 +541,7 @@ StarterAI.prototype = {
       if (!effectCard) return;
       effectCard.setOwnerId(this.getMyPlayerId());
 
-      const unitPosition = unit.getPosition();
-      const validTargetPositions = effectCard.getValidTargetPositions().filter((position) => {
-        const distance = board.getHexDistance(unitPosition, position);
-        return distance != null && distance <= definition.useRange
-          && (effectCard.getId() !== SDK.Cards.PhobiesAbility.GroupHug || board.positionsEqual(unitPosition, position));
-      });
+      const validTargetPositions = SDK.UseActiveAbilityAction.getLegalTargetPositions(gameSession, unit);
       if (validTargetPositions.length === 0) return;
 
       const scored = this._findFilteredTargetPositionsScoresAndFollowupsForCardByIntent(effectCard, validTargetPositions, 0);

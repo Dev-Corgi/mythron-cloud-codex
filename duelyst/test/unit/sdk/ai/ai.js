@@ -53,7 +53,7 @@ describe('starter ai Bloodbound in practice version 2', () => {
 
   beforeEach(() => {
     UtilsSDK.setupSession(
-      [{ id: SDK.Cards.Faction1.General }, { id: SDK.Cards.Neutral.GolemMetallurgist }],
+      [{ id: SDK.Cards.Faction1.General }, { id: 50003 }],
       [{ id: SDK.Cards.Faction2.General }],
       true,
       true,
@@ -64,7 +64,7 @@ describe('starter ai Bloodbound in practice version 2', () => {
     general = session.getGeneralForPlayer1();
     general.setPosition({ q: 4, r: 0 });
     session.getGeneralForPlayer2().setPosition({ q: 4, r: 4 });
-    const ally = session.createCardForIdentifier(SDK.Cards.Neutral.GolemMetallurgist);
+    const ally = session.createCardForIdentifier(50003);
     ally.setOwnerId(player.getPlayerId());
     session.applyCardToBoard(ally, 3, 0, null, null);
     general.getActiveAbilityState().lockdown = 0;

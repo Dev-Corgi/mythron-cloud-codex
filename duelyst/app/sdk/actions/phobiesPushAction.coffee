@@ -16,6 +16,7 @@ class PhobiesPushAction extends Action
     return unless source? and target? and source.getIsActive() and target.getIsActive()
     destination = HexAttackGeometry.getPushDestination(board, @getSourcePosition(), target.getPosition())
     return unless destination? and board.positionsEqual(destination, @getTargetPosition())
+    @targetStartPosition = Object.assign({}, target.getPosition())
     target.setPosition(destination)
     target.updateCachedState?()
 

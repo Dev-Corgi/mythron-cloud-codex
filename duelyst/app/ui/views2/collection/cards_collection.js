@@ -18,6 +18,7 @@ var ProgressionManager = require('app/ui/managers/progression_manager');
 var InventoryManager = require('app/ui/managers/inventory_manager');
 var CardsCollectionTmpl = require('./templates/cards_collection.hbs');
 var CollectionCardCompositeView = require('./collection_card');
+var uniqueCardModels = require('./uniqueCardModels');
 
 var CARD_BACKS_FACTION_ID = 'card_backs';
 var STANDARD_CARD_SET_FILTER = -1;
@@ -349,7 +350,7 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
    */
   _showCards: function (cards, page) {
     // store showing cards
-    this._currentShowingCards = cards || [];
+    this._currentShowingCards = uniqueCardModels(cards);
 
     // check page
     page = page != null ? Math.min(this.getLastPage(this._currentShowingCards), page) : 0;
@@ -541,7 +542,8 @@ var CardsCollectionCompositeView = Backbone.Marionette.CompositeView.extend({
             // filter for crafting mode
             factionCards = _.filter(factionCards, function (cardModel) {
               // don't show skins
-              return !cardModel.get('isSkinned')
+              return !require('app/sdk/cards/isExcludedFromLegacyCardPools')(cardModel.get('card'))
+                && !cardModel.get('isSkinned')
                 // don't show prismatics unless allowed or has copies
                 && ((showPrismaticsInCollection && showPrismaticsWhileCrafting) || !cardModel.get('isPrismatic') || cardModel.get('inventoryCount') > 0)
                 && (cardSet == 0 || cardSet == STANDARD_CARD_SET_FILTER || cardModel.get('cardSetId') === cardSet);

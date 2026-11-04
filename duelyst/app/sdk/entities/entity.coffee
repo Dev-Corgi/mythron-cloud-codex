@@ -592,6 +592,8 @@ class Entity extends Card
 
   # Whether the unit has the action points needed to use an active ability.
   getCanUseActiveAbility: () ->
+    if @getGameSession().getIsPracticeSandboxV2() and @getIsGeneral()
+      return false if Cards.getNonPrismaticCardId(@getSignatureCardData()?.id) in [Cards.Spell.SwordsBBS, Cards.Spell.SeekingEye]
     return @getUsesActionPoints() and @getActionPoints() > 0
 
   # Spends the action point for an active ability use. Returns false when it cannot be spent.

@@ -49,3 +49,12 @@ context:
 - Given stored snapshots, then before implementing it is confirmed they carry `exhausted`, `movesMade` and `attacksMade`; action-point keys are ignored if present.
 - Given Lockdown/Cooldown tests, then they pass unchanged.
 - Given the rule test suite, then every valid sequence and each rejection above is covered.
+
+
+## Branch and Merge Notes
+
+Implement on a branch cut from `main` (`action-model-rush`) while Phobies bug fixes continue elsewhere.
+
+- Keep the branch close to `main`: merge `main` into it whenever a bug-fix commit lands, especially changes to `validatorEntityAction`, `validatorPlayCard`, `starter_ai`, `phobies_abilities.js` and `entity.coffee`.
+- Git merges cleanly even when a new commit on `main` calls an API this story removes. After every merge from `main` and before the final merge back, search the whole repository (code and tests) for `actionPoints`, `actionPointsSpentThisTurn`, `getUsesActionPoints`, `getActionPoints`, `setActionPoints`, `spendActionPoint`, `getHasSpentActionPointThisTurn`, `getIsOutOfActionPoints`, `recordActiveAbilityUse` and `restoreActionPointState`, and move any new caller to the single ability accessor and `recordAttack`.
+- Run the full test suite after each merge, especially active-ability and AI tests.

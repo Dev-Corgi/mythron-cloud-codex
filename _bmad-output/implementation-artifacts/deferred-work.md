@@ -70,3 +70,22 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-load-phobies-source-sprite-packages.md`
   summary: State whether the Phobies collection filter shows every imported card or only cards eligible for Practice/Sandbox decks.
   evidence: The visual correction adds a Phobies set filter, while the current collection specification does not distinguish set membership from deck eligibility.
+- source_spec: `_bmad-output/implementation-artifacts/spec-restore-phobies-hand-ability.md`
+  summary: Update old active_abilities fixtures to the currently allowed card roster.
+  evidence: The broad suite reports 14 failures involving legacy Planar Scout and General fixtures rejected by current card eligibility or lacking active state. Focused imported ability coverage passes.
+- source_spec: `_bmad-output/implementation-artifacts/spec-restore-phobies-hand-ability.md`
+  summary: Verify the repaired active ability sprite in a running Practice/Sandbox client.
+  evidence: Validated SDK deployment, hand slot model, animation resources, and all 16 generated inspect packages pass, but the actual Cocos hand node has not been visually inspected.
+- source_spec: `_bmad-output/implementation-artifacts/spec-remove-duplicate-phobies-collection-cards.md`
+  summary: Reproduce and trace the observed duplicate Phobies cards in a running collection view.
+  evidence: The SDK supplies 35 unique Phobies IDs and Backbone removes duplicate model IDs, so current source data does not reproduce the report. The display list now has an ID guard; a running UI is needed to confirm whether duplicates originate later in DOM rendering.
+
+- source_spec: `spec-repair-phobies-import-regressions.md`
+  summary: Complete SacrificeBBS Husk followup behavior during the future General-ability redesign, as explicitly deferred by the user.
+  evidence: Executed followup is valid but its child Husk application fails on the selected occupied tile; final combined run retains the assertion failure without skipping it.
+- source_spec: `spec-repair-phobies-import-regressions.md`
+  summary: Reassess AI capture-versus-combat selection during the future AI replacement, as explicitly deferred by the user.
+  evidence: The current Phobies-roster fixture selects a different action from the old expected capture move; authoritative Methron damage is correct and the obsolete damage expectation was updated.
+- source_spec: `spec-repair-phobies-import-regressions.md`
+  summary: Extend General spawn count, owner, obstruction, adjacency and base-stat coverage when General abilities are redesigned.
+  evidence: Blind Hunter identified that new matrix tests mainly assert canonical token existence; the user explicitly stopped additional General work in this repair.

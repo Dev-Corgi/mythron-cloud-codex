@@ -7,6 +7,7 @@ var SDK = require('app/sdk');
 var CONFIG = require('app/common/config');
 var UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
 var ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
+var ABILITY_IDLE_FRAMES = require('./phobiesAbilityIdleFrames.json');
 
 var ATTACK_ICONS = {
   melee: RSX.collection_card_attack_melee.img,
@@ -27,32 +28,65 @@ var RARITY_ICONS = {
   mythron: RSX.collection_card_rarity_mythron.img,
 };
 
-// Sprite atlas frame for each Duelyst skill icon. The imported skills without
-// dedicated art reuse their closest existing game icon or attack indicator.
+// First idle frame coordinates from each skill's actual sprite atlas.
 var ABILITY_ICONS = {
-  51001: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51002: { atlas: 'icon_f2_phoenixfire', x: 0, y: 196 },
-  51003: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51004: { atlas: 'iconWarSurgeIdle', x: 49, y: 0 },
-  51005: { atlas: 'iconBlindScorchIdle', x: 49, y: 196 },
-  51006: { atlas: 'iconFlashReincarnationIdle', x: 49, y: 147 },
-  51007: { atlas: 'iconDivineBondIdle', x: 98, y: 49 },
-  51012: { image: RSX.collection_card_attack_melee.img },
-  51008: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
-  51009: { atlas: 'iconFlashFreezeIdle', x: 49, y: 196 },
-  51010: { atlas: 'iconEggGrenadeIdle', x: 49, y: 196 },
-  51011: { atlas: 'iconHolyImmolationIdle', x: 49, y: 147 },
-  51013: { atlas: 'iconSpiralCounterIdle', x: 49, y: 147 },
-  51014: { atlas: 'iconKoanOfHornsIdle', x: 49, y: 98 },
-  51015: { atlas: 'iconBoulderHurlIdle', x: 49, y: 49 },
-  51016: { atlas: 'iconThunderbombIdle', x: 98, y: 0 },
+  51001: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51002: {
+    atlas: 'icon_f2_phoenixfire', x: 0, y: 196, width: 128, height: 256,
+  },
+  51003: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51004: {
+    atlas: 'iconWarSurgeIdle', x: 49, y: 0, width: 256, height: 256,
+  },
+  51005: {
+    atlas: 'iconBlindScorchIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51006: {
+    atlas: 'iconFlashReincarnationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51007: {
+    atlas: 'iconGreaterGoodIdle', x: 49, y: 0, width: 512, height: 256,
+  },
+  51012: {
+    atlas: 'iconKindleIdle', x: 49, y: 98, width: 256, height: 256,
+  },
+  51008: {
+    atlas: 'iconEggGrenadeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51009: {
+    atlas: 'iconFlashFreezeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51010: {
+    atlas: 'iconEggGrenadeIdle', x: 49, y: 196, width: 256, height: 256,
+  },
+  51011: {
+    atlas: 'iconHolyImmolationIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51013: {
+    atlas: 'iconSpiralCounterIdle', x: 49, y: 147, width: 256, height: 256,
+  },
+  51014: {
+    atlas: 'iconKoanOfHornsIdle', x: 49, y: 98, width: 256, height: 256,
+  },
+  51015: {
+    atlas: 'iconBoulderHurlIdle', x: 49, y: 49, width: 256, height: 256,
+  },
+  51016: {
+    atlas: 'iconThunderbombIdle', x: 98, y: 0, width: 256, height: 256,
+  },
 };
 
 function getAbilityIcon(effect, effectCardId) {
   var icon = ABILITY_ICONS[effectCardId];
   if (icon && icon.image) return { atlas: icon.image, portrait: true };
   if (icon && RSX[icon.atlas]) {
-    return { atlas: RSX[icon.atlas].img, x: icon.x, y: icon.y };
+    return {
+      atlas: RSX[icon.atlas].img, x: icon.x, y: icon.y, width: icon.width, height: icon.height,
+    };
   }
   var portrait = effect && effect.getPortraitResource && effect.getPortraitResource();
   return portrait ? { atlas: portrait, portrait: true } : null;
@@ -60,11 +94,25 @@ function getAbilityIcon(effect, effectCardId) {
 
 function getAbilityArtPresentation(icon) {
   if (!icon) return null;
+  var atlasSize = `${icon.width * 2}px ${icon.height * 2}px`;
   return {
     art: icon.atlas,
     artPosition: icon.portrait ? 'center' : `${-icon.x * 2}px ${-icon.y * 2}px`,
-    artSize: icon.portrait ? 'cover' : '512px 512px',
+    artSize: icon.portrait ? 'cover' : atlasSize,
   };
+}
+
+function animateAbilityArt($art, icon) {
+  if (!$art || !$art.length || !icon || icon.portrait) return function () {};
+  var atlasName = icon.atlas.split('/').pop();
+  var coordinates = ABILITY_IDLE_FRAMES[atlasName];
+  if (!coordinates || coordinates.length < 4) return function () {};
+  var frame = 0;
+  var timer = setInterval(function () {
+    frame = (frame + 1) % (coordinates.length / 2);
+    $art.css('background-position', `${-coordinates[frame * 2] * 2}px ${-coordinates[frame * 2 + 1] * 2}px`);
+  }, 120);
+  return function () { clearInterval(timer); };
 }
 
 function centerAt(element, x, y) {
@@ -107,6 +155,19 @@ function getAbilityDetail(card) {
   };
 }
 
+function getAbilityDetailForEffect(card) {
+  if (!card || !card.getId) return null;
+  var effectCardId = card.getId();
+  var unitIds = Object.keys(SDK.Cards.Phobies);
+  for (var i = 0; i < unitIds.length; i++) {
+    var unit = SDK.CardFactory.cardForIdentifier(SDK.Cards.Phobies[unitIds[i]], card.getGameSession && card.getGameSession());
+    if (unit && unit.activeAbility && unit.activeAbility.effectCardId === effectCardId) {
+      return getAbilityDetail(unit);
+    }
+  }
+  return null;
+}
+
 function getCardFaceType(cardModel) {
   if (!cardModel || !cardModel.get('card')) return null;
   if (cardModel.get('isUnit')) return 'unit';
@@ -137,6 +198,9 @@ function createFace($, cardModel) {
   var $face = $('<div>').addClass(`phobies-collection-face ${isAbility ? 'phobies-ability-face' : 'phobies-unit-face'}`);
   var framePath = isAbility ? RSX.collection_card_ability_frame.img : RSX.collection_card_unit_frame.img;
   $face.append($('<img>').addClass('phobies-card-frame').attr({ src: framePath, alt: '', 'aria-hidden': 'true' }));
+  if (cardModel.get('isPrismatic')) {
+    $face.append($('<span>').addClass('phobies-card-prismatic-label').text('PRISMATIC'));
+  }
 
   if (isUnit) {
     var positions = UNIT_LAYOUT.positions;
@@ -170,7 +234,20 @@ function createFace($, cardModel) {
     var $abilityName = addLabel($face, 'name', card.getName().toUpperCase(), namePosition[0], namePosition[1]);
     if ($abilityName.text().length > 21) $abilityName.addClass('is-long');
     addLabel($face, 'level', `LEVEL ${card.getLevel ? card.getLevel() : 1}`, levelPosition[0], levelPosition[1]);
-    var $effect = $('<div>').addClass('phobies-card-effect').html(cardModel.get('description') || '');
+    var abilityDetail = getAbilityDetailForEffect(card);
+    if (abilityDetail) {
+      var art = getAbilityArtPresentation(abilityDetail.icon);
+      $('<span>').addClass('phobies-card-ability-art').css({
+        backgroundImage: `url('${art.art}')`, backgroundPosition: art.artPosition, backgroundSize: art.artSize,
+      }).appendTo($face);
+      addImage($face, 'ability-lockdown-ring', RSX.collection_card_ability_lockdown_ring.img, 104, 360);
+      addImage($face, 'ability-lockdown-icon', RSX.collection_card_ability_lockdown_icon.img, 61, 360);
+      addLabel($face, 'ability-lockdown-value', abilityDetail.lockdown, 104, 360);
+      addImage($face, 'ability-cooldown-ring', RSX.collection_card_ability_cooldown_ring.img, 348, 360);
+      addImage($face, 'ability-cooldown-icon', RSX.collection_card_ability_cooldown_icon.img, 391, 360);
+      addLabel($face, 'ability-cooldown-value', abilityDetail.cooldown, 348, 360);
+    }
+    var $effect = $('<div>').addClass('phobies-card-effect').html(cardModel.get('description') || (abilityDetail && abilityDetail.description) || '');
     $effect.attr('aria-label', $effect.text() || '');
     if (($effect.text() || '').length > 100) $effect.addClass('is-long');
     centerAt($effect, effectPosition[0], effectPosition[1]);
@@ -206,6 +283,8 @@ module.exports = {
   getAbilityDetail: getAbilityDetail,
   getAbilityIcon: getAbilityIcon,
   getAbilityArtPresentation: getAbilityArtPresentation,
+  animateAbilityArt: animateAbilityArt,
+  getAbilityDetailForEffect: getAbilityDetailForEffect,
   getStatPositions: getStatPositions,
   getUnitStatData: getUnitStatData,
   render: render,

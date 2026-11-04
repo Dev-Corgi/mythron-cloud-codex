@@ -30,6 +30,13 @@ class ValidatorPlayCard extends Validator
     target = board.getCardAtPosition(targetPosition, card.targetType, true)
     return true unless target?
     return true if target.getIsGeneral() and !card.canTargetGeneral
+    # These four imported abilities select one friendly minion. The caster is
+    # not a legal recipient, even though AllyDirect normally includes it.
+    if card.getId() in [
+      Cards.PhobiesAbility.FeelGreat, Cards.PhobiesAbility.PureAdrenaline,
+      Cards.PhobiesAbility.ClangClang, Cards.PhobiesAbility.HelpingHand
+    ] and board.positionsEqual(sourceUnit.getPosition(), target.getPosition())
+      return true
     if card.spellFilterType is SpellFilterType.AllyDirect
       return target.getOwnerId() isnt sourceUnit.getOwnerId() or target.getIsGeneral()
     if card.spellFilterType is SpellFilterType.EnemyDirect
@@ -51,6 +58,8 @@ class ValidatorPlayCard extends Validator
       card = action.getCard()
       targetPosition = action.getTargetPosition()
       if !sourceUnit? or !state? or action.getOwnerId() isnt sourceUnit.getOwnerId() or !sourceUnit.getIsActive() or sourceUnit.getIsSilenced() or sourceUnit.hasActiveModifierClass(ModifierStunned) or state.lockdown > 0 or state.cooldown > 0 or !sourceUnit.getCanUseActiveAbility()
+        @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
+      else if sourceUnit.getIsGeneral() and (Cards.getNonPrismaticCardId(card?.getId()) in [Cards.Spell.SwordsBBS, Cards.Spell.SeekingEye] or !require("app/sdk/rulesets/cardEligibility").isSignatureForPlayer(gameSession, card?.getId(), sourceUnit.getOwnerId()))
         @invalidateAction(action, targetPosition, i18next.t("validators.card_isnt_ready_message"))
       else if !card? or !(CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) or !card.getIsPositionValidTarget(targetPosition)
         @invalidateAction(action, targetPosition, i18next.t("validators.invalid_card_target_message"))

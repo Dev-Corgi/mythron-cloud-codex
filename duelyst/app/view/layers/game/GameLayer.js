@@ -2291,10 +2291,10 @@ var GameLayer = FXCompositeLayer.extend({
     const resource_package_ids_seen = {};
     const unique_resource_package_ids = [];
     const load_promises = [];
-    const loadActionResourcePackage = function (id) {
+    const loadActionResourcePackage = function (id, resources) {
       if (id != null && resource_package_ids_seen[id] == null) {
         resource_package_ids_seen[id] = true;
-        const pkg = PKGS.getPkgForIdentifier(id);
+        const pkg = resources || PKGS.getPkgForIdentifier(id);
         if (pkg != null && pkg.length > 0) {
           // load resources with a unique package identifier
           // so we can release this package as needed
@@ -2308,6 +2308,12 @@ var GameLayer = FXCompositeLayer.extend({
     for (let i = 0, il = sdkStepInterface.actionInterfaceSequence.length; i < il; i++) {
       const sdkActionInterface = sdkStepInterface.actionInterfaceSequence[i];
       const sequenceAction = sdkActionInterface.getSdkAction();
+
+      // Ability aliases may use FX from several source packages.
+      const effect = sequenceAction.getCard && sequenceAction.getCard();
+      const identifiers = sequenceAction.getFXResource().concat(effect ? effect.getFXResource() : []);
+      const aliasResources = require('app/data/phobiesFXResources')(identifiers);
+      if (aliasResources.length) loadActionResourcePackage(`phobies_fx_${identifiers.join('_')}`, aliasResources);
 
       // get resources for source
       const source = sequenceAction.getSource();
@@ -3376,27 +3382,9 @@ var GameLayer = FXCompositeLayer.extend({
           targetNode: _currentActionTargetNode,
         });
 
-        // get game fx board positions
-        let gameFXSourceBoardPosition;
-        let gameFXTargetBoardPosition;
-        if (action instanceof SDK.ApplyCardToBoardAction && action.getIsValidApplication()) {
-          const card = action.getCard();
-          if (card instanceof SDK.Spell) {
-            gameFXSourceBoardPosition = gameFXTargetBoardPosition = card.getCenterPositionOfAppliedEffects();
-          } else if (card instanceof SDK.Artifact) {
-            const general = SDK.GameSession.getInstance().getGeneralForPlayerId(card.getOwnerId());
-            if (general != null) {
-              gameFXSourceBoardPosition = gameFXTargetBoardPosition = general.getPosition();
-            }
-          }
-        }
-
-        if (gameFXSourceBoardPosition == null) {
-          gameFXSourceBoardPosition = sourceBoardPosition;
-        }
-        if (gameFXTargetBoardPosition == null) {
-          gameFXTargetBoardPosition = targetBoardPosition;
-        }
+        const gameFXPositions = this._getActionFXBoardPositions(action, sourceBoardPosition, targetBoardPosition);
+        const gameFXSourceBoardPosition = gameFXPositions.sourceBoardPosition;
+        const gameFXTargetBoardPosition = gameFXPositions.targetBoardPosition;
 
         // show special apply card fx
         actionDelay = Math.max(actionDelay, this._showActionForApplyCard(action, gameFXTargetBoardPosition));
@@ -3584,6 +3572,11 @@ var GameLayer = FXCompositeLayer.extend({
               }
             }
           }
+        }
+      } else if (action.type === 'PhobiesPushAction' && action.targetStartPosition) {
+        node = this.getNodeForSdkCard(target);
+        if (this._getCanShowActionForNode(node)) {
+          showDuration += node.showMove(action, action.targetStartPosition, action.getTargetPosition());
         }
       } else if (action.type === SDK.MoveAction.type) {
         node = this.getNodeForSdkCard(source);
@@ -3807,6 +3800,33 @@ var GameLayer = FXCompositeLayer.extend({
     }
 
     return showDuration;
+  },
+
+  _getActionFXBoardPositions(action, sourceBoardPosition, targetBoardPosition) {
+    let gameFXSourceBoardPosition;
+    let gameFXTargetBoardPosition;
+    if (action instanceof SDK.ApplyCardToBoardAction && action.getIsValidApplication()) {
+      const card = action.getCard();
+      if (card instanceof SDK.Spell) {
+        gameFXTargetBoardPosition = card.getCenterPositionOfAppliedEffects();
+        gameFXSourceBoardPosition = action instanceof SDK.UseActiveAbilityAction && action.casterPosition
+          ? action.casterPosition : gameFXTargetBoardPosition;
+      } else if (card instanceof SDK.Artifact) {
+        const general = SDK.GameSession.getInstance().getGeneralForPlayerId(card.getOwnerId());
+        if (general != null) {
+          gameFXSourceBoardPosition = gameFXTargetBoardPosition = general.getPosition();
+        }
+      }
+    }
+
+    if (gameFXSourceBoardPosition == null) {
+      gameFXSourceBoardPosition = sourceBoardPosition;
+    }
+    if (gameFXTargetBoardPosition == null) {
+      gameFXTargetBoardPosition = targetBoardPosition;
+    }
+
+    return { sourceBoardPosition: gameFXSourceBoardPosition, targetBoardPosition: gameFXTargetBoardPosition };
   },
 
   _showActionForApplyCard(action, targetBoardPosition) {

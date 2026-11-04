@@ -14,11 +14,12 @@ class SpellShadowspawn extends SpellSpawnEntity
 
   _findApplyEffectPositions: (position, sourceAction) ->
     card = @getEntityToSpawn()
+    pattern = if @getGameSession().getIsPracticeSandboxV2() then require("app/sdk/rulesets/hexTopology").getNeighbors({q: 0, r: 0}) else CONFIG.PATTERN_3x3
     generalPosition = @getGameSession().getGeneralForPlayerId(@ownerId).getPosition()
     numberOfApplyPositions = @numUnits
 
     if numberOfApplyPositions > 0
-      applyEffectPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), generalPosition, CONFIG.PATTERN_3x3, card, @, numberOfApplyPositions)
+      applyEffectPositions = UtilsGameSession.getRandomSmartSpawnPositionsFromPattern(@getGameSession(), generalPosition, pattern, card, @, numberOfApplyPositions)
     else
       applyEffectPositions = []
 

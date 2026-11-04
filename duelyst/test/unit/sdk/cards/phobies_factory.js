@@ -46,6 +46,28 @@ const getFixtureAttackType = (row) => {
 };
 
 describe('Phobies imported unit factory', () => {
+  it('provides a real source spell and animated art for every hand ability', () => {
+    const session = SDK.GameSession.create();
+    for (let id = 51001; id <= 51016; id++) {
+      const effect = SDK.CardFactory.cardForIdentifier(id, session);
+      expect(effect.originalCardId, `effect ${id} source`).to.be.a('number');
+      const sourceSpell = SDK.CardFactory.cardForIdentifier(effect.originalCardId, session);
+      expect(sourceSpell, `effect ${id} source spell`).to.exist;
+      expect(effect.getBaseAnimResource().idle, `effect ${id} art`).to.be.a('string');
+      expect(effect.getBaseAnimResource()).to.deep.equal(sourceSpell.getBaseAnimResource());
+    }
+  });
+
+  it('carries movement audio from each mapped Duelyst unit', () => {
+    const session = SDK.GameSession.create();
+    for (let id = 50001; id <= 50035; id++) {
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      const original = SDK.CardFactory.cardForIdentifier(card.originalCardId, session);
+      expect(card.getBaseSoundResource(), `unit ${id} sound`).to.deep.equal(original.getBaseSoundResource());
+      expect(card.getBaseSoundResource().walk, `unit ${id} walk`).to.be.a('string').and.not.empty;
+    }
+  });
+
   it('matches every imported stat to the checked-in source snapshot', () => {
     const byName = new Map(source.map((row) => [row.name, row]));
     const session = SDK.GameSession.create();
@@ -108,19 +130,22 @@ describe('Phobies imported unit factory', () => {
   it('registers runtime-only ability effects and the exact owner metadata', () => {
     const session = SDK.GameSession.create();
     const effectExpectations = new Map([
-      [SDK.Cards.PhobiesAbility.FeelGreat, ['Flash Reincarnation', 'Restore 650 Health to a friendly minion and give it +300 Attack this turn.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
-      [SDK.Cards.PhobiesAbility.Monty, ['Phoenix Fire', 'Deal 450 damage to an enemy unit or General.', ['FX.Cards.Spell.PhoenixFire'], 'phoenixfire', SDK.Cards.Spell.PhoenixFire]],
-      [SDK.Cards.PhobiesAbility.PureAdrenaline, ['Flash Reincarnation', 'Restore 1500 Health to a friendly minion.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
-      [SDK.Cards.PhobiesAbility.ClangClang, ['War Surge', 'Give a friendly minion +300 Attack this turn.', ['FX.Cards.Spell.WarSurge'], 'warsurge', SDK.Cards.Spell.WarSurge]],
-      [SDK.Cards.PhobiesAbility.PeekABoo, ['Blindscorch', 'Give an enemy unit or General -300 Attack for 2 turns.', ['FX.Cards.Spell.DropLift', 'FX.Cards.Spell.Polarity'], 'blindscorch', SDK.Cards.Spell.Blindscorch]],
-      [SDK.Cards.PhobiesAbility.HelpingHand, ['Flash Reincarnation', 'Give a friendly minion +300 Attack this turn.', ['FX.Cards.Spell.Amplification', 'FX.Cards.Spell.DampeningWave'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
-      [SDK.Cards.PhobiesAbility.GroupHug, ['Aperion\'s Claim', 'Restore 1100 Health to all adjacent friendly minions.', ['FX.Cards.Spell.AperionsClaim'], 'voidpulse', SDK.Cards.Spell.AperionsClaim]],
-      [SDK.Cards.PhobiesAbility.SpecialDelivery, ['Pupabomb', 'Destroy this minion. Deal 550 damage to all adjacent enemy units.', ['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.EggGrenade]],
-      [SDK.Cards.PhobiesAbility.Gotcha, ['Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', ['FX.Cards.Neutral.Fireblazer', 'FX.Cards.Spell.BlindingSnowstorm'], 'sfx_f6_icebeetle_death', SDK.Cards.Spell.FlashFreeze]],
-      [SDK.Cards.PhobiesAbility.Poof, ['Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', ['FX.Cards.Faction1.IroncliffeGuardian', 'FX.Modifiers.ModifierGenericDamageFire'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.EggGrenade]],
-      [SDK.Cards.PhobiesAbility.RaisingHell, ['Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', ['FX.Cards.Spell.FollowupDamage'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.HolyImmolation]],
+      [SDK.Cards.PhobiesAbility.FeelGreat, ['Flash Reincarnation', 'Restore 650 Health to a friendly minion and give it +300 Attack this turn.', ['FX.Phobies.FlashReincarnation'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.Monty, ['Phoenix Fire', 'Deal 450 damage to an enemy unit or General.', ['FX.Phobies.PhoenixFire'], 'phoenixfire', SDK.Cards.Spell.PhoenixFire]],
+      [SDK.Cards.PhobiesAbility.PureAdrenaline, ['Flash Reincarnation', 'Restore 1500 Health to a friendly minion.', ['FX.Phobies.FlashReincarnation'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.ClangClang, ['War Surge', 'Give a friendly minion +300 Attack this turn.', ['FX.Phobies.WarSurge'], 'warsurge', SDK.Cards.Spell.WarSurge]],
+      [SDK.Cards.PhobiesAbility.PeekABoo, ['Blindscorch', 'Give an enemy unit or General -300 Attack for 2 turns.', ['FX.Phobies.Blindscorch'], 'blindscorch', SDK.Cards.Spell.Blindscorch]],
+      [SDK.Cards.PhobiesAbility.HelpingHand, ['Flash Reincarnation', 'Give a friendly minion +300 Attack this turn.', ['FX.Phobies.FlashReincarnation'], 'flashreincarnation', SDK.Cards.Spell.FlashReincarnation]],
+      [SDK.Cards.PhobiesAbility.GroupHug, ['Aperion\'s Claim', 'Restore 1100 Health to all adjacent friendly minions.', ['FX.Phobies.AperionsClaim'], 'voidpulse', SDK.Cards.Spell.AperionsClaim]],
+      [SDK.Cards.PhobiesAbility.SpecialDelivery, ['Pupabomb', 'Destroy this minion. Deal 550 damage to all adjacent enemy units.', ['FX.Phobies.Pupabomb'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.EggGrenade]],
+      [SDK.Cards.PhobiesAbility.Gotcha, ['Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', ['FX.Phobies.FlashFreeze'], 'sfx_f6_icebeetle_death', SDK.Cards.Spell.FlashFreeze]],
+      [SDK.Cards.PhobiesAbility.Poof, ['Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', ['FX.Phobies.Pupabomb'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.EggGrenade]],
+      [SDK.Cards.PhobiesAbility.RaisingHell, ['Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', ['FX.Phobies.HolyImmolation'], 'sfx_f2_jadeogre_attack_impact', SDK.Cards.Spell.HolyImmolation]],
+      [SDK.Cards.PhobiesAbility.CawClaw, ['Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', ['FX.Phobies.Knucklestorm'], 'sfx_neutral_bluetipscorpion_attack_impact', SDK.Cards.Spell.Kindle]],
+      [SDK.Cards.PhobiesAbility.BullRush, ['Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', ['FX.Phobies.SpiralCounter'], 'sfx_spell_spiraltechnique', SDK.Cards.Spell.SpiralTechnique]],
+      [SDK.Cards.PhobiesAbility.PlaySmashface, ['Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', ['FX.Phobies.KoanOfHorns'], 'sfx_f2tank_attack_swing', SDK.Cards.Spell.KoanOfHorns]],
       [SDK.Cards.PhobiesAbility.Terrorform, ['Boulder Hurl', 'Create a Wall on an adjacent empty tile or remove an adjacent Wall.', [], 'sfx_spell_naturalselection', SDK.Cards.Spell.BoulderHurl]],
-      [SDK.Cards.PhobiesAbility.Behold, ['Thunderbomb', 'Deal 500 damage to an enemy unit and each enemy unit behind it in a straight line. Walls block this beam.', ['FX.Cards.Spell.Thunderbomb'], 'sfx_spell_phoenixfire', SDK.Cards.Spell.Thunderbomb]],
+      [SDK.Cards.PhobiesAbility.Behold, ['Thunderbomb', 'Deal 500 damage to an enemy unit and each enemy unit behind it in a straight line. Walls block this beam.', ['FX.Phobies.Thunderbomb'], 'sfx_spell_phoenixfire', SDK.Cards.Spell.Thunderbomb]],
     ]);
     const entries = [
       [50005, SDK.Cards.PhobiesAbility.FeelGreat, 0, 1, 1, 'Flash Reincarnation'],
@@ -134,6 +159,9 @@ describe('Phobies imported unit factory', () => {
       [50009, SDK.Cards.PhobiesAbility.Gotcha, 1, 1, 1, 'Flash Freeze'],
       [50013, SDK.Cards.PhobiesAbility.Poof, 1, 1, 1, 'Pupabomb'],
       [50030, SDK.Cards.PhobiesAbility.RaisingHell, 1, 2, 2, 'Holy Immolation'],
+      [50004, SDK.Cards.PhobiesAbility.CawClaw, 0, 1, 2, 'Knucklestorm'],
+      [50032, SDK.Cards.PhobiesAbility.BullRush, 1, 1, 3, 'Spiral Counter'],
+      [50020, SDK.Cards.PhobiesAbility.PlaySmashface, 0, 1, 1, 'Koan of Horns'],
       [50011, SDK.Cards.PhobiesAbility.Terrorform, 0, 2, 1, 'Boulder Hurl'],
       [50035, SDK.Cards.PhobiesAbility.Behold, 1, 1, 2, 'Thunderbomb'],
     ];
@@ -154,6 +182,7 @@ describe('Phobies imported unit factory', () => {
       expect(CardEligibility.isDeckChoiceId(effectId, { getIsPracticeSandboxV2: () => true })).to.equal(false);
       expect(CardEligibility.isAllowedRuntimeCard(session, effect, null)).to.equal(false);
       const [expectedName, description, fx, sound, sourceSpellId] = effectExpectations.get(effectId);
+      expect(effect.originalCardId).to.equal(sourceSpellId);
       expect(effect.name).to.equal(expectedName);
       expect(effect.getDescription()).to.equal(description);
       expect(effect.getFXResource()).to.deep.equal(['FX.Factions.Neutral', ...fx]);

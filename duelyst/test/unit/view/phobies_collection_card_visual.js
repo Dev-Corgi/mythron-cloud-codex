@@ -3,8 +3,9 @@ const fs = require('fs');
 require('app-module-path').addPath(path.join(__dirname, '../../../'));
 require('coffeescript/register');
 const { expect } = require('chai');
-const SDK = require('../../../app/sdk');
+const SDK = require('../../../app/sdk.coffee');
 const PhobiesCollectionCardVisual = require('../../../app/ui/views2/collection/PhobiesCollectionCardVisual');
+const HandAbilitySlot = require('../../../app/view/layers/game/handAbilitySlot');
 
 describe('Phobies collection card visual', () => {
   const model = (attributes) => ({ get: (key) => attributes[key] });
@@ -57,12 +58,12 @@ describe('Phobies collection card visual', () => {
       51004: ['War Surge', 'Give a friendly minion +300 Attack this turn.', 'icon_f1_warsurge.png'],
       51005: ['Blindscorch', 'Give an enemy unit or General -300 Attack for 2 turns.', 'icon_f3_blindscorch.png'],
       51006: ['Flash Reincarnation', 'Give a friendly minion +300 Attack this turn.', 'icon_f5_flashreincarnation.png'],
-      51007: ["Aperion's Claim", 'Restore 1100 Health to all adjacent friendly minions.', 'icon_f1_divinebond.png'],
+      51007: ['Aperion\'s Claim', 'Restore 1100 Health to all adjacent friendly minions.', 'icon_f1_greatergood.png'],
       51008: ['Pupabomb', 'Destroy this minion. Deal 550 damage to all adjacent enemy units.', 'icon_f5_egggrenade.png'],
       51009: ['Flash Freeze', 'Destroy this minion. An enemy unit cannot move for 2 turns.', 'icon_f6_flashfreeze.png'],
       51010: ['Pupabomb', 'Destroy this minion. Deal 1400 damage to all adjacent enemy units.', 'icon_f5_egggrenade.png'],
       51011: ['Holy Immolation', 'Deal 600 damage to all adjacent enemy units and 300 damage to enemy units 2 tiles away in a straight line.', 'icon_f1_holyimmolation.png'],
-      51012: ['Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', 'attack_melee.png'],
+      51012: ['Knucklestorm', 'Move this minion 1 tile and attack with it as a single action; the attack deals 425 damage.', 'icon_f2_kindle.png'],
       51013: ['Spiral Counter', 'Move this minion through enemy units or empty tiles to an unoccupied tile 3 tiles away, dealing 550 damage to each enemy unit passed through. Enemy units are preferred when choosing the path.', 'icon_f2_spiralcounter.png'],
       51014: ['Koan of Horns', 'Deal 350 damage to an enemy unit and push it back 1 tile in a straight line.', 'icon_f2_koanofhorns.png'],
       51015: ['Boulder Hurl', 'Create a Wall on an adjacent empty tile or remove an adjacent Wall.', 'icon_neutral_precisionboulder.png'],
@@ -73,10 +74,46 @@ describe('Phobies collection card visual', () => {
       const detail = PhobiesCollectionCardVisual.getAbilityDetail({
         activeAbility: { effectCardId: Number(id), lockdown: 2, cooldown: 3 },
       });
-      expect(detail, `effect ${id}`).to.include({ name, description, level: 1, lockdown: 2, cooldown: 3 });
+      expect(detail, `effect ${id}`).to.include({
+        name, description, level: 1, lockdown: 2, cooldown: 3,
+      });
       if (iconFile) expect(detail.icon.atlas).to.include(iconFile);
       else expect(detail.icon.portrait).to.equal(true);
     });
+  });
+
+  it('keeps collection, hand-slot, and inspect ability definitions in parity for all active cards', () => {
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const activeUnitIds = [50001, 50004, 50005, 50009, 50011, 50013, 50014, 50016, 50017, 50020, 50024, 50026, 50030, 50031, 50032, 50035];
+    activeUnitIds.forEach((unitId) => {
+      const unit = SDK.CardFactory.cardForIdentifier(unitId, session);
+      const definition = unit.activeAbility;
+      const inspectData = HandAbilitySlot.getUnitAbilityFaceData(unit, definition.effectCardId);
+      const slotData = HandAbilitySlot.getSlotAbilityFaceData({ unit, effectCardId: definition.effectCardId }, definition);
+      const collectionData = PhobiesCollectionCardVisual.getAbilityDetail(unit);
+
+      expect(inspectData, `inspect ${unitId}`).to.deep.equal(definition);
+      expect(slotData, `hand ${unitId}`).to.deep.equal(definition);
+      expect(collectionData, `collection ${unitId}`).to.include({
+        name: SDK.CardFactory.cardForIdentifier(definition.effectCardId, session).getName().replace(/^\[PB\]\s*/, ''),
+        description: SDK.CardFactory.cardForIdentifier(definition.effectCardId, session).getDescription(),
+        lockdown: definition.lockdown,
+        cooldown: definition.cooldown,
+      });
+    });
+  });
+
+  it('uses the real first frame and texture dimensions for all sixteen atlas icons', () => {
+    for (let id = 51001; id <= 51016; id += 1) {
+      const icon = PhobiesCollectionCardVisual.getAbilityIcon(null, id);
+      const plist = fs.readFileSync(path.join(__dirname, '../../../app', icon.atlas.replace(/\.png$/, '.plist')), 'utf8');
+      const frame = plist.match(/<key>frame<\/key>\s*<string>\{\{(\d+),(\d+)\},\{48,48\}\}<\/string>/);
+      const size = plist.match(/<key>size<\/key>\s*<string>\{(\d+),(\d+)\}<\/string>/);
+      expect([icon.x, icon.y]).to.deep.equal([Number(frame[1]), Number(frame[2])]);
+      expect([icon.width, icon.height]).to.deep.equal([Number(size[1]), Number(size[2])]);
+      expect(PhobiesCollectionCardVisual.getAbilityArtPresentation(icon).artSize).to.equal(`${Number(size[1]) * 2}px ${Number(size[2]) * 2}px`);
+    }
   });
 
   it('does not show stale detail when a card has no active ability or its effect is missing', () => {
@@ -92,7 +129,7 @@ describe('Phobies collection card visual', () => {
 
   it('converts sprite frames into the selected-card crop and supports standalone fallback art', () => {
     expect(PhobiesCollectionCardVisual.getAbilityArtPresentation({
-      atlas: 'resources/icons/icon_f2_phoenixfire.png', x: 0, y: 196,
+      atlas: 'resources/icons/icon_f2_phoenixfire.png', x: 0, y: 196, width: 128, height: 256,
     })).to.deep.equal({
       art: 'resources/icons/icon_f2_phoenixfire.png', artPosition: '0px -392px', artSize: '256px 512px',
     });
@@ -114,14 +151,19 @@ describe('Phobies collection card visual', () => {
     });
     const presentation = PhobiesCollectionCardVisual.getAbilityArtPresentation(detail.icon);
     const html = template({
-      activeAbility: Object.assign({}, detail, presentation, {
-        frame: 'frame.png', lockdownRing: 'lockdown-ring.png', lockdownIcon: 'lockdown-icon.png',
-        cooldownRing: 'cooldown-ring.png', cooldownIcon: 'cooldown-icon.png',
-      }),
+      activeAbility: {
+        ...detail,
+        ...presentation,
+        frame: 'frame.png',
+        lockdownRing: 'lockdown-ring.png',
+        lockdownIcon: 'lockdown-icon.png',
+        cooldownRing: 'cooldown-ring.png',
+        cooldownIcon: 'cooldown-icon.png',
+      },
       rarityName: 'Basic',
     });
 
-    expect(html).to.include("background-image:url('resources/icons/icon_f2_phoenixfire.png');background-position:0px -392px;background-size:256px 512px");
+    expect(html).to.include('background-image:url(\'resources/icons/icon_f2_phoenixfire.png\');background-position:0px -392px;background-size:256px 512px');
     expect(html).to.include('LEVEL 1');
     expect(html).to.include('>1</span>');
     expect(html).to.include('>2</span>');

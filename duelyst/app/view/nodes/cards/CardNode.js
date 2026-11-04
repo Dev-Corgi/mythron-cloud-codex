@@ -552,6 +552,7 @@ var CardNode = SdkNode.extend({
     if (this.cardTypeLabel != null) this.cardTypeLabel.setPosition(0, 4);
     if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setPosition(0, -90);
     if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setDimensions(cc.size(this.getCardBackgroundContentSize().width - 20, 0));
+    if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setVisible(true);
     if (this.atkLabel != null) this.atkLabel.setPosition(-61, -32);
     if (this.hpLabel != null) this.hpLabel.setPosition(59, -32);
     if (this.atkLabel != null) this.atkLabel.setFontFillColor(CONFIG.ATK_COLOR);
@@ -681,7 +682,7 @@ var CardNode = SdkNode.extend({
       return sprite;
     };
     const addValue = (fontSize, color, width, height) => {
-      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(width || 150, height || 28), cc.TEXT_ALIGNMENT_CENTER);
+      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(width || 150, height || 28), cc.TEXT_ALIGNMENT_CENTER, cc.VERTICAL_TEXT_ALIGNMENT_CENTER);
       label.setFontFillColor(color || cc.color.WHITE);
       label.setAnchorPoint(0.5, 0.5);
       this._staticContainerNodeFront.addChild(label, 2);
@@ -714,26 +715,18 @@ var CardNode = SdkNode.extend({
       return sprite;
     };
     const activeAbility = this._phobiesAbilityFaceData;
-    // Live data (a unit on the board or a General's Bloodbound card in a match) shows only the
-    // nonzero counter and nothing when ready. Otherwise both rings show the definition's base counters.
-    const isLive = !!activeAbility.live;
-    const liveCounter = isLive ? activeAbility.liveCounter : null;
-    const showLockdown = isLive ? (liveCounter != null && liveCounter.type === 'lockdown') : true;
-    const showCooldown = isLive ? (liveCounter != null && liveCounter.type === 'cooldown') : true;
-    if (showLockdown) {
-      addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
-      addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
-      const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);
-      lockdownValue.setString(`${isLive ? liveCounter.value : (activeAbility.lockdown || 0)}`, true);
-      lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
-    }
-    if (showCooldown) {
-      addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
-      addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
-      const cooldownValue = addValue(18, cc.color(123, 230, 245), 44, 44);
-      cooldownValue.setString(`${isLive ? liveCounter.value : (activeAbility.cooldown || 1)}`, true);
-      cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
-    }
+    // Ability inspect cards show their static definition, never the changing match state.
+    addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
+    addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
+    const lockdownValue = addValue(lockdown.valueFontSize / 2, cc.color(232, 185, 255), 44, 44);
+    lockdownValue.setString(`${activeAbility.lockdown}`, true);
+    lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
+
+    addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
+    addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
+    const cooldownValue = addValue(cooldown.valueFontSize / 2, cc.color(123, 230, 245), 44, 44);
+    cooldownValue.setString(`${activeAbility.cooldown}`, true);
+    cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
 
     const name = addValue(14, cc.color.WHITE, this.getCardBackgroundContentSize().width - 20, 24);
     name.setString(sdkCard.getName().toUpperCase(), true);
@@ -742,13 +735,19 @@ var CardNode = SdkNode.extend({
     level.setString(`LEVEL ${sdkCard.getLevel ? sdkCard.getLevel() : 1}`, true);
     level.setPosition(this._phobiesPosition(ABILITY_LAYOUT.level.center));
 
+    const effect = addValue(10, cc.color(155, 206, 216), ABILITY_LAYOUT.effect.maxWidth / 2, 90);
+    effect.setString(sdkCard.getDescription(CONFIG.FORMATTING_ENGINE) || '', true);
+    effect.setPosition(this._phobiesPosition(ABILITY_LAYOUT.effect.center));
+
     this.cardBackgroundSprite.setVisible(false);
     this.cardNameLabel.setVisible(false);
     this.cardTypeLabel.setVisible(false);
     this.factionNameLabel.setVisible(false);
-    this.cardDescriptionLabel.setPosition(this._phobiesPosition(ABILITY_LAYOUT.effect.center));
-    this.cardDescriptionLabel.setDimensions(cc.size(ABILITY_LAYOUT.effect.maxWidth / 2, 72));
-    this.cardDescriptionLabel.setFontSize(10);
+    this.cardDescriptionLabel.setVisible(false);
+    this.atkLabel.setVisible(false);
+    this.hpLabel.setVisible(false);
+    this.manaLabel.setVisible(false);
+    this._manaGemSprite.setVisible(false);
     this._phobiesAbilityFaceNodes = nodes;
   },
 
@@ -1031,6 +1030,13 @@ var CardNode = SdkNode.extend({
   },
 
   updateStats() {
+    if (this._phobiesAbilityFaceEnabled) {
+      this.atkLabel.setVisible(false);
+      this.hpLabel.setVisible(false);
+      this.manaLabel.setVisible(false);
+      this._manaGemSprite.setVisible(false);
+      return;
+    }
     const stateAtAction = this.getStateForActionToShowStateFor();
     const manaCost = (stateAtAction != null && stateAtAction.manaCost != null ? stateAtAction.manaCost : (this.sdkCard && this.sdkCard.manaCost)) || 0;
 
@@ -1135,6 +1141,7 @@ var CardNode = SdkNode.extend({
       this.atkLabel.setVisible(false);
       this.hpLabel.setVisible(false);
     }
+
   },
 
   /**

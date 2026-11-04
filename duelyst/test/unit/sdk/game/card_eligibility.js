@@ -108,6 +108,20 @@ describe('new-rules card eligibility', () => {
     expect(CardEligibility.validateSavedDeck({ id: 2, purpose: 'sandbox', cards: v1Deck }, 'sandbox', v2Context).valid).to.equal(false);
   });
 
+  it('keeps every Phobies card in the v2 deck pool and out of generic card caches', () => {
+    const v2 = SDK.GameSession.create();
+    v2.setRuleset('practice-sandbox-hex', 2);
+    const phobiesIds = Array.from({ length: 35 }, (_, index) => 50001 + index);
+    const cacheIds = SDK.GameSession.getCardCaches().getCards().map((card) => card.getId());
+
+    phobiesIds.forEach((id) => {
+      expect(CardEligibility.isDeckChoiceId(id, v2), `v2 deck choice ${id}`).to.equal(true);
+      expect(cacheIds, `generic card cache ${id}`).not.to.include(id);
+      const card = SDK.CardFactory.cardForIdentifier(id, v2);
+      expect(isExcludedFromLegacyCardPools(card), `legacy pool ${id}`).to.equal(true);
+    });
+  });
+
   it('builds validated Practice/Sandbox starter presets from each playable primary General', () => {
     const context = { rulesetId: 'practice-sandbox-hex', rulesetVersion: 2 };
     const roster = CardEligibility.getPracticeBotRoster();

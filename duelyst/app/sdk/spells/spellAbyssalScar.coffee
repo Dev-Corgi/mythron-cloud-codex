@@ -10,7 +10,7 @@ class SpellAbyssalScar extends SpellApplyModifiers
     damageAction = new DamageAction(@getGameSession())
     damageAction.setOwnerId(@getOwnerId())
     damageAction.setTarget(unit)
-    damageAction.setDamageAmount(@damageAmount)
+    damageAction.setDamageAmount(@damageAmount * require("./generalAbilityEffectScale")(@, sourceAction))
     @getGameSession().executeAction(damageAction)
     @targetModifiersContextObjects[0].spawnOwnerId = @getOwnerId()
     super(board,x,y,sourceAction)

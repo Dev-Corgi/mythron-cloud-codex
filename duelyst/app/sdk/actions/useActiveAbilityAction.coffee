@@ -17,6 +17,17 @@ class UseActiveAbilityAction extends PlayCardAction
       return sourceUnit.getOwner?()?.getSignatureCardData?()?.id
     return sourceUnit.activeAbility?.effectCardId
 
+  @getLegalTargetPositions: (gameSession, sourceUnit) ->
+    return [] unless sourceUnit?
+    effectId = @getEffectCardId(gameSession, sourceUnit)
+    effect = gameSession.createCardForIdentifier(effectId)
+    return [] unless effect?
+    effect.setOwnerId(sourceUnit.getOwnerId())
+    return effect.getValidTargetPositions().filter (position) ->
+      action = new UseActiveAbilityAction(gameSession, sourceUnit.getOwnerId(), sourceUnit.getIndex(), position)
+      gameSession.validateAction(action, false)
+      return action.getIsValid()
+
   constructor: (gameSession, ownerId, sourceUnitIndex, targetPosition) ->
     @type ?= UseActiveAbilityAction.type
     @sourceUnitIndex = sourceUnitIndex
@@ -45,6 +56,7 @@ class UseActiveAbilityAction extends PlayCardAction
     sourceUnit = session.getCardByIndex(@sourceUnitIndex)
     state = sourceUnit?.getActiveAbilityState?()
     return unless sourceUnit? and state? and sourceUnit.getIsActive() and !sourceUnit.getIsSilenced() and !sourceUnit.hasActiveModifierClass(ModifierStunned) and state.lockdown is 0 and state.cooldown is 0 and sourceUnit.getCanUseActiveAbility() and sourceUnit.recordActiveAbilityUse()
+    @casterPosition = Object.assign({}, sourceUnit.getPosition())
     sourceUnit.startActiveAbilityCooldown()
     @_private.source = sourceUnit
     super()

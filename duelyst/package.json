@@ -197,6 +197,7 @@
     "test:integration:firebase": "mocha -t 1000 --recursive test/integration/firebase",
     "test:integration:misc": "mocha -t 1000 --recursive test/integration/misc",
     "test:unit": "mocha -t 1000 --recursive test/unit",
+    "test:phobies:sweep": "node test/scripts/phobies-regression-sweep.js",
     "test:unit:firebase": "mocha -t 1000 test/unit/firebase",
     "test:unit:sdk": "mocha -t 1000 --recursive test/unit/sdk",
     "test:unit:session": "mocha -t 1000 --recursive test/unit/session",

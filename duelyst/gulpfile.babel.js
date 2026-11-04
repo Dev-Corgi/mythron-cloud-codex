@@ -198,6 +198,19 @@ function validateFirebase(cb) {
   if (firebaseHost === 'localhost.firebaseio.com' || firebaseHost === 'localhost') {
     return cb(new Error('FIREBASE_URL must point to a configured Firebase project, not localhost'));
   }
+  if (development) {
+    const fs = require('fs');
+    const envPath = require('path').join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const entry = fs.readFileSync(envPath, 'utf8').split(/\r?\n/).find((line) => /^FIREBASE_URL=/.test(line));
+      if (entry) {
+        const expectedUrl = entry.slice('FIREBASE_URL='.length).trim().replace(/^['"]|['"]$/g, '');
+        if (process.env.FIREBASE_URL !== expectedUrl) {
+          return cb(new Error('FIREBASE_URL differs from this worktree\'s .env; the client and local API would use different Firebase projects'));
+        }
+      }
+    }
+  }
   return cb();
 }
 

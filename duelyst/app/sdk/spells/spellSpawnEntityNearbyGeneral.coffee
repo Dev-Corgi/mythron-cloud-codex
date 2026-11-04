@@ -8,6 +8,8 @@ UtilsGameSession = require '../../common/utils/utils_game_session.coffee'
 class SpellSpawnEntityNearbyGeneral extends SpellSpawnEntity
 
   _getPrefilteredValidTargetPositions: () ->
+    if @getGameSession().getIsPracticeSandboxV2()
+      return @getGameSession().getBoard().getHexNeighbors(@getGameSession().getGeneralForPlayerId(@ownerId).getPosition())
     # get positions around General
     return UtilsGameSession.getValidBoardPositionsFromPattern(@getGameSession().getBoard(), @getGameSession().getGeneralForPlayerId(@ownerId).getPosition(), CONFIG.PATTERN_3x3)
 

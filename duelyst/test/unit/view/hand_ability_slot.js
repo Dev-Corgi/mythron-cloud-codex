@@ -5,11 +5,12 @@ const layout = require('../../../app/resources/card_ui/phobies_ability/ability-l
 const HandAbilitySlot = require('../../../app/view/layers/game/handAbilitySlot');
 
 describe('hand ability slot model', () => {
-  const makeUnit = (overrides = {}) => Object.assign({
+  const makeUnit = (overrides = {}) => ({
     getIndex: () => 42,
     getCanUseActiveAbility: () => true,
     activeAbility: { effectCardId: 701, lockdown: 1, cooldown: 1 },
-  }, overrides);
+    ...overrides,
+  });
   const makeInfo = ({
     lockdown = 0, cooldown = 0, silenced = false, unit = makeUnit(),
   } = {}) => ({
@@ -164,23 +165,26 @@ describe('hand ability slot model', () => {
       expect(HandAbilitySlot.buildAbilityFaceData(null, { lockdown: 1, cooldown: 0 })).to.equal(null);
     });
 
-    it('carries the live nonzero counter', () => {
+    it('keeps the definition counters when the live state changes', () => {
       const face = HandAbilitySlot.buildAbilityFaceData(definition, { lockdown: 0, cooldown: 2 });
-      expect(face.live).to.equal(true);
-      expect(face.liveCounter).to.deep.equal({ type: 'cooldown', value: 2 });
+      expect(face.live).to.equal(false);
+      expect(face.liveCounter).to.equal(null);
+      expect(face.lockdown).to.equal(1);
+      expect(face.cooldown).to.equal(1);
       expect(face.effectCardId).to.equal(701);
       expect(definition.live).to.equal(undefined);
     });
 
-    it('marks a ready ability live with no counter', () => {
+    it('keeps a ready ability card definition unchanged', () => {
       const face = HandAbilitySlot.buildAbilityFaceData(definition, { lockdown: 0, cooldown: 0 });
-      expect(face.live).to.equal(true);
-      expect(face.liveCounter).to.equal(null);
+      expect(face.live).to.equal(false);
+      expect(face.lockdown).to.equal(1);
+      expect(face.cooldown).to.equal(1);
     });
 
-    it('uses the live state for a deployed unit and the base definition otherwise', () => {
+    it('keeps base counters for a deployed unit and the base definition otherwise', () => {
       const deployed = { activeAbility: definition, getActiveAbilityState: () => ({ lockdown: 1, cooldown: 0 }) };
-      expect(HandAbilitySlot.getUnitAbilityFaceData(deployed, 701).liveCounter).to.deep.equal({ type: 'lockdown', value: 1 });
+      expect(HandAbilitySlot.getUnitAbilityFaceData(deployed, 701)).to.include({ live: false, lockdown: 1, cooldown: 1 });
       const inHand = { activeAbility: definition, getActiveAbilityState: () => null };
       expect(HandAbilitySlot.getUnitAbilityFaceData(inHand, 701)).to.equal(definition);
       const noStateApi = { activeAbility: definition };
@@ -206,11 +210,12 @@ describe('hand ability slot model', () => {
       getId: () => 20174,
     };
 
-    it('shows the General live counter on the signature card', () => {
+    it('shows the General base counters on the signature card', () => {
       const face = HandAbilitySlot.getSignatureAbilityFaceData(signature, makeSession(true, { lockdown: 2, cooldown: 0 }));
       expect(face.effectCardId).to.equal(20174);
-      expect(face.live).to.equal(true);
-      expect(face.liveCounter).to.deep.equal({ type: 'lockdown', value: 2 });
+      expect(face.live).to.equal(false);
+      expect(face.liveCounter).to.equal(null);
+      expect(face).to.include({ lockdown: 2, cooldown: 2 });
     });
 
     it('shows no counter when the Bloodbound ability is ready', () => {
@@ -224,7 +229,7 @@ describe('hand ability slot model', () => {
     });
 
     it('ignores cards that are not signature cards or generals without state', () => {
-      const notSignature = Object.assign({}, signature, { isSignatureCard: () => false });
+      const notSignature = { ...signature, isSignatureCard: () => false };
       expect(HandAbilitySlot.getSignatureAbilityFaceData(notSignature, makeSession(true, { lockdown: 2, cooldown: 0 }))).to.equal(null);
       expect(HandAbilitySlot.getSignatureAbilityFaceData(signature, makeSession(true, null))).to.equal(null);
       expect(HandAbilitySlot.getSignatureAbilityFaceData({}, makeSession(true, { lockdown: 1, cooldown: 0 }))).to.equal(null);
@@ -232,13 +237,15 @@ describe('hand ability slot model', () => {
   });
 
   describe('HOVER face data', () => {
-    it('shows the effect card with the unit live counter', () => {
+    it('shows the effect card with its base counters rather than the unit live counter', () => {
       const unit = makeUnit({ getActiveAbilityState: () => ({ lockdown: 0, cooldown: 1 }) });
       const model = HandAbilitySlot.describeHandAbilitySlot(makeInfo({ unit, cooldown: 1 }), myTurn);
       const session = { getIsPracticeSandboxV2: () => true };
       const face = HandAbilitySlot.getPrimaryInspectFaceData({ sdkCard: {}, slotModel: model, session });
       expect(face.effectCardId).to.equal(701);
-      expect(face.liveCounter).to.deep.equal({ type: 'cooldown', value: 1 });
+      expect(face.liveCounter).to.equal(null);
+      expect(face.lockdown).to.equal(1);
+      expect(face.cooldown).to.equal(1);
     });
   });
 

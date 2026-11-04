@@ -10,7 +10,7 @@ const StarterAI = require('../../../../server/ai/starter_ai');
 const createSession = () => {
   const gameSession = SDK.GameSession.create();
   gameSession.setRuleset('practice-sandbox-hex', 2);
-  const roster = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
+  const roster = [50003, 50004, 50006, 50007, 50008, 50022, 50023, 50028];
   SDK.GameSetup.setupNewSession(
     gameSession,
     { userId: 'methron-ai-player-1', name: 'Methron AI Player 1', deck: [{ id: SDK.Cards.Faction1.General }, ...roster.map((id) => ({ id }))] },
@@ -48,7 +48,7 @@ describe('Practice AI Methron control valuation', () => {
     setControlCounts(session, 3, 1);
     const startingPlayer2Hp = session.getGeneralForPlayer2().getHP();
     const firstProjection = scoreMethronControl.createProjection(session);
-    expect(firstProjection.getGeneralForPlayer2().getHP()).to.equal(startingPlayer2Hp - 4);
+    expect(firstProjection.getGeneralForPlayer2().getHP()).to.equal(startingPlayer2Hp - 400);
     firstProjection.terminate();
 
     session.setIsRunningAsAuthoritative(true);
@@ -56,7 +56,7 @@ describe('Practice AI Methron control valuation', () => {
     session.executeAction(session.actionEndTurn());
     const startingPlayer1Hp = session.getGeneralForPlayer1().getHP();
     const secondProjection = scoreMethronControl.createProjection(session);
-    expect(secondProjection.getGeneralForPlayer2().getHP()).to.equal(session.getGeneralForPlayer2().getHP() - 4);
+    expect(secondProjection.getGeneralForPlayer2().getHP()).to.equal(session.getGeneralForPlayer2().getHP() - 400);
     expect(secondProjection.getGeneralForPlayer1().getHP()).to.equal(startingPlayer1Hp);
     secondProjection.terminate();
     session.terminate();

@@ -19,6 +19,7 @@ Logger.enabled = false;
 
 const hexRosterIds = [10979, 19052, 19038, 10205, 10001, 19051, 10954, 10206];
 const createHexDeck = (generalId) => [{ id: generalId }, ...hexRosterIds.map((id) => ({ id }))];
+const createV2Deck = (generalId) => [{ id: generalId }, ...require('../../../../app/sdk/rulesets/cardEligibility.coffee').getPracticeBotRoster().map((id) => ({ id }))];
 
 describe('game setup', () => {
   beforeEach(() => {
@@ -98,7 +99,7 @@ describe('game setup', () => {
       };
       GamesModule.newUserGame = () => Promise.resolve();
 
-      const practiceDeck = createHexDeck(SDK.Cards.Faction1.General);
+      const practiceDeck = createV2Deck(SDK.Cards.Faction1.General);
       const aiGeneralId = SDK.Cards.Faction3.AltGeneral;
       return createSinglePlayerGame(
         'ruleset-test-player',
@@ -158,9 +159,9 @@ describe('game setup', () => {
     it('uses configured General and Wall stats in version 2 and legacy stats elsewhere', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 2);
-      const deck = createHexDeck(SDK.Cards.Faction1.General);
+      const deck = createV2Deck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'wall-v2-1', name: 'Wall One', deck }, {
-        userId: 'wall-v2-2', name: 'Wall Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+        userId: 'wall-v2-2', name: 'Wall Two', deck: createV2Deck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(session.getGeneralForPlayer1().getPosition()).to.deep.equal({ q: -2, r: 4 });
       expect(session.getGeneralForPlayer2().getPosition()).to.deep.equal({ q: 8, r: 0 });
@@ -191,7 +192,7 @@ describe('game setup', () => {
 
       const legacy = SDK.GameSession.create();
       legacy.setRuleset('practice-sandbox-hex', 1);
-      SDK.GameSetup.setupNewSession(legacy, { userId: 'wall-v1-1', name: 'Old One', deck }, {
+      SDK.GameSetup.setupNewSession(legacy, { userId: 'wall-v1-1', name: 'Old One', deck: createHexDeck(SDK.Cards.Faction1.General) }, {
         userId: 'wall-v1-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(legacy.getBoard().getTiles().filter((tile) => tile.getId() === SDK.Cards.Tile.Wall)).to.have.length(0);
@@ -201,7 +202,7 @@ describe('game setup', () => {
 
       const v1 = SDK.GameSession.create();
       v1.setRuleset('practice-sandbox-hex', 1);
-      SDK.GameSetup.setupNewSession(v1, { userId: 'wall-v1b-1', name: 'Old One', deck }, {
+      SDK.GameSetup.setupNewSession(v1, { userId: 'wall-v1b-1', name: 'Old One', deck: createHexDeck(SDK.Cards.Faction1.General) }, {
         userId: 'wall-v1b-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(v1.getGeneralForPlayer1().getMaxHP()).to.equal(25);
@@ -213,9 +214,9 @@ describe('game setup', () => {
     it('places five neutral non-consuming Methron Points only in version 2 setup', () => {
       const session = SDK.GameSession.create();
       session.setRuleset('practice-sandbox-hex', 2);
-      const deck = createHexDeck(SDK.Cards.Faction1.General);
+      const deck = createV2Deck(SDK.Cards.Faction1.General);
       SDK.GameSetup.setupNewSession(session, { userId: 'point-v2-1', name: 'Point One', deck }, {
-        userId: 'point-v2-2', name: 'Point Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
+        userId: 'point-v2-2', name: 'Point Two', deck: createV2Deck(SDK.Cards.Faction4.AltGeneral),
       });
 
       const points = session.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint);
@@ -238,14 +239,14 @@ describe('game setup', () => {
 
       const legacy = SDK.GameSession.create();
       legacy.setRuleset('legacy', 1);
-      SDK.GameSetup.setupNewSession(legacy, { userId: 'point-legacy-1', name: 'Old One', deck }, {
+      SDK.GameSetup.setupNewSession(legacy, { userId: 'point-legacy-1', name: 'Old One', deck: createHexDeck(SDK.Cards.Faction1.General) }, {
         userId: 'point-legacy-2', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(legacy.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint)).to.have.length(0);
 
       const hexV1 = SDK.GameSession.create();
       hexV1.setRuleset('practice-sandbox-hex', 1);
-      SDK.GameSetup.setupNewSession(hexV1, { userId: 'point-v1-1b', name: 'Old One', deck }, {
+      SDK.GameSetup.setupNewSession(hexV1, { userId: 'point-v1-1b', name: 'Old One', deck: createHexDeck(SDK.Cards.Faction1.General) }, {
         userId: 'point-v1-2b', name: 'Old Two', deck: createHexDeck(SDK.Cards.Faction4.AltGeneral),
       }, true);
       expect(hexV1.getBoard().getTiles(true).filter((tile) => tile.getId() === SDK.Cards.Tile.MethronPoint)).to.have.length(0);

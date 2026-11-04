@@ -20,7 +20,17 @@ GENERAL_SIGNATURE_IDS =
   401: 20182
   527: 20185
   558: 20306
+V2_GENERAL_SIGNATURE_IDS = Object.assign({}, GENERAL_SIGNATURE_IDS, {101: 20176, 123: 20177, 152: 20302, 201: 20178, 301: 20180, 355: 20303, 418: 20183, 449: 20305, 501: 20184})
 GENERATED_DEPENDENCY_IDS = [20142, 43, 40004]
+V2_DEPENDENCY_PARENTS =
+  20053: [20176]
+  108: [20177]
+  225: [20178]
+  315: [20180]
+  20058: [20303]
+  346: [20303]
+  411: [20305]
+  442: [411]
 # Every faction General remains a valid deck leader in v2, including cards
 # without the historical signature mapping used by the Practice opponent list.
 V2_GENERAL_IDS = [
@@ -57,14 +67,19 @@ CardEligibility =
     return true if @isV2Rules(gameSession) and cardId in V2_GENERAL_IDS
     return Object::hasOwnProperty.call(GENERAL_SIGNATURE_IDS, cardId)
 
-  isSignatureId: (cardId) ->
-    return cardId in (value for own key, value of GENERAL_SIGNATURE_IDS)
+  getSignatureId: (generalId, gameSession) ->
+    signatures = if @isV2Rules(gameSession) then V2_GENERAL_SIGNATURE_IDS else GENERAL_SIGNATURE_IDS
+    return signatures[Cards.getNonPrismaticCardId(generalId)]
+
+  isSignatureId: (cardId, gameSession) ->
+    signatures = if @isV2Rules(gameSession) then V2_GENERAL_SIGNATURE_IDS else GENERAL_SIGNATURE_IDS
+    return Cards.getNonPrismaticCardId(cardId) in (value for own key, value of signatures)
 
   isDeckCardId: (cardId, gameSession) ->
     if @isV2Rules(gameSession)
       # Signature cards stay runtime-only for their owning general.
-      return cardId in PHOBIES_DECKABLE_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId)
-    return cardId in LEGACY_NEUTRAL_CARD_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId)
+      return cardId in PHOBIES_DECKABLE_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId, gameSession)
+    return cardId in LEGACY_NEUTRAL_CARD_IDS or @isGeneralId(cardId, gameSession) or @isSignatureId(cardId, gameSession)
 
   isDeckChoiceId: (cardId, gameSession) ->
     if @isV2Rules(gameSession)
@@ -72,14 +87,14 @@ CardEligibility =
     return cardId in LEGACY_NEUTRAL_CARD_IDS or @isGeneralId(cardId, gameSession)
 
   isGeneratedDependencyId: (cardId) ->
-    return cardId in GENERATED_DEPENDENCY_IDS
+    return cardId in GENERATED_DEPENDENCY_IDS or Object::hasOwnProperty.call(V2_DEPENDENCY_PARENTS, Cards.getNonPrismaticCardId(cardId))
 
   isAllowedRuntimeId: (cardId, gameSession) ->
-    return @isDeckCardId(cardId, gameSession) or @isGeneratedDependencyId(cardId)
+    return @isDeckCardId(cardId, gameSession) or cardId in GENERATED_DEPENDENCY_IDS or (@isV2Rules(gameSession) and @isGeneratedDependencyId(cardId))
 
   isAllowedRuntimeCard: (gameSession, card, sourceAction) ->
     return false unless card?
-    cardId = card.getId()
+    cardId = if @isV2Rules(gameSession) then Cards.getNonPrismaticCardId(card.getId()) else card.getId()
     # Ability effects are never runtime cards unless they are the effect
     # currently bound to their owning unit's active-ability action.
     if CardType.getIsAbilityEffectCardType(card.getType())
@@ -90,12 +105,18 @@ CardEligibility =
       return gameSession.getIsPracticeSandboxV2() and !sourceAction? and card.getOwnerId() is null
     if sourceAction instanceof UseActiveAbilityAction
       sourceUnit = gameSession.getCardByIndex(sourceAction.sourceUnitIndex)
-      return @isV2Rules(gameSession) and sourceUnit? and ((sourceUnit.getIsGeneral?() or false) or CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is cardId
+      return @isV2Rules(gameSession) and sourceUnit? and ((sourceUnit.getIsGeneral?() or false) or CardType.getIsSpellCardType(card.getType()) or CardType.getIsAbilityEffectCardType(card.getType())) and sourceUnit.getOwnerId() is card.getOwnerId() and UseActiveAbilityAction.getEffectCardId(gameSession, sourceUnit) is card.getId()
     return @isAllowedRuntimeIdForPlayer(gameSession, cardId, card.getOwnerId()) if @isDeckCardId(cardId, gameSession)
     return false unless @isGeneratedDependencyId(cardId)
+    if cardId is 442 and @isV2Rules(gameSession)
+      eggModifier = sourceAction?.getTriggeringModifier?() ? gameSession.getTriggeringModifier?()
+      egg = eggModifier?.getCard?() ? sourceAction?.getSource?()
+      origin = egg?.getAppliedToBoardByAction?()?.getRootAction?()
+      return eggModifier?.getType?() is "ModifierEgg" and Cards.getNonPrismaticCardId(egg?.getId()) is 411 and egg.getOwnerId() is card.getOwnerId() and origin instanceof UseActiveAbilityAction and origin.getSourceUnit()?.getOwnerId() is card.getOwnerId() and Cards.getNonPrismaticCardId(UseActiveAbilityAction.getEffectCardId(gameSession, origin.getSourceUnit())) is 20305
 
     rootCard = card.getRootCard?() ? card
     rootCardId = rootCard?.getId?()
+    rootCardId = Cards.getNonPrismaticCardId(rootCardId) if @isV2Rules(gameSession)
     unless rootCardId? and rootCardId isnt cardId
       # A followup PlayCardAction carries its audited parent through `source`.
       # At the first eligibility check the followup properties have not yet
@@ -105,11 +126,27 @@ CardEligibility =
       rootCard = sourceAction?.getSource?()
       rootCard = rootCard.getRootCard?() ? rootCard if rootCard?
       rootCardId = rootCard?.getId?()
+      rootCardId = Cards.getNonPrismaticCardId(rootCardId) if @isV2Rules(gameSession)
       unless rootCardId? and rootCardId isnt cardId
         rootAction = sourceAction?.getRootAction?()
         rootCard = rootAction?.getCard?()
+        rootCard = rootCard.getRootCard?() ? rootCard if rootCard?
         rootCardId = rootCard?.getId?()
+        rootCardId = Cards.getNonPrismaticCardId(rootCardId) if @isV2Rules(gameSession)
     return false unless rootCard?.getOwnerId?() is card.getOwnerId()
+
+    if @isV2Rules(gameSession) and Cards.getNonPrismaticCardId(rootCardId) in (V2_DEPENDENCY_PARENTS[cardId] ? [])
+      origin = sourceAction?.getRootAction?()
+      # Followups start a new action tree, but must still be the signature's
+      # current canonical followup, rather than reuse an old spell as a source.
+      unless origin instanceof UseActiveAbilityAction
+        followupRoot = origin?.getSource?()?.getRootCard?()
+        isCurrentFollowup = rootCard.getIsActionForCurrentFollowup(origin)
+        resolvedFollowup = origin?.getCard?()
+        isInjectedFollowup = resolvedFollowup?.getIsFollowup?() and resolvedFollowup.getRootCard() is rootCard
+        return false unless followupRoot is rootCard and (isCurrentFollowup or isInjectedFollowup)
+        origin = rootCard.getAppliedToBoardByAction?()?.getRootAction?()
+      return origin instanceof UseActiveAbilityAction and origin.getIsGeneralAbility() and origin.getCard() is rootCard and origin.getOwnerId() is card.getOwnerId() and @isSignatureForPlayer(gameSession, rootCardId, card.getOwnerId())
 
     if cardId is 20142
       # This policy check runs before ValidatorFollowup injects the parent
@@ -138,15 +175,16 @@ CardEligibility =
     return false unless @isAllowedRuntimeId(cardId, gameSession)
     if @isGeneralId(cardId, gameSession)
       return !gameSession.getGeneralForPlayerId(playerId)?
-    if @isSignatureId(cardId)
+    if @isSignatureId(cardId, gameSession)
       general = gameSession.getGeneralForPlayerId(playerId)
-      return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
+      return general? and @getSignatureId(general.getId(), gameSession) is Cards.getNonPrismaticCardId(cardId)
     return true
 
   isSignatureForPlayer: (gameSession, cardId, playerId) ->
-    return false unless @isSignatureId(cardId)
     general = gameSession.getGeneralForPlayerId(playerId)
-    return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
+    unless @isV2Rules(gameSession)
+      return general? and GENERAL_SIGNATURE_IDS[general.getId()] is cardId
+    return general? and Cards.getNonPrismaticCardId(general.getSignatureCardData()?.id) is Cards.getNonPrismaticCardId(cardId)
 
   validateSavedDeck: (savedDeck, purpose, gameSession) ->
     unless savedDeck?.id? and savedDeck.purpose is purpose and purpose in ["practice", "sandbox"]
@@ -162,7 +200,7 @@ CardEligibility =
     return {valid: false, reason: "Practice and Sandbox decks must contain exactly one general and eight cards."} unless Array.isArray(deck) and deck.length is CONFIG.MAX_NEW_RULES_DECK_SIZE
     generalId = deck[0]?.id
     return {valid: false, reason: "The general is not audited for Practice and Sandbox."} unless @isGeneralId(generalId, gameSession)
-    signatureId = GENERAL_SIGNATURE_IDS[generalId]
+    signatureId = @getSignatureId(generalId, gameSession)
     cardCounts = {}
     for cardData, index in deck
       cardId = cardData?.id
@@ -193,7 +231,7 @@ CardEligibility =
     for cardData in (playerData?.startingBoardCardsData ? [])
       unless @isDeckCardId(cardData?.id, gameSession)
         return {valid: false, reason: "Starting board card #{cardData?.id} is not audited for Practice and Sandbox."}
-      if @isSignatureId(cardData.id) and GENERAL_SIGNATURE_IDS[generalId] isnt cardData.id
+      if @isSignatureId(cardData.id, gameSession) and @getSignatureId(generalId, gameSession) isnt Cards.getNonPrismaticCardId(cardData.id)
         return {valid: false, reason: "Starting board signature does not match its general."}
       if cardData? and Object.keys(cardData).some((key) -> key not in ["id", "position", "ownerId", "index"])
         return {valid: false, reason: "Starting board card overrides are not allowed in Practice and Sandbox."}
