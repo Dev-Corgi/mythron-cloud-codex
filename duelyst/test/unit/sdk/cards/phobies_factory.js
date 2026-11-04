@@ -58,6 +58,16 @@ describe('Phobies imported unit factory', () => {
     }
   });
 
+  it('carries movement audio from each mapped Duelyst unit', () => {
+    const session = SDK.GameSession.create();
+    for (let id = 50001; id <= 50035; id++) {
+      const card = SDK.CardFactory.cardForIdentifier(id, session);
+      const original = SDK.CardFactory.cardForIdentifier(card.originalCardId, session);
+      expect(card.getBaseSoundResource(), `unit ${id} sound`).to.deep.equal(original.getBaseSoundResource());
+      expect(card.getBaseSoundResource().walk, `unit ${id} walk`).to.be.a('string').and.not.empty;
+    }
+  });
+
   it('matches every imported stat to the checked-in source snapshot', () => {
     const byName = new Map(source.map((row) => [row.name, row]));
     const session = SDK.GameSession.create();

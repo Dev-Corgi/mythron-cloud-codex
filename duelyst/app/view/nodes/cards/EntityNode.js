@@ -1237,7 +1237,7 @@ const EntityNode = SdkNode.extend({
       && (isHex
         ? SDK.GameSession.getInstance().getBoard().positionsEqual(sourceBoardPosition, targetBoardPosition)
         : UtilsPosition.getPositionsAreEqual(sourceBoardPosition, targetBoardPosition));
-    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && !positionsEqual) {
+    if (gameLayer != null && sourceBoardPosition != null && targetBoardPosition != null && this.canChangeState() && !positionsEqual) {
       this.stopShowingMove();
       this.stopShowingTeleport();
 
@@ -1249,17 +1249,6 @@ const EntityNode = SdkNode.extend({
       const animMoveDuration = animMoveAction != null ? animMoveAction.getDuration() : 0.0;
       const animMoveCorrection = animMoveDuration * CONFIG.ENTITY_MOVE_CORRECTION;
       const actualDuration = animMoveDuration * (moveTileCount + 1) - animMoveCorrection;
-
-      // The action is authoritative even when this node cannot play an animation
-      // (for example, while state-locked or before it has spawned).
-      if (!this.canChangeState()) {
-        gameLayer.getEventBus().trigger(EVENTS.before_show_move, { type: EVENTS.before_show_move, action });
-        this.setPosition(targetTileMapPosition);
-        this.setMovePosition(targetTileMapPosition);
-        this.setIsMoving(false);
-        gameLayer.getEventBus().trigger(EVENTS.after_show_move, { type: EVENTS.after_show_move, action });
-        return showDuration;
-      }
 
       // set show duration
       showDuration += Math.max(moveDuration, actualDuration + animMoveCorrection);
@@ -1285,17 +1274,8 @@ const EntityNode = SdkNode.extend({
         gameLayer.getEventBus().trigger(EVENTS.after_show_move, { type: EVENTS.after_show_move, action });
       }.bind(this);
 
-      const cardResourceRequestId = this.getCardResourceRequestId();
-      const finishMoveWithoutAnimation = () => {
-        if (this.getCardResourceRequestId() !== cardResourceRequestId) return;
-        gameLayer.getEventBus().trigger(EVENTS.before_show_move, { type: EVENTS.before_show_move, action });
-        onFinishMove();
-      };
-      this.whenResourcesReady(cardResourceRequestId).then((readyCardResourceRequestId) => {
-        if (!this.getAreResourcesValid(readyCardResourceRequestId)) {
-          finishMoveWithoutAnimation();
-          return;
-        }
+      this.whenResourcesReady(this.getCardResourceRequestId()).then((cardResourceRequestId) => {
+        if (!this.getAreResourcesValid(cardResourceRequestId)) return; // card has changed
         if (this.canChangeState()) {
           this.showNoState();
 
@@ -1355,11 +1335,8 @@ const EntityNode = SdkNode.extend({
           this._showMoveAction = moveSequence;
           this.runAction(moveSequence);
         } else {
-          finishMoveWithoutAnimation();
+          onFinishMove();
         }
-      }, () => {
-        // If the animation package fails to load, keep the rendered board in sync.
-        finishMoveWithoutAnimation();
       });
     }
 

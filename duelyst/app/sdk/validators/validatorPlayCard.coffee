@@ -30,6 +30,13 @@ class ValidatorPlayCard extends Validator
     target = board.getCardAtPosition(targetPosition, card.targetType, true)
     return true unless target?
     return true if target.getIsGeneral() and !card.canTargetGeneral
+    # These four imported abilities select one friendly minion. The caster is
+    # not a legal recipient, even though AllyDirect normally includes it.
+    if card.getId() in [
+      Cards.PhobiesAbility.FeelGreat, Cards.PhobiesAbility.PureAdrenaline,
+      Cards.PhobiesAbility.ClangClang, Cards.PhobiesAbility.HelpingHand
+    ] and board.positionsEqual(sourceUnit.getPosition(), target.getPosition())
+      return true
     if card.spellFilterType is SpellFilterType.AllyDirect
       return target.getOwnerId() isnt sourceUnit.getOwnerId() or target.getIsGeneral()
     if card.spellFilterType is SpellFilterType.EnemyDirect

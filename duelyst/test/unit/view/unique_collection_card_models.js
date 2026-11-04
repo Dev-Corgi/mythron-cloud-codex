@@ -16,4 +16,10 @@ describe('unique collection card models', () => {
     const prismatic = model(5000101, 'Prismatic Phobies Ion');
     expect(uniqueCardModels([null, {}, base, prismatic])).to.deep.equal([base, prismatic]);
   });
+
+  it('keeps every imported card exactly once when duplicate collection sources overlap', () => {
+    const sourceCards = Array.from({ length: 35 }, (_, index) => model(50001 + index, `Phobies ${index + 1}`));
+    const combinedSources = sourceCards.flatMap((card) => [card, model(card.get('id'), 'duplicate source')]);
+    expect(uniqueCardModels(combinedSources)).to.deep.equal(sourceCards);
+  });
 });

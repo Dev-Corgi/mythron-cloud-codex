@@ -5,6 +5,7 @@ require('coffeescript/register');
 const { expect } = require('chai');
 const SDK = require('../../../app/sdk.coffee');
 const PhobiesCollectionCardVisual = require('../../../app/ui/views2/collection/PhobiesCollectionCardVisual');
+const HandAbilitySlot = require('../../../app/view/layers/game/handAbilitySlot');
 
 describe('Phobies collection card visual', () => {
   const model = (attributes) => ({ get: (key) => attributes[key] });
@@ -78,6 +79,28 @@ describe('Phobies collection card visual', () => {
       });
       if (iconFile) expect(detail.icon.atlas).to.include(iconFile);
       else expect(detail.icon.portrait).to.equal(true);
+    });
+  });
+
+  it('keeps collection, hand-slot, and inspect ability definitions in parity for all active cards', () => {
+    const session = SDK.GameSession.create();
+    session.setRuleset('practice-sandbox-hex', 2);
+    const activeUnitIds = [50001, 50004, 50005, 50009, 50011, 50013, 50014, 50016, 50017, 50020, 50024, 50026, 50030, 50031, 50032, 50035];
+    activeUnitIds.forEach((unitId) => {
+      const unit = SDK.CardFactory.cardForIdentifier(unitId, session);
+      const definition = unit.activeAbility;
+      const inspectData = HandAbilitySlot.getUnitAbilityFaceData(unit, definition.effectCardId);
+      const slotData = HandAbilitySlot.getSlotAbilityFaceData({ unit, effectCardId: definition.effectCardId }, definition);
+      const collectionData = PhobiesCollectionCardVisual.getAbilityDetail(unit);
+
+      expect(inspectData, `inspect ${unitId}`).to.deep.equal(definition);
+      expect(slotData, `hand ${unitId}`).to.deep.equal(definition);
+      expect(collectionData, `collection ${unitId}`).to.include({
+        name: SDK.CardFactory.cardForIdentifier(definition.effectCardId, session).getName().replace(/^\[PB\]\s*/, ''),
+        description: SDK.CardFactory.cardForIdentifier(definition.effectCardId, session).getDescription(),
+        lockdown: definition.lockdown,
+        cooldown: definition.cooldown,
+      });
     });
   });
 

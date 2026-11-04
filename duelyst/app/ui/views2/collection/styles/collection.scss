@@ -671,11 +671,11 @@ $selectedCardTextColorAlt: #b5b5b5;
 		transform: translate(-50%, -50%);
 	}
 	.phobies-active-ability-lockdown-ring,
-	.phobies-active-ability-lockdown-icon,
 	.phobies-active-ability-lockdown-value { left: 23%; }
 	.phobies-active-ability-cooldown-ring,
-	.phobies-active-ability-cooldown-icon,
 	.phobies-active-ability-cooldown-value { left: 77%; }
+	.phobies-active-ability-lockdown-icon { left: 13.5%; }
+	.phobies-active-ability-cooldown-icon { left: 86.5%; }
 	.phobies-active-ability-lockdown-icon,
 	.phobies-active-ability-cooldown-icon {
 		position: absolute;

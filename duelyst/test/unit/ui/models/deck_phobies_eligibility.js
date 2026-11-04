@@ -34,9 +34,9 @@ describe('Practice/Sandbox DeckModel Phobies eligibility', () => {
     };
   }
 
-  function deckContext() {
+  function deckContext(purpose = 'practice') {
     return {
-      getPurpose: () => 'practice',
+      getPurpose: () => purpose,
       get: (key) => ({ isStarter: true, cards: [], faction_id: 1 })[key],
       _cardModels: { get: () => null, add: () => {}, remove: () => {} },
       hasGeneral: () => true,
@@ -46,8 +46,11 @@ describe('Practice/Sandbox DeckModel Phobies eligibility', () => {
   }
 
   it('accepts Phobies IDs and rejects the former neutral roster through DeckModel', () => {
-    expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(50001), 1)).to.equal(true);
-    expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(50003), 1)).to.equal(true);
+    for (const purpose of ['practice', 'sandbox']) {
+      for (let id = 50001; id <= 50035; id += 1) {
+        expect(DeckModel.prototype.changeCardModel.call(deckContext(purpose), card(id), 1), `${purpose} deck choice ${id}`).to.equal(true);
+      }
+    }
     expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(10979), 1)).to.equal(false);
     expect(DeckModel.prototype.changeCardModel.call(deckContext(), card(10019), 1)).to.equal(false);
   });

@@ -72,6 +72,24 @@ describe('active ability state', () => {
     return ally;
   };
 
+  it('rejects the caster as the target of single-target friendly Phobies abilities', () => {
+    const casters = [
+      [50005, 51001], // Flash Reincarnation (heal and Attack)
+      [50016, 51003], // Flash Reincarnation (heal)
+      [50017, 51004], // War Surge
+      [50026, 51006], // Flash Reincarnation (Attack)
+    ];
+    casters.forEach(([unitId, abilityId], index) => {
+      const position = { q: 2 + index, r: 2 };
+      const caster = deployPhobies(unitId, gameSession.getPlayer1Id(), position);
+      const legal = SDK.UseActiveAbilityAction.getLegalTargetPositions(gameSession, caster);
+      expect(legal.some((candidate) => gameSession.getBoard().positionsEqual(candidate, position)), `${abilityId} caster target`).to.equal(false);
+      const action = gameSession.getPlayer1().actionUseActiveAbility(caster.getIndex(), position);
+      gameSession.validateAction(action, false);
+      expect(action.getIsValid(), action.getValidationMessage()).to.equal(false);
+    });
+  });
+
   it('initializes eligible unit Phoenix Fire and initializes per-instance Lockdown/Cooldown', () => {
     const scout = createAbilityFixture();
     expect(scout.activeAbility).to.deep.equal({ effectCardId: SDK.Cards.Spell.PhoenixFire, lockdown: 1, cooldown: 1 });
@@ -152,6 +170,19 @@ describe('active ability state', () => {
     pure.getActiveAbilityState().cooldown = 0;
     const generalUse = useUnitAbility(pure, gameSession.getGeneralForPlayer1().getPosition());
     expect(generalUse.getIsValid()).to.equal(false);
+  });
+
+  it('does not overheal a full-health target', () => {
+    const caster = deployPhobies(50005, gameSession.getPlayer1Id(), { q: 2, r: 2 });
+    const ally = deployPhobies(50003, gameSession.getPlayer1Id(), findOpenPosition(caster.getPosition(), 1, 1));
+    expect(ally.getDamage()).to.equal(0);
+    const action = useUnitAbility(caster, ally.getPosition());
+    expect(action.getIsValid(), action.getValidationMessage()).to.equal(true);
+    expect(ally.getDamage()).to.equal(0);
+    const heal = action.getFlattenedActionTree().find((subAction) => subAction instanceof SDK.HealAction);
+    expect(heal).to.exist;
+    expect(heal.getHealAmount()).to.equal(650);
+    expect(heal.getTotalHealApplied()).to.equal(0);
   });
 
   it('resolves Clang! Clang! and Helping Hand for +300 Attack through one owner turn', () => {

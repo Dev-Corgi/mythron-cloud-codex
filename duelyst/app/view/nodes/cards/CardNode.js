@@ -552,6 +552,7 @@ var CardNode = SdkNode.extend({
     if (this.cardTypeLabel != null) this.cardTypeLabel.setPosition(0, 4);
     if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setPosition(0, -90);
     if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setDimensions(cc.size(this.getCardBackgroundContentSize().width - 20, 0));
+    if (this.cardDescriptionLabel != null) this.cardDescriptionLabel.setVisible(true);
     if (this.atkLabel != null) this.atkLabel.setPosition(-61, -32);
     if (this.hpLabel != null) this.hpLabel.setPosition(59, -32);
     if (this.atkLabel != null) this.atkLabel.setFontFillColor(CONFIG.ATK_COLOR);
@@ -734,13 +735,19 @@ var CardNode = SdkNode.extend({
     level.setString(`LEVEL ${sdkCard.getLevel ? sdkCard.getLevel() : 1}`, true);
     level.setPosition(this._phobiesPosition(ABILITY_LAYOUT.level.center));
 
+    const effect = addValue(10, cc.color(155, 206, 216), ABILITY_LAYOUT.effect.maxWidth / 2, 90);
+    effect.setString(sdkCard.getDescription(CONFIG.FORMATTING_ENGINE) || '', true);
+    effect.setPosition(this._phobiesPosition(ABILITY_LAYOUT.effect.center));
+
     this.cardBackgroundSprite.setVisible(false);
     this.cardNameLabel.setVisible(false);
     this.cardTypeLabel.setVisible(false);
     this.factionNameLabel.setVisible(false);
-    this.cardDescriptionLabel.setPosition(this._phobiesPosition(ABILITY_LAYOUT.effect.center));
-    this.cardDescriptionLabel.setDimensions(cc.size(ABILITY_LAYOUT.effect.maxWidth / 2, 72));
-    this.cardDescriptionLabel.setFontSize(10);
+    this.cardDescriptionLabel.setVisible(false);
+    this.atkLabel.setVisible(false);
+    this.hpLabel.setVisible(false);
+    this.manaLabel.setVisible(false);
+    this._manaGemSprite.setVisible(false);
     this._phobiesAbilityFaceNodes = nodes;
   },
 
@@ -1023,6 +1030,13 @@ var CardNode = SdkNode.extend({
   },
 
   updateStats() {
+    if (this._phobiesAbilityFaceEnabled) {
+      this.atkLabel.setVisible(false);
+      this.hpLabel.setVisible(false);
+      this.manaLabel.setVisible(false);
+      this._manaGemSprite.setVisible(false);
+      return;
+    }
     const stateAtAction = this.getStateForActionToShowStateFor();
     const manaCost = (stateAtAction != null && stateAtAction.manaCost != null ? stateAtAction.manaCost : (this.sdkCard && this.sdkCard.manaCost)) || 0;
 
@@ -1128,13 +1142,6 @@ var CardNode = SdkNode.extend({
       this.hpLabel.setVisible(false);
     }
 
-    // The SDK entity may carry combat stats, but these are not ability-card attributes.
-    if (this._phobiesAbilityFaceEnabled) {
-      this.atkLabel.setVisible(false);
-      this.hpLabel.setVisible(false);
-      this.manaLabel.setVisible(false);
-      this._manaGemSprite.setVisible(false);
-    }
   },
 
   /**

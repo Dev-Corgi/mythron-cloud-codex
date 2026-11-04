@@ -870,9 +870,26 @@
 // gameplay cards keep their existing frame and composition.
 .card.collection-card.phobies-unit,
 .card.collection-card.phobies-ability {
+	&.prismatic {
+		.phobies-card-frame { filter: hue-rotate(55deg) saturate(1.5) brightness(1.12); }
+		.phobies-card-prismatic-label {
+			position: absolute;
+			z-index: 3;
+			top: 13%;
+			right: 6%;
+			padding: 0.15rem 0.4rem;
+			border: 1px solid #ce9cff;
+			border-radius: 0.3rem;
+			background: rgba(38, 14, 66, 0.85);
+			color: #f4d8ff;
+			font-size: 0.7rem;
+			line-height: 1;
+		}
+	}
 	.bg,
 	.card-caption,
 	.card-description,
+	.card-description-long,
 	.prismatic-gradient {
 		display: none;
 	}
@@ -982,6 +999,7 @@
 	.bg,
 	.card-caption,
 	.card-description,
+	.card-description-long,
 	.prismatic-gradient {
 		display: none;
 	}
@@ -1073,11 +1091,50 @@
 
 .card.collection-card.phobies-ability {
 	.card-sprite {
+		display: none;
+	}
+	.phobies-card-ability-art {
+		position: absolute;
+		z-index: 1;
+		left: 50%;
+		top: 26.35%;
 		width: 9.6rem;
 		height: 9.6rem;
-		left: 50%;
-		top: 26.4%;
+		transform: translate(-50%, -50%);
+		background-repeat: no-repeat;
+		image-rendering: pixelated;
 	}
+	.phobies-card-ability-lockdown-ring,
+	.phobies-card-ability-cooldown-ring {
+		position: absolute;
+		z-index: 1;
+		top: 60.8%;
+		width: 4.4rem;
+		height: 4.4rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-card-ability-lockdown-icon,
+	.phobies-card-ability-cooldown-icon {
+		position: absolute;
+		z-index: 2;
+		top: 60.8%;
+		width: 1.6rem;
+		height: 2.08rem;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-card-ability-lockdown-value,
+	.phobies-card-ability-cooldown-value {
+		position: absolute;
+		z-index: 2;
+		top: 60.8%;
+		width: 3rem;
+		font-size: 1.8rem;
+		line-height: 2.2rem;
+		text-align: center;
+		transform: translate(-50%, -50%);
+	}
+	.phobies-card-ability-lockdown-value { color: #e8b9ff; }
+	.phobies-card-ability-cooldown-value { color: #7be6f5; }
 	.phobies-card-name {
 		width: 90%;
 		font-size: 1.3rem;

@@ -7,6 +7,7 @@ var SDK = require('app/sdk');
 var CONFIG = require('app/common/config');
 var UNIT_LAYOUT = require('app/resources/card_ui/phobies_unit/card-layout.json');
 var ABILITY_LAYOUT = require('app/resources/card_ui/phobies_ability/ability-layout.json');
+var ABILITY_IDLE_FRAMES = require('./phobiesAbilityIdleFrames.json');
 
 var ATTACK_ICONS = {
   melee: RSX.collection_card_attack_melee.img,
@@ -101,6 +102,19 @@ function getAbilityArtPresentation(icon) {
   };
 }
 
+function animateAbilityArt($art, icon) {
+  if (!$art || !$art.length || !icon || icon.portrait) return function () {};
+  var atlasName = icon.atlas.split('/').pop();
+  var coordinates = ABILITY_IDLE_FRAMES[atlasName];
+  if (!coordinates || coordinates.length < 4) return function () {};
+  var frame = 0;
+  var timer = setInterval(function () {
+    frame = (frame + 1) % (coordinates.length / 2);
+    $art.css('background-position', `${-coordinates[frame * 2] * 2}px ${-coordinates[frame * 2 + 1] * 2}px`);
+  }, 120);
+  return function () { clearInterval(timer); };
+}
+
 function centerAt(element, x, y) {
   element.css({ left: `${(x / UNIT_LAYOUT.canvas.width) * 100}%`, top: `${(y / UNIT_LAYOUT.canvas.height) * 100}%` });
 }
@@ -141,6 +155,19 @@ function getAbilityDetail(card) {
   };
 }
 
+function getAbilityDetailForEffect(card) {
+  if (!card || !card.getId) return null;
+  var effectCardId = card.getId();
+  var unitIds = Object.keys(SDK.Cards.Phobies);
+  for (var i = 0; i < unitIds.length; i++) {
+    var unit = SDK.CardFactory.cardForIdentifier(SDK.Cards.Phobies[unitIds[i]], card.getGameSession && card.getGameSession());
+    if (unit && unit.activeAbility && unit.activeAbility.effectCardId === effectCardId) {
+      return getAbilityDetail(unit);
+    }
+  }
+  return null;
+}
+
 function getCardFaceType(cardModel) {
   if (!cardModel || !cardModel.get('card')) return null;
   if (cardModel.get('isUnit')) return 'unit';
@@ -171,6 +198,9 @@ function createFace($, cardModel) {
   var $face = $('<div>').addClass(`phobies-collection-face ${isAbility ? 'phobies-ability-face' : 'phobies-unit-face'}`);
   var framePath = isAbility ? RSX.collection_card_ability_frame.img : RSX.collection_card_unit_frame.img;
   $face.append($('<img>').addClass('phobies-card-frame').attr({ src: framePath, alt: '', 'aria-hidden': 'true' }));
+  if (cardModel.get('isPrismatic')) {
+    $face.append($('<span>').addClass('phobies-card-prismatic-label').text('PRISMATIC'));
+  }
 
   if (isUnit) {
     var positions = UNIT_LAYOUT.positions;
@@ -204,7 +234,20 @@ function createFace($, cardModel) {
     var $abilityName = addLabel($face, 'name', card.getName().toUpperCase(), namePosition[0], namePosition[1]);
     if ($abilityName.text().length > 21) $abilityName.addClass('is-long');
     addLabel($face, 'level', `LEVEL ${card.getLevel ? card.getLevel() : 1}`, levelPosition[0], levelPosition[1]);
-    var $effect = $('<div>').addClass('phobies-card-effect').html(cardModel.get('description') || '');
+    var abilityDetail = getAbilityDetailForEffect(card);
+    if (abilityDetail) {
+      var art = getAbilityArtPresentation(abilityDetail.icon);
+      $('<span>').addClass('phobies-card-ability-art').css({
+        backgroundImage: `url('${art.art}')`, backgroundPosition: art.artPosition, backgroundSize: art.artSize,
+      }).appendTo($face);
+      addImage($face, 'ability-lockdown-ring', RSX.collection_card_ability_lockdown_ring.img, 104, 360);
+      addImage($face, 'ability-lockdown-icon', RSX.collection_card_ability_lockdown_icon.img, 61, 360);
+      addLabel($face, 'ability-lockdown-value', abilityDetail.lockdown, 104, 360);
+      addImage($face, 'ability-cooldown-ring', RSX.collection_card_ability_cooldown_ring.img, 348, 360);
+      addImage($face, 'ability-cooldown-icon', RSX.collection_card_ability_cooldown_icon.img, 391, 360);
+      addLabel($face, 'ability-cooldown-value', abilityDetail.cooldown, 348, 360);
+    }
+    var $effect = $('<div>').addClass('phobies-card-effect').html(cardModel.get('description') || (abilityDetail && abilityDetail.description) || '');
     $effect.attr('aria-label', $effect.text() || '');
     if (($effect.text() || '').length > 100) $effect.addClass('is-long');
     centerAt($effect, effectPosition[0], effectPosition[1]);
@@ -240,6 +283,8 @@ module.exports = {
   getAbilityDetail: getAbilityDetail,
   getAbilityIcon: getAbilityIcon,
   getAbilityArtPresentation: getAbilityArtPresentation,
+  animateAbilityArt: animateAbilityArt,
+  getAbilityDetailForEffect: getAbilityDetailForEffect,
   getStatPositions: getStatPositions,
   getUnitStatData: getUnitStatData,
   render: render,

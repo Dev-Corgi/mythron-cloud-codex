@@ -109,6 +109,7 @@ class CardFactory_Phobies
       original = require('app/sdk/cards/cardFactory').cardForIdentifier(originalCardId, gameSession)
       throw new Error("Missing mapped Duelyst source card #{originalCardId} for Phobies card #{id}") unless original?
       card.setBaseAnimResource(original.getBaseAnimResource())
+      card.setBaseSoundResource(original.getBaseSoundResource())
       card.setPortraitResource(original.getPortraitResource())
       card.setPortraitHexResource(original.getPortraitHexResource())
     return card
