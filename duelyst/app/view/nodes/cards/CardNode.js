@@ -681,7 +681,7 @@ var CardNode = SdkNode.extend({
       return sprite;
     };
     const addValue = (fontSize, color, width, height) => {
-      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(width || 150, height || 28), cc.TEXT_ALIGNMENT_CENTER);
+      const label = new cc.LabelTTF('', RSX.font_bold.name, fontSize, cc.size(width || 150, height || 28), cc.TEXT_ALIGNMENT_CENTER, cc.VERTICAL_TEXT_ALIGNMENT_CENTER);
       label.setFontFillColor(color || cc.color.WHITE);
       label.setAnchorPoint(0.5, 0.5);
       this._staticContainerNodeFront.addChild(label, 2);
@@ -714,26 +714,18 @@ var CardNode = SdkNode.extend({
       return sprite;
     };
     const activeAbility = this._phobiesAbilityFaceData;
-    // Live data (a unit on the board or a General's Bloodbound card in a match) shows only the
-    // nonzero counter and nothing when ready. Otherwise both rings show the definition's base counters.
-    const isLive = !!activeAbility.live;
-    const liveCounter = isLive ? activeAbility.liveCounter : null;
-    const showLockdown = isLive ? (liveCounter != null && liveCounter.type === 'lockdown') : true;
-    const showCooldown = isLive ? (liveCounter != null && liveCounter.type === 'cooldown') : true;
-    if (showLockdown) {
-      addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
-      addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
-      const lockdownValue = addValue(18, cc.color(232, 185, 255), 44, 44);
-      lockdownValue.setString(`${isLive ? liveCounter.value : (activeAbility.lockdown || 0)}`, true);
-      lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
-    }
-    if (showCooldown) {
-      addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
-      addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
-      const cooldownValue = addValue(18, cc.color(123, 230, 245), 44, 44);
-      cooldownValue.setString(`${isLive ? liveCounter.value : (activeAbility.cooldown || 1)}`, true);
-      cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
-    }
+    // Ability inspect cards show their static definition, never the changing match state.
+    addSizedSprite(RSX.collection_card_ability_lockdown_ring, lockdown.center, lockdown.size);
+    addSizedSprite(RSX.collection_card_ability_lockdown_icon, lockdown.iconCenter, lockdown.iconSize);
+    const lockdownValue = addValue(lockdown.valueFontSize / 2, cc.color(232, 185, 255), 44, 44);
+    lockdownValue.setString(`${activeAbility.lockdown}`, true);
+    lockdownValue.setPosition(this._phobiesPosition(lockdown.center));
+
+    addSizedSprite(RSX.collection_card_ability_cooldown_ring, cooldown.center, cooldown.size);
+    addSizedSprite(RSX.collection_card_ability_cooldown_icon, cooldown.iconCenter, cooldown.iconSize);
+    const cooldownValue = addValue(cooldown.valueFontSize / 2, cc.color(123, 230, 245), 44, 44);
+    cooldownValue.setString(`${activeAbility.cooldown}`, true);
+    cooldownValue.setPosition(this._phobiesPosition(cooldown.center));
 
     const name = addValue(14, cc.color.WHITE, this.getCardBackgroundContentSize().width - 20, 24);
     name.setString(sdkCard.getName().toUpperCase(), true);
@@ -1134,6 +1126,14 @@ var CardNode = SdkNode.extend({
     } else {
       this.atkLabel.setVisible(false);
       this.hpLabel.setVisible(false);
+    }
+
+    // The SDK entity may carry combat stats, but these are not ability-card attributes.
+    if (this._phobiesAbilityFaceEnabled) {
+      this.atkLabel.setVisible(false);
+      this.hpLabel.setVisible(false);
+      this.manaLabel.setVisible(false);
+      this._manaGemSprite.setVisible(false);
     }
   },
 

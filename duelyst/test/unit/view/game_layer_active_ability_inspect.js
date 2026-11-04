@@ -290,14 +290,15 @@ describe('GameLayer active ability inspect card', () => {
       ...extra,
     });
 
-    it('gives a deployed unit ability card its live nonzero counter', () => {
+    it('keeps deployed unit ability card definition counters', () => {
       const unit = Object.assign(new FakeUnit(), cardBase({
         activeAbility: { effectCardId: 701, lockdown: 1, cooldown: 1 },
         getActiveAbilityState: () => ({ lockdown: 0, cooldown: 1 }),
       }));
       const faces = run(unit, {}, makeSession());
-      expect(faces.related[faces.related.length - 1].live).to.equal(true);
-      expect(faces.related[faces.related.length - 1].liveCounter).to.deep.equal({ type: 'cooldown', value: 1 });
+      expect(faces.related[faces.related.length - 1].live).to.equal(false);
+      expect(faces.related[faces.related.length - 1].liveCounter).to.equal(null);
+      expect(faces.related[faces.related.length - 1]).to.include({ lockdown: 1, cooldown: 1 });
       expect(faces.primary[0]).to.equal(null);
     });
 
@@ -311,7 +312,7 @@ describe('GameLayer active ability inspect card', () => {
       expect(faces.related[faces.related.length - 1]).to.equal(definition);
     });
 
-    it('gives the General signature card an ability face with the General live counter', () => {
+    it('gives the General signature card an ability face with its base counters', () => {
       const signature = cardBase({
         isSignatureCard: () => true,
         getId: () => 20174,
@@ -320,7 +321,8 @@ describe('GameLayer active ability inspect card', () => {
       const general = { getActiveAbilityState: () => ({ lockdown: 2, cooldown: 0 }), activeAbility: { lockdown: 2, cooldown: 2 } };
       const faces = run(signature, {}, makeSession({ getGeneralForPlayerId: () => general }));
       expect(faces.primary[0].effectCardId).to.equal(20174);
-      expect(faces.primary[0].liveCounter).to.deep.equal({ type: 'lockdown', value: 2 });
+      expect(faces.primary[0].liveCounter).to.equal(null);
+      expect(faces.primary[0]).to.include({ lockdown: 2, cooldown: 2 });
     });
 
     it('leaves the signature card unchanged in legacy matches', () => {
@@ -339,14 +341,15 @@ describe('GameLayer active ability inspect card', () => {
       expect(faces.primary[0]).to.equal(null);
     });
 
-    it('shows the effect card of a hand ability slot with the live counter of its unit', () => {
+    it('shows the effect card of a hand ability slot with its static ability definition', () => {
       const unit = { activeAbility: { lockdown: 1, cooldown: 1 }, getActiveAbilityState: () => ({ lockdown: 1, cooldown: 0 }) };
       const effectCard = cardBase({ getReferencedCardData: () => null, getId: () => 701 });
       const node = new global.cc.Node();
       node.getAbilitySlotModel = () => ({ unit, effectCardId: 701 });
       const faces = run(effectCard, node, makeSession());
       expect(faces.primary[0].effectCardId).to.equal(701);
-      expect(faces.primary[0].liveCounter).to.deep.equal({ type: 'lockdown', value: 1 });
+      expect(faces.primary[0].liveCounter).to.equal(null);
+      expect(faces.primary[0]).to.include({ lockdown: 1, cooldown: 1 });
     });
   });
 });

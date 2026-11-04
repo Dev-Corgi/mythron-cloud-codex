@@ -115,19 +115,13 @@ function getHandAbilitySlot(player, slotIndex, context) {
 
 /**
  * Face data for CardNode.setPhobiesAbilityFaceEnabled.
- * With a live state the face is flagged `live` and carries the single nonzero counter;
- * without a state (collection, no session, unit not on board) the definition is returned
- * untouched so the face keeps showing the base counters.
+ * Inspect faces describe the ability card, so their counters always come from its
+ * definition. Runtime availability is shown by the hand slot, not printed on the card.
  */
 function buildAbilityFaceData(definition, state) {
   if (definition == null) return null;
   if (state == null) return definition;
-  return Object.assign({}, definition, {
-    lockdown: toCount(state.lockdown),
-    cooldown: toCount(state.cooldown),
-    live: true,
-    liveCounter: getLiveCounter(state),
-  });
+  return Object.assign({}, definition, { live: false, liveCounter: null });
 }
 
 function isV2Session(session) {
