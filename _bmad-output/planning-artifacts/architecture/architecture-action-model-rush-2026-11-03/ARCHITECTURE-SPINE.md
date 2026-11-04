@@ -4,11 +4,11 @@ type: architecture-spine
 purpose: build-substrate
 altitude: epic
 paradigm: 'One per-unit move/attack slot pair on Entity (original Duelyst), reused by every v2 action source'
-scope: 'Practice and Sandbox ruleset v2 only: replacing action points with the original move-then-attack model, ability use as the attack action, and Rock Pulverizer Rush'
+scope: 'Practice and Sandbox ruleset v2 only: the original move-then-attack model with ability use as the attack action, Rock Pulverizer Rush, enemy units blocking ranged attacks, and fly/phase summons onto Walls'
 status: final
 created: '2026-11-03'
-updated: '2026-11-03'
-binds: [SPEC-duelyst-action-model-rush CAP-1, CAP-2, AD-1, AD-3, AD-6, AD-7, AD-13, AD-14, AD-15, AD-17]
+updated: '2026-11-04'
+binds: [SPEC-duelyst-action-model-rush CAP-1, CAP-2, CAP-3, CAP-4, AD-1, AD-3, AD-6, AD-7, AD-8, AD-13, AD-14, AD-15, AD-17]
 sources: []
 companions:
   - ../architecture-duelyst-2026-10-30/ARCHITECTURE-SPINE.md
@@ -53,6 +53,7 @@ Dependency direction: validators, actions, AI and UI read and write slot state o
 | AD-3 | duelyst spine | Slot rules are enforced in SDK actions and validators, never UI-only. |
 | AD-6 | duelyst spine | Only Entity accessors decide can-move and can-attack. **Its two-action-point clause is superseded by AD-18.** |
 | AD-7 | duelyst spine | One ability action, no mana, both counters zero, live, not silenced. **Its "spends one action point" clause is superseded by AD-19.** |
+| AD-8 | duelyst spine | Ranged and area geometry is resolved in one place (`hexAttackGeometry`). CAP-3 adds enemy-unit obstruction for ranged attacks inside that resolver only; Behold keeps its Wall-only rules and its piercing beam. |
 | AD-13 | phobies spine | Numeric ruleset constants live in the v2 config; this spine adds none. |
 | AD-14 | phobies spine | Passives are modifiers on existing hooks. |
 | AD-15 | phobies spine | Reuse before create. |
@@ -90,6 +91,12 @@ Dependency direction: validators, actions, AI and UI read and write slot state o
 - **Prevents:** Migration code or a ruleset version bump for data that is being discarded.
 - **Rule:** Snapshots and replays recorded under the two-action-point rule are discarded. Ruleset stays version 2 (AD-1). `actionPoints` and `actionPointsSpentThisTurn` leave the stat card-data keys, `SetExhaustionAction` and serialization and are ignored if read; no migration or compatibility code is written. Precondition for implementing: confirm that stored snapshots carry `exhausted`, `movesMade` and `attacksMade`, which the stat card-data keys do not include.
 
+### AD-23 — One predicate decides whether a Wall obstructs a summoned unit [ADOPTED]
+
+- **Binds:** CAP-4; `ValidatorApplyCardToBoard`, hand-summon position generation, effect-created summons (spawn, clone and summon spells and modifiers), AI, placement highlighting.
+- **Prevents:** The validator allowing a fly or phase unit on a Wall while a hand or effect position generator still rejects it (or the reverse), and the exemption leaking into teleports or movement.
+- **Rule:** The Wall exemption for fly and phase units is decided in exactly one board predicate, used both by `ValidatorApplyCardToBoard` and by every producer of summon positions that today calls `Board.getObstructionAtPositionForEntity` for a unit about to be applied to the board. Walk units are unaffected. Teleport and move paths keep their existing obstruction logic. A hole still requires a tile; hand summons keep the General-adjacent restriction; effects keep their own placement constraints. The Wall stays a separate entity at the shared position.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -100,6 +107,8 @@ Dependency direction: validators, actions, AI and UI read and write slot state o
 | Exhaustion changes | Entity mutators via exhaustion actions or listed call sites (AD-20). |
 | Rush | `ModifierFirstBlood`; no new Rush modifier (AD-21). |
 | v2 test | The one v2 helper (AD-1). |
+| Ranged obstruction | Only `hexAttackGeometry`; enemy-unit blocking for ranged attacks only (AD-8, CAP-3). |
+| Summon placement | Only the AD-23 predicate. |
 
 ## Structural Seed
 
@@ -117,6 +126,8 @@ server/ai/                          # practice AI sequencing
 | --- | --- | --- |
 | CAP-1 move-then-attack model | Entity, actions, validators, AI, card UI | AD-1, AD-3, AD-18, AD-19, AD-20, AD-22 |
 | CAP-2 Rock Pulverizer Rush | Phobies factory, Rush modifier, card text | AD-14, AD-15, AD-20, AD-21 |
+| CAP-3 enemy units block ranged attacks | `hexAttackGeometry`, attack range, AI, view targeting | AD-8 (inherited), AD-3 |
+| CAP-4 fly/phase summon onto Walls | Board obstruction predicate, apply-to-board validator, summon spells and modifiers | AD-1, AD-23 |
 
 ## Deferred
 

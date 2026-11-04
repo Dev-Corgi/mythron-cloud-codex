@@ -1,4 +1,4 @@
-﻿---
+---
 id: SPEC-duelyst-action-model-rush
 companions:
   - ../../planning-artifacts/architecture/architecture-action-model-rush-2026-11-03/ARCHITECTURE-SPINE.md
@@ -22,6 +22,13 @@ A rules mandate for the modded Duelyst game: replace the current Phobies-style r
   - **intent:** Rock Pulverizer has a Rush passive instead of its active ability.
   - **success:** Rock Pulverizer has no active ability (`move_and_strike` removed from it); on the turn it is summoned it is not exhausted and can move then attack, exactly like a ready unit, and has no other effect. Its stats and Lifegain are unchanged, no other card has Rush, and `move_and_strike` is retired only if no other card uses it.
 
+- **CAP-3**
+  - **intent:** A ranged attack cannot reach through an enemy unit to hit something behind it.
+  - **success:** In Practice/Sandbox v2, for a ranged attacker, every enemy unit (including a General) between the ends of the attack line obstructs it exactly as a Wall does, using the same line tests; the nearest obstruction decides, so a unit behind an enemy, and a target behind an enemy that stands behind a Wall, is untargetable. An enemy unit standing on the target tile never blocks its own tile, and allied units never block. Lobbed and area attacks are unchanged, and so are active abilities with their own geometry: Behold's straight-line beam still pierces enemies and stops only at Walls. Targeting, previews, AI, and replay use the same shared resolver.
+- **CAP-4**
+  - **intent:** Fly and phase units can be summoned onto Walls next to their owner's General.
+  - **success:** In Practice/Sandbox v2, a unit whose movement type is fly or phase may be summoned onto a Wall on a tile adjacent to its owner's General, from a hand card or from an effect-created summon on any Wall the effect itself is allowed to place a unit on (the effect's own placement constraints still apply; only the Wall exclusion is lifted for these units); the Wall stays as a separate entity at that position. Walk units still cannot be summoned onto Walls, and no other summon rule changes. Legal-position highlighting, validation, and AI use one shared source of valid summon positions.
+
 ## Constraints
 
 - The two-action-point contract is retired outright: no action-point count remains as the rule, in state, AI, or UI.
@@ -31,7 +38,8 @@ A rules mandate for the modded Duelyst game: replace the current Phobies-style r
 - Rush removes only the default summon exhaustion; other exhaustion sources still apply.
 - Lockdown and Cooldown counters, decrement timing, and use conditions stay as they are.
 - Only Rock Pulverizer is changed on the card side; other cards' data and descriptions stay untouched.
-- Work is split into two stories; Rush depends on the action model.
+- Work is split into four stories; Rush depends on the action model, and the ranged-blocking and Wall-summon stories are independent of the others.
+- CAP-3 supersedes the map spec's "Units do not block" ranged rule for enemy units only; every other ranged rule (including the Wall beneath the target) stays. CAP-4 supersedes the map spec's note that summoning rules apply separately from movement permissions, for fly and phase units on Walls adjacent to the General only.
 - Design follows the companion architecture spine: AD-18 to AD-20 and AD-22 govern CAP-1, AD-21 governs CAP-2.
 
 ## Non-goals
@@ -39,6 +47,8 @@ A rules mandate for the modded Duelyst game: replace the current Phobies-style r
 - Implementation in this run; this spec produces stories only.
 - Compatibility with old snapshots/replays: those recorded under the two-action-point rule are discarded.
 - New cards, new abilities, or stat changes.
+- Changing lobbed or area attack obstruction.
+- Letting walk units, or any unit, be summoned onto holes or onto Walls not adjacent to the General.
 - Any other card receiving Rush.
 - Action-point display or counters in the UI.
 
@@ -48,5 +58,6 @@ A match plays like original Duelyst: units move then attack or use an ability, n
 
 ## Assumptions
 
+- Obstruction by an enemy unit uses exactly the Wall tests (center of its tile on the line, and the center-to-center link between two hex-adjacent obstructors); a Wall and an enemy unit that are hex-adjacent form such a link (confirmed).
+- Behold (a piercing active ability, not a ranged attack) is unaffected by CAP-3: its target selection and beam keep their current Wall-only rules (confirmed).
 - "No other card has Rush" is read as the Phobies roster only (confirmed as a working assumption); original Duelyst `ModifierFirstBlood` cards are unchanged.
-
